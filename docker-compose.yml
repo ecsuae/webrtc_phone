@@ -1,0 +1,81 @@
+services:
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    user: "0:0"
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./coturn/entrypoint.sh:/entrypoint.sh:ro
+      - ./certs:/certs:ro
+    entrypoint: ["/entrypoint.sh"]
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    networks:
+      - webrtc
+
+  rtpengine:
+    image: davehorton/rtpengine:latest
+    container_name: rtpengine
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${RTP_MIN}-${RTP_MAX}:${RTP_MIN}-${RTP_MAX}/udp"
+    volumes:
+      - ./rtpengine/rtpengine.conf:/etc/rtpengine/rtpengine.conf:ro
+    command:
+      - rtpengine
+      - --config-file=/etc/rtpengine/rtpengine.conf
+      - --foreground
+      - --log-stderr
+      - --log-level=6
+    networks:
+      - webrtc
+
+  kamailio:
+    image: ghcr.io/kamailio/kamailio:5.8.2-jammy
+    container_name: kamailio
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PBX_IP=${PBX_IP}
+      - PBX_PORT=${PBX_PORT}
+      - PBX_TRANSPORT=udp
+      - KAM_PUBLIC_IP=${PUBLIC_IP}
+    depends_on:
+      - rtpengine
+    ports:
+      - "5060:5060/udp"
+      - "5060:5060/tcp"
+      - "8443:8443/tcp"
+    volumes:
+      - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
+      - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
+      - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
+      - ./certs:/certs:ro
+    networks:
+      - webrtc
+
+  nginx:
+    image: nginx:alpine
+    container_name: phone-nginx
+    restart: unless-stopped
+    depends_on:
+      - kamailio
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/phone.srve.cc.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./www:/var/www/phone:ro
+      - ./certs:/certs:ro
+    networks:
+      - webrtc
+
+networks:
+  webrtc:
+    driver: bridge

@@ -1,0 +1,32 @@
+# Replace with your public FQDN (example: rtc.srve.cc)
+realm=${DOMAIN}
+server-name=${DOMAIN}
+external-ip=${PUBLIC_IP}/${TURN_RELAY_IP}
+
+# Host networking: listen on all
+listening-port=3478
+tls-listening-port=5349
+
+# TURN over TCP helps in restricted networks
+listening-ip=0.0.0.0
+relay-ip=${TURN_RELAY_IP}
+
+# Authentication (static user for testing; later move to REST auth)
+lt-cred-mech
+user=${TURN_USER}:${TURN_PASS}
+
+# Security / NAT behavior
+fingerprint
+no-multicast-peers
+no-loopback-peers
+
+# Certificates for TURN TLS
+cert=/certs/fullchain.pem
+pkey=/certs/privkey.pem
+
+# Recommended: allow modern clients
+no-tlsv1
+no-tlsv1_1
+
+# Logging
+verbose

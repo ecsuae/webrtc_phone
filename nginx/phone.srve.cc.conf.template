@@ -1,0 +1,31 @@
+server {
+  listen 80;
+  server_name ${DOMAIN};
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl;
+  server_name ${DOMAIN};
+
+  ssl_certificate /certs/fullchain.pem;
+  ssl_certificate_key /certs/privkey.pem;
+
+  root /var/www/phone;
+  index index.html;
+
+  location /ws {
+    proxy_pass https://kamailio:8443;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_read_timeout 3600;
+    proxy_send_timeout 3600;
+    proxy_ssl_verify off;
+  }
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}

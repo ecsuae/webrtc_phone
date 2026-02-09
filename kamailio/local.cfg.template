@@ -1,0 +1,8 @@
+#!KAMAILIO
+
+# --- PBX target (FusionPBX) ---
+#!define PBX_IP "${PBX_IP}"
+#!define PBX_PORT "${PBX_PORT}"
+
+# --- RTPengine socket (docker) ---
+#!define RTPENGINE_SOCK "udp:rtpengine:22222"
