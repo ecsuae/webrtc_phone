@@ -1,5 +1,6 @@
 services:
   coturn:
+    mem_limit: 1g
     image: coturn/coturn:latest
     container_name: coturn
     user: "0:0"
@@ -17,6 +18,7 @@ services:
       - webrtc
 
   rtpengine:
+    mem_limit: 1g
     image: davehorton/rtpengine:latest
     container_name: rtpengine
     restart: unless-stopped
@@ -36,6 +38,7 @@ services:
       - webrtc
 
   kamailio:
+    mem_limit: 1g
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
     container_name: kamailio
     restart: unless-stopped
@@ -49,8 +52,6 @@ services:
     depends_on:
       - rtpengine
     ports:
-      - "5060:5060/udp"
-      - "5060:5060/tcp"
       - "8443:8443/tcp"
     volumes:
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
@@ -61,6 +62,7 @@ services:
       - webrtc
 
   nginx:
+    mem_limit: 1g
     image: nginx:alpine
     container_name: phone-nginx
     restart: unless-stopped
