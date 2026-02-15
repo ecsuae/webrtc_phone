@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>phone.srve.cc Webphone</title>
+  <title>${DOMAIN} Webphone</title>
   <style>
     body{font-family:system-ui,Arial;margin:24px;max-width:900px}
     input,button{padding:10px;margin:6px 0;width:100%;max-width:420px}
@@ -14,7 +14,7 @@
     small{opacity:.75}
   </style>
 </head>
-<body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc">
+<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}">
   <h2>WebRTC SIP.js Webphone (SIP over WSS)</h2>
   <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
 
@@ -27,11 +27,11 @@
     <div class="row">
       <div>
         <label>Domain (FusionPBX)</label><br/>
-        <input id="domain" value="testfusn.srve.cc" />
+        <input id="domain" value="${PBX_IP}" />
       </div>
       <div>
         <label>WSS Host (your SBC)</label><br/>
-        <input id="wsshost" value="phone.srve.cc" />
+        <input id="wsshost" value="${DOMAIN}" />
       </div>
     </div>
 

@@ -43,6 +43,7 @@ check:
 	  rtpengine/rtpengine.conf.template \
 	  kamailio/local.cfg.template \
 	  nginx/phone.srve.cc.conf.template \
+	  www/index.html.template \
 	  scripts/render-coturn.sh \
 	  scripts/render-rtpengine.sh \
 	  scripts/render-kamailio.sh \
@@ -68,7 +69,8 @@ render:
 	  coturn/turnserver.conf.template \
 	  rtpengine/rtpengine.conf.template \
 	  kamailio/local.cfg.template \
-	  nginx/phone.srve.cc.conf.template; do \
+	  nginx/phone.srve.cc.conf.template \
+	  www/index.html.template; do \
 	  if [ ! -f $$f ]; then echo "Missing $$f"; exit 1; fi; \
 	done; \
 	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX}'; \
@@ -76,7 +78,8 @@ render:
 	envsubst "$$VARS" < rtpengine/rtpengine.conf.template > rtpengine/rtpengine.conf; \
 	envsubst "$$VARS" < kamailio/local.cfg.template > kamailio/local.cfg; \
 	envsubst "$$VARS" < nginx/phone.srve.cc.conf.template > nginx/phone.srve.cc.conf; \
-	for f in coturn/turnserver.conf rtpengine/rtpengine.conf kamailio/local.cfg nginx/phone.srve.cc.conf; do \
+	envsubst "$$VARS" < www/index.html.template > www/index.html; \
+	for f in coturn/turnserver.conf rtpengine/rtpengine.conf kamailio/local.cfg nginx/phone.srve.cc.conf www/index.html; do \
 	  if grep -qF '$${' $$f; then echo "Unrendered variables remain in $$f"; exit 1; fi; \
 	done; \
 	echo "Rendered configs from templates"

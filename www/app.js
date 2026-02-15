@@ -12,7 +12,7 @@
  *  #ext       (input)
  *  #domain    (input)
  *  #pass      (input)
- *  #wsshost   (input) optional, default phone.srve.cc
+ *  #wsshost   (input) optional, defaults from data-wss-host or window.location
  *  #dial      (input) destination
  *  #btnStart  (button)
  *  #btnStop   (button) optional
@@ -56,6 +56,8 @@ const ICE_SERVERS = [
 ];
 
 const G711_CODECS = new Set(["pcmu", "pcma", "telephone-event"]);
+const DEFAULT_SIP_DOMAIN = (document.body?.dataset?.sipDomain || "").trim();
+const DEFAULT_WSS_HOST = (document.body?.dataset?.wssHost || "").trim();
 
 /* ========================================================================
  *  [2] DOM / UI HELPERS
@@ -287,8 +289,9 @@ function setButtons() {
  * ====================================================================== */
 
 function normalizeWssServer(value) {
-  const raw = (value || "").trim();
-  if (!raw) return "wss://phone.srve.cc/ws";
+  const fallbackHost = (window.location && window.location.host) || "";
+  const raw = (value || DEFAULT_WSS_HOST || fallbackHost).trim();
+  if (!raw) return "";
   if (raw.startsWith("ws://") || raw.startsWith("wss://")) return raw;
   return `wss://${raw.replace(/\/$/, "")}/ws`;
 }
@@ -673,7 +676,8 @@ async function hangupCall(silent = false) {
  * ====================================================================== */
 
 function wireUI() {
-  if (elWss && !elWss.value) elWss.value = "phone.srve.cc";
+  if (elDomain && !elDomain.value) elDomain.value = DEFAULT_SIP_DOMAIN;
+  if (elWss && !elWss.value) elWss.value = DEFAULT_WSS_HOST;
 
   setStatus("Idle");
   setTransport("-");
@@ -719,3 +723,4 @@ function wireUI() {
 
 logLine(`[${nowISO()}] [boot] app.js loaded`);
 wireUI();
+
