@@ -5,6 +5,7 @@ services:
     container_name: coturn
     user: "0:0"
     restart: unless-stopped
+    stop_grace_period: 5s
     env_file: .env
     volumes:
       - ./coturn/entrypoint.sh:/entrypoint.sh:ro
@@ -17,31 +18,13 @@ services:
     networks:
       - webrtc
 
-  rtpengine:
-    mem_limit: 1g
-    image: davehorton/rtpengine:latest
-    container_name: rtpengine
-    restart: unless-stopped
-    env_file:
-      - .env
-    ports:
-      - "${RTP_MIN}-${RTP_MAX}:${RTP_MIN}-${RTP_MAX}/udp"
-    volumes:
-      - ./rtpengine/rtpengine.conf:/etc/rtpengine/rtpengine.conf:ro
-    command:
-      - rtpengine
-      - --config-file=/etc/rtpengine/rtpengine.conf
-      - --foreground
-      - --log-stderr
-      - --log-level=6
-    networks:
-      - webrtc
 
   kamailio:
     mem_limit: 1g
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
     container_name: kamailio
     restart: unless-stopped
+    stop_grace_period: 5s
     env_file:
       - .env
     environment:
@@ -49,8 +32,6 @@ services:
       - PBX_PORT=${PBX_PORT}
       - PBX_TRANSPORT=udp
       - KAM_PUBLIC_IP=${PUBLIC_IP}
-    depends_on:
-      - rtpengine
     ports:
       - "8443:8443/tcp"
     volumes:
@@ -66,6 +47,7 @@ services:
     image: nginx:alpine
     container_name: phone-nginx
     restart: unless-stopped
+    stop_grace_period: 5s
     depends_on:
       - kamailio
     ports:

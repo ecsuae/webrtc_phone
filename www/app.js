@@ -41,14 +41,16 @@ const FORCE_RELAY = true;
 // - "relay" = force TURN only (debug)
 const ICE_TRANSPORT_POLICY = FORCE_RELAY ? "relay" : "all";
 
-// TURN/STUN for media (coturn on phone.srve.cc)
-// DO NOT include turns:5349 unless you have TLS TURN working (your logs show TLS cert/key not set properly).
+// TURN/STUN for media - detect host from current location
+// This allows flexibility: if you access webphone via phone.example.com,
+// TURN/STUN will also use phone.example.com.
+const DETECTED_HOST = window.location.hostname || "phone.srve.cc";
 const ICE_SERVERS = [
-  { urls: ["stun:phone.srve.cc:3478"] },
+  { urls: [`stun:${DETECTED_HOST}:3478`] },
   {
     urls: [
-      "turn:phone.srve.cc:3478?transport=udp",
-      "turn:phone.srve.cc:3478?transport=tcp",
+      `turn:${DETECTED_HOST}:3478?transport=udp`,
+      `turn:${DETECTED_HOST}:3478?transport=tcp`,
     ],
     username: "turnuser",
     credential: "turnpass",
@@ -673,7 +675,19 @@ async function hangupCall(silent = false) {
  * ====================================================================== */
 
 function wireUI() {
-  if (elWss && !elWss.value) elWss.value = "phone.srve.cc";
+  // Auto-fill domain and WSS host from meta tags
+  const metaSipDomain = document.querySelector('meta[name="sip-domain"]')?.content;
+  const metaWssHost = document.querySelector('meta[name="wss-host"]')?.content;
+
+  if (elDomain && metaSipDomain) {
+    elDomain.value = metaSipDomain;
+  }
+
+  if (elWss && metaWssHost) {
+    elWss.value = metaWssHost;
+  } else if (elWss && !elWss.value) {
+    elWss.value = "phone.srve.cc";
+  }
 
   setStatus("Idle");
   setTransport("-");
