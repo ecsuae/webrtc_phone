@@ -1,29 +1,25 @@
 services:
   coturn:
-    mem_limit: 1g
     image: coturn/coturn:latest
     container_name: coturn
-    user: "0:0"
     restart: unless-stopped
-    env_file: .env
-    volumes:
-      - ./coturn/entrypoint.sh:/entrypoint.sh:ro
-      - ./certs:/certs:ro
-    entrypoint: ["/entrypoint.sh"]
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
+      - "5349:5349/tcp"
       - "49160-49200:49160-49200/udp"
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./certs:/certs:ro
+    command: ["turnserver","-c","/etc/coturn/turnserver.conf","-v"]
     networks:
       - webrtc
 
   rtpengine:
-    mem_limit: 1g
     image: davehorton/rtpengine:latest
     container_name: rtpengine
     restart: unless-stopped
-    env_file:
-      - .env
+    env_file: .env
     ports:
       - "${RTP_MIN}-${RTP_MAX}:${RTP_MIN}-${RTP_MAX}/udp"
     volumes:
@@ -38,12 +34,10 @@ services:
       - webrtc
 
   kamailio:
-    mem_limit: 1g
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
     container_name: kamailio
     restart: unless-stopped
-    env_file:
-      - .env
+    env_file: .env
     environment:
       - PBX_IP=${PBX_IP}
       - PBX_PORT=${PBX_PORT}
@@ -62,7 +56,6 @@ services:
       - webrtc
 
   nginx:
-    mem_limit: 1g
     image: nginx:alpine
     container_name: phone-nginx
     restart: unless-stopped

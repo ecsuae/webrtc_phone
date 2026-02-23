@@ -1,4 +1,7 @@
 <!doctype html>
+<div style="padding:8px;background:#ff0;color:#000;font-weight:700">
+  INDEX UPDATED TEST: 2026-02-22
+</div>
 <html>
 <head>
   <meta charset="utf-8"/>
@@ -14,6 +17,7 @@
     small{opacity:.75}
   </style>
 </head>
+
 <body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc">
   <h2>WebRTC SIP.js Webphone (SIP over WSS)</h2>
   <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
@@ -46,15 +50,15 @@
       </div>
     </div>
 
-    <button id="btnStart">Connect + Register</button>
-    <button id="btnStop">Unregister + Disconnect</button>
+    <button id="btnStart" type="button">Connect + Register</button>
+    <button id="btnStop" type="button">Unregister + Disconnect</button>
   </div>
 
   <div class="card">
     <h3>Call</h3>
     <input id="dial" placeholder="Destination (e.g. 1001 or +923001234567)" />
-    <button id="btnCall">Call</button>
-    <button id="btnHangup">Hangup</button>
+    <button id="btnCall" type="button">Call</button>
+    <button id="btnHangup" type="button">Hangup</button>
     <audio id="remoteAudio" autoplay></audio>
   </div>
 
@@ -63,11 +67,16 @@
     <pre id="log"></pre>
   </div>
 
-  <!-- IMPORTANT: local bundled SIP.js (exposes window.SIP) -->
+  <!-- 1) SIP.js must load first (sets window.SIP) -->
   <script src="/vendor/sip.min.js"></script>
 
-  <!-- your app -->
-  <script src="/app.js"></script>
+  <!-- 2) Load your refactored app as an ES module -->
+  <script type="module">
+    // Quick sanity logs (you should see these in DevTools console)
+    console.log("[boot] index.html module loader running");
+    console.log("[boot] window.SIP present?", !!window.SIP);
+  </script>
+
+  <script type="module" src="/app/main.js"></script>
 </body>
 </html>
-
