@@ -5,4 +5,4 @@
 #!define PBX_PORT "${PBX_PORT}"
 
 # --- RTPengine socket (docker) ---
-#!define RTPENGINE_SOCK "udp:rtpengine:22222"
+#!define RTPENGINE_SOCK "udp:rtpengine:2223"

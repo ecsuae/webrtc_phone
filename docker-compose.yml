@@ -28,18 +28,23 @@ services:
   rtpengine:
     image: davehorton/rtpengine:latest
     container_name: rtpengine
-    restart: unless-stopped
-    env_file: .env
+    restart: "no"
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    privileged: true
     ports:
-      - "${RTP_MIN}-${RTP_MAX}:${RTP_MIN}-${RTP_MAX}/udp"
-    volumes:
-      - ./rtpengine/rtpengine.conf:/etc/rtpengine/rtpengine.conf:ro
+      - "2223:2223/udp"
+      - "30000-31000:30000-31000/udp"
     command:
       - rtpengine
-      - --config-file=/etc/rtpengine/rtpengine.conf
       - --foreground
       - --log-stderr
-      - --log-level=6
+      - --log-level=7
+      - --listen-ng=0.0.0.0:2223
+      - --interface=eth0!38.242.157.239
+      - --port-min=30000
+      - --port-max=31000
     networks:
       - webrtc
 
@@ -83,4 +88,5 @@ services:
 
 networks:
   webrtc:
-    driver: bridge
+    external: true
+    name: webrtc
