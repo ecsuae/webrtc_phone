@@ -29,29 +29,26 @@ services:
     image: davehorton/rtpengine:latest
     container_name: rtpengine
     restart: "no"
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - SYS_NICE
     privileged: true
-    ports:
-      - "2223:2223/udp"
-      - "30000-31000:30000-31000/udp"
     command:
       - rtpengine
       - --foreground
       - --log-stderr
       - --log-level=7
-      - --listen-ng=0.0.0.0:2223
+      - --listen-ng=127.0.0.1:2223
       - --interface=eth0!38.242.157.239
       - --port-min=30000
       - --port-max=31000
-    networks:
-      - webrtc
 
   kamailio:
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
     container_name: kamailio
     restart: unless-stopped
+    network_mode: host
     env_file: .env
     environment:
       - PBX_IP=${PBX_IP}
@@ -60,33 +57,20 @@ services:
       - KAM_PUBLIC_IP=${PUBLIC_IP}
     depends_on:
       - rtpengine
-    ports:
-      - "8443:8443/tcp"
     volumes:
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
       - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
       - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
       - ./certs:/certs:ro
-    networks:
-      - webrtc
 
   nginx:
     image: nginx:alpine
     container_name: phone-nginx
     restart: unless-stopped
+    network_mode: host
     depends_on:
       - kamailio
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/phone.srve.cc.conf:/etc/nginx/conf.d/default.conf:ro
       - ./www:/var/www/phone:ro
       - ./certs:/certs:ro
-    networks:
-      - webrtc
-
-networks:
-  webrtc:
-    external: true
-    name: webrtc
