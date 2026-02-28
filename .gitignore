@@ -1,0 +1,10 @@
+
+# local/ide
+.idea/
+
+# backups & archives
+backups/
+*.tar.gz
+
+# copies
+* copy.*
