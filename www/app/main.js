@@ -24,12 +24,71 @@ const ui = {
   wssFallback: () => (window.location?.host || d.wssHost || ""),
   dial: () => el.dial?.value?.trim(),
   remoteAudio: () => el.remoteAudio,
-  setStatus: (s) => setText(el.status, s),
+  setStatus: (s) => {
+    const statusText = st.registered ? `${ui.ext() || "-"}` : s;
+    setText(el.status, statusText);
+    const indicator = document.getElementById('statusIndicator');
+    if (indicator) {
+      if (st.registered) {
+        indicator.classList.add('connected');
+      } else {
+        indicator.classList.remove('connected');
+      }
+    }
+  },
   setTransport: (s) => setText(el.tstatus, s),
   setButtons: () => {
     const registered = st.registered;
     const hasIncoming = !!st.incomingInvitation;
     const inCall = !!st.session;
+    const dialpadCard = document.getElementById("dialpadCard");
+    const accountFields = document.getElementById("accountFields");
+    const registrationCard = document.getElementById("registrationCard");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const logOffBtn = document.getElementById("logOffBtn");
+
+    // Hide/show entire registration card when logged in/out
+    if (registrationCard) {
+      registrationCard.style.display = registered ? "none" : "";
+    }
+
+    // Show dialpad when registered
+    if (dialpadCard) {
+      dialpadCard.style.display = registered ? "" : "none";
+    }
+
+    // Hide hard reload button and show log off button when registered
+    if (refreshBtn) {
+      refreshBtn.style.display = registered ? "none" : "";
+    }
+    if (logOffBtn) {
+      logOffBtn.style.display = registered ? "" : "none";
+    }
+
+    if (accountFields) {
+      accountFields.style.display = registered ? "none" : "grid";
+    }
+
+    if (el.btnStart) {
+      el.btnStart.style.display = registered ? "none" : "";
+    }
+
+    if (el.btnStop) {
+      el.btnStop.style.display = registered ? "" : "none";
+    }
+
+    if (registered) {
+      setText(el.status, `${ui.ext() || "-"}`);
+    }
+
+    const indicator = document.getElementById('statusIndicator');
+    if (indicator) {
+      if (registered) {
+        indicator.classList.add('connected');
+      } else {
+        indicator.classList.remove('connected');
+      }
+    }
     
     if (el.btnStart && el.btnStop) { el.btnStart.disabled = registered; el.btnStop.disabled = !registered; }
     if (el.btnStart && !el.btnStop) el.btnStart.textContent = registered ? "Unregister" : "Register";

@@ -83,8 +83,8 @@ export async function startAndRegister(SIP, st, ui) {
         st.registered = true;
         st.registering = false;
         const info = formatSipResponse(r);
-        ui.setStatus(info ? `Registered (${info})` : "Registered");
         logLine(`[${nowISO()}] [registerer] accepted ${info}`.trim());
+        ui.setStatus("Registered");
         ui.setButtons();
         
         // Subscribe to push notifications

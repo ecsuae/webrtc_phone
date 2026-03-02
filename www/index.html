@@ -1,82 +1,606 @@
 <!doctype html>
-<div style="padding:8px;background:#ff0;color:#000;font-weight:700">
-  INDEX UPDATED TEST: 2026-02-22
-</div>
 <html>
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>phone.srve.cc Webphone</title>
-  <style>
-    body{font-family:system-ui,Arial;margin:24px;max-width:900px}
-    input,button{padding:10px;margin:6px 0;width:100%;max-width:420px}
-    .row{display:flex;gap:16px;flex-wrap:wrap}
-    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
-    #status{font-weight:700}
-    pre{background:#111;color:#0f0;padding:12px;border-radius:10px;overflow:auto;min-height:220px}
-    small{opacity:.75}
-    #btnReloadPage{background:#2563eb;color:white;font-weight:700;max-width:120px;padding:8px}
-  </style>
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#2563eb">
+  
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --success-color: #22c55e;
+      --danger-color: #ef4444;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #1e293b;
+      --border-color: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: var(--bg-color);
+      color: var(--text-color);
+    }
+    
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 48px;
+      font-weight: 900;
+      color: #2563eb;
+      letter-spacing: 4px;
+      text-shadow: 
+        -2px -2px 0 #ff1744,
+        2px -2px 0 #00e676,
+        -2px 2px 0 #ffeb3b,
+        2px 2px 0 #00b0ff;
+      animation: pulse-mobi 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-mobi {
+      0%, 100% { 
+        text-shadow: 
+          -2px -2px 0 #ff1744,
+          2px -2px 0 #00e676,
+          -2px 2px 0 #ffeb3b,
+          2px 2px 0 #00b0ff;
+      }
+      50% { 
+        text-shadow: 
+          -3px -3px 2px #ff1744,
+          3px -3px 2px #00e676,
+          -3px 3px 2px #ffeb3b,
+          3px 3px 2px #00b0ff;
+      }
+    }
+    
+    .header small {
+      color: #64748b;
+      font-size: 13px;
+    }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .status-bar .center-refresh {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    
+    .status-bar .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s ease;
+    }
+
+    .status-indicator.connected {
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+.refresh-btn {
+      background: white;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #64748b;
+      margin: 0 8px;
+    }
+
+    .refresh-btn:hover {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+      transform: rotate(180deg);
+    }
+
+    .refresh-btn:hover {
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 15px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+    
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .row-center {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #64748b;
+      color: white;
+    }
+    
+    .btn-success {
+      background: var(--success-color);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .btn-outline {
+      background: white;
+      color: var(--text-color);
+      border: 2px solid var(--border-color);
+    }
+    
+    /* Dialpad Styling */
+    .dialpad {
+      margin-top: 20px;
+    }
+    
+    .dial-display {
+      background: #f8fafc;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      text-align: center;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .dial-display input {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      font-weight: 500;
+      text-align: center;
+      width: 100%;
+      color: var(--text-color);
+      letter-spacing: 2px;
+    }
+    
+    .dial-display input:focus {
+      outline: none;
+    }
+    
+    .dial-display input::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+    
+    .dial-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .dial-btn {
+      width: 54px;
+      height: 54px;
+      background: white;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .dial-btn:hover {
+      background: #f8fafc;
+      border-color: var(--primary-color);
+      transform: scale(1.05);
+    }
+    
+    .dial-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .dial-btn span {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    
+    .dial-btn-special {
+      font-size: 24px;
+    }
+    
+    .call-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    
+    .call-btn {
+      min-height: 60px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      padding: 0;
+      gap: 4px;
+    }
+    
+    .call-btn span {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    .call-btn-primary {
+      background: var(--success-color);
+      color: white;
+      grid-column: span 2;
+    }
+    
+    .call-btn-danger {
+      background: var(--danger-color);
+      color: white;
+      grid-column: span 2;
+    }
+    
+    audio {
+      display: none;
+    }
+    
+    .log-container {
+      display: none;
+    }
+    
+    .log-container h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #475569;
+    }
+    
+    .log-container pre {
+      background: #1e293b;
+      color: #10b981;
+      padding: 16px;
+      border-radius: 10px;
+      overflow: auto;
+      max-height: 300px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    .collapsed {
+      display: none;
+    }
+    
+    .toggle-btn {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 8px 16px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .container { max-width: 100%; }
+      .card { padding: 16px; border-radius: 12px; }
+      .row { grid-template-columns: 1fr; }
+      .dial-btn { width: 50px; height: 50px; font-size: 20px; }
+      .dial-btn span { font-size: 10px; }
+      .dial-display input { font-size: 22px; }
+      .call-btn { min-height: 56px; }
+    }
+
+    @media (min-width: 768px) {
+      .container { max-width: 380px; }
+      .dial-btn { width: 50px; height: 50px; font-size: 20px; }
+      .dial-display input { font-size: 22px; }
+      .call-btn { min-height: 56px; }
+    }
+  </style>
 </head>
 
 <body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
-    <div>
-      <h2 style="margin:0">WebRTC SIP.js Webphone (SIP over WSS)</h2>
-      <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
+  
+  <div class="container">
+    
+    <!-- Header -->
+    <div class="header">
+      <h1>MOBI</h1>
     </div>
-    <button id="btnReloadPage" type="button" onclick="location.reload(true)">🔄 Reload</button>
-  </div>
-
-  <div class="card">
-    <div>Status: <span id="status">Idle</span></div>
-    <div>Transport: <span id="tstatus">-</span></div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>Domain (FusionPBX)</label><br/>
-        <input id="domain" value="testfusn.srve.cc" />
+    
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-indicator" id="statusIndicator"></span>
+        <span id="status">Idle</span>
       </div>
-      <div>
-        <label>WSS Host (WebSocket proxy)</label><br/>
-        <input id="wsshost" value="phone.srve.cc" />
-      </div>
-    </div>
-
-    <div class="row">
-      <div>
-        <label>Extension</label><br/>
-        <input id="ext" name="ext" autocomplete="username" placeholder="e.g. 100360" />
-      </div>
-      <div>
-        <label>Password</label><br/>
-        <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="Extension password" />
+      <button class="refresh-btn" id="refreshBtn" title="Hard Reload & Clear Cache" onclick="if(confirm('Reload and clear cache?')) { localStorage.clear(); sessionStorage.clear(); location.reload(true); }">
+        <i class="fas fa-redo-alt"></i>
+      </button>
+      <button class="refresh-btn" id="logOffBtn" style="display:none;" onclick="document.getElementById('btnStop').click();" title="Log Off">
+        <i class="fas fa-power-off"></i>
+      </button>
+      <div class="status-item">
+        <i class="fas fa-signal"></i>
+        <span id="tstatus">Disconnected</span>
       </div>
     </div>
-
-    <button id="btnStart" type="button">Connect + Register</button>
-    <button id="btnStop" type="button">Unregister + Disconnect</button>
-  </div>
-
-  <div class="card">
-    <h3>Call</h3>
-    <input id="dial" placeholder="Destination (e.g. 1001 or +923001234567)" />
-    <button id="btnCall" type="button">Call</button>
-    <button id="btnHangup" type="button">Hangup</button>
-    <button id="btnAnswer" type="button" style="background-color:#22c55e;color:white">Answer</button>
-    <button id="btnReject" type="button" style="background-color:#ef4444;color:white">Reject</button>
-    <audio id="remoteAudio" autoplay="true" playsinline="true" controls="false"></audio>
-  </div>
-
-  <div class="card">
-    <h3>Log</h3>
-    <pre id="log"></pre>
+    
+    <!-- Registration Card -->
+    <div class="card" id="registrationCard">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; text-align: center;">
+        <i class="fas fa-user-circle"></i> Account
+      </h3>
+      
+      <div class="row" style="margin-bottom: 12px; display:none;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Domain</label>
+          <input id="domain" value="testfusn.srve.cc" />
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>WSS Host</label>
+          <input id="wsshost" value="phone.srve.cc" />
+        </div>
+      </div>
+      
+      <div class="row-center" id="accountFields" style="margin-bottom: 16px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Username</label>
+          <input id="ext" name="ext" autocomplete="username" placeholder="e.g. 100360" />
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Password</label>
+          <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="••••••••" />
+        </div>
+      </div>
+      
+      <div class="row-center">
+        <button id="btnStart" type="button" class="btn-primary">
+          <i class="fas fa-sign-in-alt"></i> Log In
+        </button>
+        <button id="btnStop" type="button" class="btn-secondary">
+          <i class="fas fa-power-off"></i> Log Off
+        </button>
+      </div>
+    </div>
+    
+    <!-- Dialpad Card -->
+    <div class="card" id="dialpadCard" style="display:none;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
+        <i class="fas fa-phone-alt"></i> Dial
+      </h3>
+      
+      <div class="dialpad">
+        <!-- Dial Display -->
+        <div class="dial-display">
+          <input id="dial" type="tel" placeholder="Enter number..." />
+        </div>
+        
+        <!-- Number Pad -->
+        <div class="dial-buttons">
+          <button class="dial-btn" data-digit="1">
+            1 <span>&nbsp;</span>
+          </button>
+          <button class="dial-btn" data-digit="2">
+            2 <span>ABC</span>
+          </button>
+          <button class="dial-btn" data-digit="3">
+            3 <span>DEF</span>
+          </button>
+          <button class="dial-btn" data-digit="4">
+            4 <span>GHI</span>
+          </button>
+          <button class="dial-btn" data-digit="5">
+            5 <span>JKL</span>
+          </button>
+          <button class="dial-btn" data-digit="6">
+            6 <span>MNO</span>
+          </button>
+          <button class="dial-btn" data-digit="7">
+            7 <span>PQRS</span>
+          </button>
+          <button class="dial-btn" data-digit="8">
+            8 <span>TUV</span>
+          </button>
+          <button class="dial-btn" data-digit="9">
+            9 <span>WXYZ</span>
+          </button>
+          <button class="dial-btn dial-btn-special" data-digit="*">
+            *
+          </button>
+          <button class="dial-btn" data-digit="0">
+            0 <span>+</span>
+          </button>
+          <button class="dial-btn dial-btn-special" data-digit="#">
+            #
+          </button>
+        </div>
+        
+        <!-- Call Action Buttons -->
+        <div class="call-actions">
+          <button id="btnCall" type="button" class="call-btn call-btn-primary">
+            <i class="fas fa-phone"></i>
+            <span>Call</span>
+          </button>
+          <button id="btnHangup" type="button" class="call-btn call-btn-danger" style="display: none;">
+            <i class="fas fa-phone-slash"></i>
+            <span>End</span>
+          </button>
+          <button id="btnAnswer" type="button" class="call-btn call-btn-primary" style="display: none;">
+            <i class="fas fa-phone"></i>
+            <span>Answer</span>
+          </button>
+          <button id="btnReject" type="button" class="call-btn call-btn-danger" style="display: none;">
+            <i class="fas fa-phone-slash"></i>
+            <span>Reject</span>
+          </button>
+        </div>
+        
+        <!-- Additional Call Controls -->
+        <div class="call-actions" id="callControls" style="display: none; margin-top: 12px;">
+          <button type="button" class="btn-outline" style="padding: 12px;">
+            <i class="fas fa-microphone-slash"></i> Mute
+          </button>
+          <button type="button" class="btn-outline" style="padding: 12px;">
+            <i class="fas fa-volume-up"></i> Speaker
+          </button>
+          <button type="button" class="btn-outline" style="padding: 12px;">
+            <i class="fas fa-pause"></i> Hold
+          </button>
+          <button type="button" class="btn-outline" style="padding: 12px;">
+            <i class="fas fa-phone-volume"></i> Transfer
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Audio Element -->
+    <audio id="remoteAudio" autoplay="true" playsinline="true"></audio>
+    
+    <!-- Log Container -->
+    <div class="card log-container">
+      <h3><i class="fas fa-terminal"></i> Debug Log</h3>
+      <pre id="log"></pre>
+      <button class="toggle-btn" onclick="document.getElementById('log').parentElement.classList.toggle('collapsed')">
+        <i class="fas fa-chevron-up"></i> Collapse Log
+      </button>
+    </div>
+    
   </div>
 
   <!-- 1) SIP.js must load first (sets window.SIP) -->
@@ -84,9 +608,36 @@
 
   <!-- 2) Load your refactored app as an ES module -->
   <script type="module">
-    // Quick sanity logs (you should see these in DevTools console)
     console.log("[boot] index.html module loader running");
     console.log("[boot] window.SIP present?", !!window.SIP);
+    
+    // Dialpad digit input handler
+    document.addEventListener('DOMContentLoaded', () => {
+      const dialInput = document.getElementById('dial');
+      const dialButtons = document.querySelectorAll('.dial-btn');
+      
+      dialButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const digit = btn.getAttribute('data-digit');
+          if (digit) {
+            dialInput.value += digit;
+            dialInput.focus();
+          }
+        });
+      });
+      
+      // Allow keyboard input
+      dialInput.addEventListener('keypress', (e) => {
+        const allowed = '0123456789*#+';
+        if (!allowed.includes(e.key) && e.key !== 'Enter') {
+          e.preventDefault();
+        }
+        if (e.key === 'Enter') {
+          document.getElementById('btnCall').click();
+        }
+      });
+    });
   </script>
 
   <script type="module" src="/app/main.js"></script>
