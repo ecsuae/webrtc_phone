@@ -3,9 +3,11 @@ import { ICE_SERVERS, ICE_TRANSPORT_POLICY, nowISO, maskPassword } from "./confi
 import { formatSipResponse, logLine } from "./log.js";
 import { normalizeWssServer } from "./dom.js";
 import { stopLocalAudioStream } from "./media.js";
+import * as Push from "./push.js";
+import { handleIncomingCall } from "./sipCall.js";
 
 export function createAppState() {
-  return { ua: null, reg: null, registered: false, registering: false, session: null };
+  return { ua: null, reg: null, registered: false, registering: false, session: null, incomingInvitation: null };
 }
 
 export async function startAndRegister(SIP, st, ui) {
@@ -39,12 +41,30 @@ export async function startAndRegister(SIP, st, ui) {
     sessionDescriptionHandlerFactoryOptions: {
       peerConnectionConfiguration: { iceServers: ICE_SERVERS, iceTransportPolicy: ICE_TRANSPORT_POLICY },
     },
+    delegate: {
+      onInvite: (invitation) => {
+        const callerUser = invitation.remoteIdentity?.uri?.user || 'unknown';
+        logLine(`[${nowISO()}] [incoming] *** INCOMING CALL RECEIVED from ${callerUser} ***`);
+        console.warn(`[INCOMING CALL] from ${callerUser}`, invitation);
+        handleIncomingCall(SIP, st, ui, invitation);
+      },
+    },
   });
+
+  // Verify delegate was set
+  logLine(`[${nowISO()}] [VERIFY] st.ua exists: ${!!st.ua}`);
+  logLine(`[${nowISO()}] [VERIFY] st.ua.delegate exists: ${!!st.ua.delegate}`);
+  logLine(`[${nowISO()}] [VERIFY] st.ua.delegate.onInvite is function: ${typeof st.ua.delegate?.onInvite === 'function'}`);
+  console.log('DEBUG: UA Delegate =', st.ua.delegate);
 
   st.ua.transport?.stateChange?.addListener?.((state) => {
     logLine(`[${nowISO()}] [transport] ${state}`);
     ui.setTransport(String(state));
   });
+
+  logLine(`[${nowISO()}] [CRITICAL] UA created with delegate configured`);
+  logLine(`[${nowISO()}] [CRITICAL] onInvite delegate: ${typeof st.ua.delegate?.onInvite === 'function' ? 'CONFIGURED' : 'NOT SET'}`);
+  logLine(`[${nowISO()}] [info] Ready to receive incoming calls for ext=${ext}, domain=${domain}`);
 
   try {
     await st.ua.start();
@@ -66,6 +86,14 @@ export async function startAndRegister(SIP, st, ui) {
         ui.setStatus(info ? `Registered (${info})` : "Registered");
         logLine(`[${nowISO()}] [registerer] accepted ${info}`.trim());
         ui.setButtons();
+        
+        // Subscribe to push notifications
+        const ext = ui.ext();
+        if (ext) {
+          Push.subscribeAfterRegister(ext).catch(err => {
+            logLine(`[${nowISO()}] [push] Subscription failed: ${err.message}`);
+          });
+        }
       },
       onReject: (r) => {
         st.registered = false;

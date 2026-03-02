@@ -15,6 +15,8 @@ export const el = {
   btnStop: $("#btnStop"),
   btnCall: $("#btnCall"),
   btnHangup: $("#btnHangup"),
+  btnAnswer: $("#btnAnswer"),
+  btnReject: $("#btnReject"),
 };
 
 export function setText(node, text) {

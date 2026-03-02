@@ -15,12 +15,22 @@
     #status{font-weight:700}
     pre{background:#111;color:#0f0;padding:12px;border-radius:10px;overflow:auto;min-height:220px}
     small{opacity:.75}
+    #btnReloadPage{background:#2563eb;color:white;font-weight:700;max-width:120px;padding:8px}
   </style>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
 </head>
 
 <body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc">
-  <h2>WebRTC SIP.js Webphone (SIP over WSS)</h2>
-  <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">WebRTC SIP.js Webphone (SIP over WSS)</h2>
+      <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
+    </div>
+    <button id="btnReloadPage" type="button" onclick="location.reload(true)">🔄 Reload</button>
+  </div>
 
   <div class="card">
     <div>Status: <span id="status">Idle</span></div>
@@ -34,7 +44,7 @@
         <input id="domain" value="testfusn.srve.cc" />
       </div>
       <div>
-        <label>WSS Host (your SBC)</label><br/>
+        <label>WSS Host (WebSocket proxy)</label><br/>
         <input id="wsshost" value="phone.srve.cc" />
       </div>
     </div>
@@ -59,7 +69,9 @@
     <input id="dial" placeholder="Destination (e.g. 1001 or +923001234567)" />
     <button id="btnCall" type="button">Call</button>
     <button id="btnHangup" type="button">Hangup</button>
-    <audio id="remoteAudio" autoplay></audio>
+    <button id="btnAnswer" type="button" style="background-color:#22c55e;color:white">Answer</button>
+    <button id="btnReject" type="button" style="background-color:#ef4444;color:white">Reject</button>
+    <audio id="remoteAudio" autoplay="true" playsinline="true" controls="false"></audio>
   </div>
 
   <div class="card">
