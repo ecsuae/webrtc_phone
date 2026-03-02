@@ -1,7 +1,27 @@
 SHELL := /bin/sh
 COMPOSE := docker compose
 
-.PHONY: up down restart logs ps clean fresh check render
+.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push
+
+help:
+	@echo "WebRTC SBC - Available Commands:"
+	@echo ""
+	@echo "  make setup          - Initial setup (generate VAPID keys)"
+	@echo "  make check          - Verify configuration and requirements"
+	@echo "  make up             - Start all services"
+	@echo "  make down           - Stop all services"
+	@echo "  make restart        - Restart all services"
+	@echo "  make logs           - Show logs from all services"
+	@echo "  make ps             - Show container status"
+	@echo "  make health         - Check health of all services"
+	@echo "  make clean          - Remove containers and volumes"
+	@echo "  make fresh          - Clean rebuild and start"
+	@echo "  make rebuild-push   - Rebuild push-server only"
+	@echo "  make test-push      - Send test push notification"
+	@echo ""
+
+setup:
+	@./scripts/setup.sh
 
 up: render
 	$(COMPOSE) up -d
@@ -23,6 +43,33 @@ logs:
 ps:
 	$(COMPOSE) ps
 
+rebuild-push:
+	@echo "Rebuilding push-server..."
+	@$(COMPOSE) build push-server
+	@$(COMPOSE) up -d push-server
+	@echo "✓ Push-server rebuilt and restarted"
+
+health:
+	@echo "Checking service health..."
+	@echo ""
+	@echo "Push Server:"
+	@curl -s http://localhost:3001/health | jq 2>/dev/null || echo "  ❌ Not responding"
+	@echo ""
+	@echo "Container Status:"
+	@$(COMPOSE) ps
+	@echo ""
+
+test-push:
+ifndef EXTENSION
+	@echo "Error: EXTENSION variable required"
+	@echo "Usage: make test-push EXTENSION=1001"
+else
+	@echo "Sending test notification to extension $(EXTENSION)..."
+	@curl -X POST http://localhost:3001/api/push/notify \
+		-H "Content-Type: application/json" \
+		-d '{"extension":"$(EXTENSION)","from":"Test","title":"Test Incoming Call"}' | jq 2>/dev/null
+endif
+
 check:
 	@set -e; \
 	if [ ! -f .env ]; then echo "Missing .env"; exit 1; fi; \
@@ -35,6 +82,9 @@ check:
 	: "${TURN_PASS:?Missing TURN_PASS}"; \
 	: "${RTP_MIN:?Missing RTP_MIN}"; \
 	: "${RTP_MAX:?Missing RTP_MAX}"; \
+	: "${VAPID_PUBLIC_KEY:?Missing VAPID_PUBLIC_KEY}"; \
+	: "${VAPID_PRIVATE_KEY:?Missing VAPID_PRIVATE_KEY}"; \
+	: "${VAPID_SUBJECT:?Missing VAPID_SUBJECT}"; \
 	if [ ! -f certs/fullchain.pem ] || [ ! -f certs/privkey.pem ]; then \
 	  echo "Missing certs/fullchain.pem or certs/privkey.pem"; exit 1; \
 	fi; \
