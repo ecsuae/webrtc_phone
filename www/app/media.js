@@ -17,14 +17,19 @@ export async function ensureMicAccess(setStatus) {
     logLine(`[${nowISO()}] [media] getUserMedia not available`);
     return false;
   }
-  if (localAudioStream) return true;
+  if (localAudioStream) {
+    const activeTrack = localAudioStream.getAudioTracks()?.[0];
+    logLine(`[${nowISO()}] [media] local stream already active: enabled=${activeTrack?.enabled}, readyState=${activeTrack?.readyState}`);
+    return true;
+  }
 
   try {
     localAudioStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false,
     });
-    logLine(`[${nowISO()}] [media] microphone permission granted`);
+    const tracks = localAudioStream.getAudioTracks();
+    logLine(`[${nowISO()}] [media] microphone granted: tracks=${tracks.length}, enabled=${tracks[0]?.enabled || false}, readyState=${tracks[0]?.readyState || "?"}`);
     return true;
   } catch (e) {
     logLine(`[${nowISO()}] [media] microphone permission denied`, e?.message || e);
