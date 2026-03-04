@@ -383,6 +383,143 @@
       display: none;
     }
     
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #64748b;
+      font-weight: 600;
+      cursor: pointer;
+      gap: 0;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .tab-btn:hover {
+      color: var(--primary-color);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .call-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .call-controls button {
+      padding: 12px;
+      font-size: 13px;
+      gap: 6px;
+      flex-direction: column;
+    }
+
+    .call-controls button i {
+      font-size: 18px;
+    }
+
+    .call-controls button.active {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .history-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-item-left {
+      flex: 1;
+    }
+
+    .history-number {
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 4px;
+    }
+
+    .history-time {
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .history-type {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .history-type.incoming {
+      background: #dbeafe;
+      color: #0369a1;
+    }
+
+    .history-type.outgoing {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .history-type.missed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 32px 16px;
+      color: #94a3b8;
+    }
+
+    .history-empty i {
+      font-size: 32px;
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.5;
+    }
+
     .log-container h3 {
       margin: 0 0 12px 0;
       font-size: 16px;
@@ -501,11 +638,28 @@
     
     <!-- Dialpad Card -->
     <div class="card" id="dialpadCard" style="display:none;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
-        <i class="fas fa-phone-alt"></i> Dial
-      </h3>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dial-tab">
+          <i class="fas fa-phone-alt"></i> Dial
+        </button>
+        <button class="tab-btn" data-tab="history-tab">
+          <i class="fas fa-history"></i> History
+        </button>
+      </div>
       
-      <div class="dialpad">
+      <!-- Dial Tab Content -->
+      <div class="tab-content active" id="dial-tab">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
+          <i class="fas fa-phone-alt"></i> Dial
+        </h3>
+        
+        <!-- Call Timer -->
+        <div id="callTimer" style="text-align: center; margin-bottom: 16px; display: none;">
+          <div style="font-size: 28px; font-weight: 700; color: var(--success-color); font-family: monospace;">
+            <span id="timerDisplay">00:00:00</span>
+          </div>
+        </div>
         <!-- Dial Display -->
         <div class="dial-display">
           <input id="dial" type="tel" placeholder="Enter number..." />
@@ -571,21 +725,40 @@
           </button>
         </div>
         
-        <!-- Additional Call Controls -->
-        <div class="call-actions" id="callControls" style="display: none; margin-top: 12px;">
-          <button type="button" class="btn-outline" style="padding: 12px;">
-            <i class="fas fa-microphone-slash"></i> Mute
+        <!-- Call Control Buttons (Mute, Hold, Transfer, Conference) -->
+        <div class="call-controls" id="callControls" style="display: none;">
+          <button id="btnMute" type="button" class="btn-outline">
+            <i class="fas fa-microphone"></i> Mute
           </button>
-          <button type="button" class="btn-outline" style="padding: 12px;">
-            <i class="fas fa-volume-up"></i> Speaker
+          <button id="btnSpeaker" type="button" class="btn-outline">
+            <i class="fas fa-volume-down"></i> Earpiece
           </button>
-          <button type="button" class="btn-outline" style="padding: 12px;">
+          <button id="btnHold" type="button" class="btn-outline">
             <i class="fas fa-pause"></i> Hold
           </button>
-          <button type="button" class="btn-outline" style="padding: 12px;">
+          <button id="btnTransfer" type="button" class="btn-outline">
             <i class="fas fa-phone-volume"></i> Transfer
           </button>
+          <button id="btnConference" type="button" class="btn-outline">
+            <i class="fas fa-users"></i> Conference
+          </button>
+          <button id="btnRecord" type="button" class="btn-outline">
+            <i class="fas fa-circle"></i> Record
+          </button>
         </div>
+      </div>
+      
+      <!-- History Tab Content -->
+      <div class="tab-content" id="history-tab">
+        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
+          <i class="fas fa-history"></i> Call History
+        </h3>
+        <ul class="history-list" id="historyList">
+          <li style="text-align: center; padding: 32px 16px; color: #94a3b8;">
+            <i class="fas fa-phone-slash" style="font-size: 32px; display: block; margin-bottom: 8px; opacity: 0.5;"></i>
+            No calls yet
+          </li>
+        </ul>
       </div>
     </div>
     

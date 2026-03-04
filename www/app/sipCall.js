@@ -89,7 +89,13 @@ export async function startCall(SIP, st, ui) {
   const micOk = await ensureMicAccess(ui.setStatus);
   if (!micOk) return;
 
-  const domain = ui.domain();
+  const resolvedAccount = ui.account ? ui.account() : null;
+  const domain = st.account?.domain || resolvedAccount?.domain || ui.domain() || ui.domainFallback?.();
+  if (!domain) {
+    stopLocalAudioStream();
+    return ui.setStatus("Missing domain");
+  }
+
   // Encode special characters like * # etc. for SIP URI
   const encodedTarget = encodeURIComponent(target);
   const targetUri = SIP.UserAgent.makeURI(`sip:${encodedTarget}@${domain}`);
@@ -105,7 +111,7 @@ export async function startCall(SIP, st, ui) {
     remoteAudioElement.autoplay = true;
     remoteAudioElement.playsInline = true;
     remoteAudioElement.muted = false;
-    remoteAudioElement.volume = 1;
+    remoteAudioElement.volume = 0.7; // Default to earpiece volume (lower)
     const prePlayPromise = remoteAudioElement.play?.();
     if (prePlayPromise && typeof prePlayPromise.catch === "function") {
       prePlayPromise.catch((error) => {
@@ -174,7 +180,14 @@ export async function startCall(SIP, st, ui) {
     // Attach remote audio once peer connection exists
     attachRemoteAudio(inviter, ui);
 
-    if (s === SIP.SessionState.Terminated) {
+    if (s === SIP.SessionState.Established) {
+      logLine(`[${nowISO()}] [session:outbound:established] Call connected`);
+      // Start call timer when call is established
+      if (window.callTimer) {
+        window.callTimer.start();
+      }
+    }
+    else if (s === SIP.SessionState.Terminated) {
       if (inviter.__earlyMediaAttachTimer) {
         clearInterval(inviter.__earlyMediaAttachTimer);
         inviter.__earlyMediaAttachTimer = null;
@@ -183,6 +196,11 @@ export async function startCall(SIP, st, ui) {
       stopLocalAudioStream(); // release mic on termination ALWAYS
       ui.setButtons();
       ui.setStatus("Idle");
+      
+      // Stop call timer when call ends
+      if (window.callTimer) {
+        window.callTimer.stop();
+      }
     }
   });
 
@@ -261,6 +279,11 @@ export function handleIncomingCall(SIP, st, ui, invitation) {
       ui.setStatus(`On call with ${callerUser}`);
       ui.setButtons();
       
+      // Start call timer when call is established
+      if (window.callTimer) {
+        window.callTimer.start();
+      }
+      
       // Attach remote audio now that session is established
       attachRemoteAudio(invitation, ui);
       bindPeerConnection(invitation, "inbound");
@@ -272,6 +295,11 @@ export function handleIncomingCall(SIP, st, ui, invitation) {
       stopLocalAudioStream();
       ui.setButtons();
       ui.setStatus("Idle");
+      
+      // Stop call timer when call ends
+      if (window.callTimer) {
+        window.callTimer.stop();
+      }
     }
   };
 
@@ -300,6 +328,11 @@ export async function answerIncomingCall(SIP, st, ui) {
   
   const caller = invitation.remoteIdentity?.uri?.user || 'Unknown';
   logLine(`[${nowISO()}] [incoming] *** USER CLICKED ANSWER for ${caller} ***`);
+  
+  // Add to call history as answered incoming call
+  if (window.callHistory) {
+    window.callHistory.addCall(caller, 'incoming');
+  }
   
   // STOP RINGTONE
   
@@ -357,6 +390,11 @@ export async function rejectIncomingCall(st, ui) {
   
   const caller = invitation.remoteIdentity?.uri?.user || 'Unknown';
   logLine(`[${nowISO()}] [incoming] Rejecting call from ${caller}`);
+  
+  // Add to call history as missed call
+  if (window.callHistory) {
+    window.callHistory.addCall(caller, 'missed');
+  }
   
   // STOP RINGTONE
   

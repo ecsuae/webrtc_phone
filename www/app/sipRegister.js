@@ -7,18 +7,28 @@ import * as Push from "./push.js";
 import { handleIncomingCall } from "./sipCall.js";
 
 export function createAppState() {
-  return { ua: null, reg: null, registered: false, registering: false, session: null, incomingInvitation: null };
+  return { ua: null, reg: null, registered: false, registering: false, session: null, incomingInvitation: null, account: null };
 }
 
 export async function startAndRegister(SIP, st, ui) {
-  const ext = ui.ext(),
-    domain = ui.domain(),
+  const account = ui.account ? ui.account() : {
+    rawUsername: ui.ext(),
+    username: ui.ext(),
+    domain: ui.domain(),
+  };
+  const ext = account.username,
+    domain = account.domain,
+    authUsername = account.username,
     pass = ui.pass(),
     wss = normalizeWssServer(ui.wss(), ui.wssFallback());
 
+  console.log('[startAndRegister] account object:', { rawUsername: account.rawUsername, username: account.username, domain: account.domain, inlineDomain: account.inlineDomain, hasInlineDomain: account.hasInlineDomain });
   logLine(`[${nowISO()}] [boot] startAndRegister clicked`);
+  logLine(`[${nowISO()}] [debug] input=${account.rawUsername || ""}`);
   logLine(`[${nowISO()}] [debug] ext=${ext}`);
   logLine(`[${nowISO()}] [debug] domain=${domain}`);
+  logLine(`[${nowISO()}] [debug] inlineDomain=${account.inlineDomain || "(none)"}`);
+  logLine(`[${nowISO()}] [debug] authUsername=${authUsername || ""}`);
   logLine(`[${nowISO()}] [debug] password=${maskPassword(pass)}`);
   logLine(`[${nowISO()}] [debug] wss=${wss}`);
   logLine(`[${nowISO()}] [debug] ICE policy=${ICE_TRANSPORT_POLICY}`);
@@ -35,7 +45,7 @@ export async function startAndRegister(SIP, st, ui) {
 
   st.ua = new SIP.UserAgent({
     uri,
-    authorizationUsername: ext,
+    authorizationUsername: authUsername,
     authorizationPassword: pass,
     transportOptions: { server: wss },
     sessionDescriptionHandlerFactoryOptions: {
@@ -69,6 +79,12 @@ export async function startAndRegister(SIP, st, ui) {
   try {
     await st.ua.start();
     logLine(`[${nowISO()}] [debug] ua.start() done`);
+    st.account = {
+      username: ext,
+      domain,
+      rawUsername: account.rawUsername || ext,
+      authUsername,
+    };
   } catch (e) {
     logLine(`[${nowISO()}] [error] ua.start() failed`, e?.message || e);
     ui.setStatus("UA start failed");
@@ -88,9 +104,9 @@ export async function startAndRegister(SIP, st, ui) {
         ui.setButtons();
         
         // Subscribe to push notifications
-        const ext = ui.ext();
-        if (ext) {
-          Push.subscribeAfterRegister(ext).catch(err => {
+        const subscribedExt = st.account?.username || ext;
+        if (subscribedExt) {
+          Push.subscribeAfterRegister(subscribedExt).catch(err => {
             logLine(`[${nowISO()}] [push] Subscription failed: ${err.message}`);
           });
         }
@@ -146,6 +162,7 @@ export async function stopAndUnregister(st, ui, silent = false) {
 
   st.ua = null;
   st.reg = null;
+  st.account = null;
 
   stopLocalAudioStream();
   ui.setStatus("Idle");
