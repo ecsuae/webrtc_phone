@@ -61,6 +61,7 @@ services:
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
       - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
       - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
+      - ./kamailio/routes:/etc/kamailio/routes:ro
       - ./certs:/certs:ro
 
   push-server:

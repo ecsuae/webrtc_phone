@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 COMPOSE := docker compose
 
-.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push
+.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push kam-check
 
 help:
 	@echo "WebRTC SBC - Available Commands:"
@@ -18,6 +18,7 @@ help:
 	@echo "  make fresh          - Clean rebuild and start"
 	@echo "  make rebuild-push   - Rebuild push-server only"
 	@echo "  make test-push      - Send test push notification"
+	@echo "  make kam-check      - Validate Kamailio config syntax"
 	@echo ""
 
 setup:
@@ -133,3 +134,8 @@ render:
 	  if grep -qF '$${' $$f; then echo "Unrendered variables remain in $$f"; exit 1; fi; \
 	done; \
 	echo "Rendered configs from templates"
+
+kam-check:
+	@echo "Validating Kamailio config..."
+	@docker exec kamailio kamailio -c -f /etc/kamailio/kamailio.cfg >/tmp/kam-check.log 2>&1 || (cat /tmp/kam-check.log; exit 1)
+	@echo "OK: Kamailio config is valid"
