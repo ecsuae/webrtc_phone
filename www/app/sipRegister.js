@@ -4,10 +4,20 @@ import { formatSipResponse, logLine } from "./log.js";
 import { normalizeWssServer } from "./dom.js";
 import { stopLocalAudioStream } from "./media.js";
 import * as Push from "./push.js";
-import { handleIncomingCall } from "./sipCall.js";
+import { handleIncomingCallIsolated } from "./sipCallIncoming.js";
 
 export function createAppState() {
-  return { ua: null, reg: null, registered: false, registering: false, session: null, incomingInvitation: null, account: null };
+  return { 
+    ua: null,           // UA for PBX registration
+    sbcUa: null,        // NEW: UA for SBC registrar (location table)
+    reg: null,          // Registerer for PBX
+    sbcReg: null,       // NEW: Registerer for SBC
+    registered: false, 
+    registering: false, 
+    session: null, 
+    incomingInvitation: null, 
+    account: null 
+  };
 }
 
 export async function startAndRegister(SIP, st, ui) {
@@ -56,7 +66,7 @@ export async function startAndRegister(SIP, st, ui) {
         const callerUser = invitation.remoteIdentity?.uri?.user || 'unknown';
         logLine(`[${nowISO()}] [incoming] *** INCOMING CALL RECEIVED from ${callerUser} ***`);
         console.warn(`[INCOMING CALL] from ${callerUser}`, invitation);
-        handleIncomingCall(SIP, st, ui, invitation);
+        handleIncomingCallIsolated(SIP, st, ui, invitation);
       },
     },
   });
@@ -100,6 +110,10 @@ export async function startAndRegister(SIP, st, ui) {
         st.registering = false;
         const info = formatSipResponse(r);
         logLine(`[${nowISO()}] [registerer] accepted ${info}`.trim());
+        
+        // Secondary SBC registration temporarily disabled while stabilizing primary registration
+        // registerWithSBC(SIP, st, ui, ext, domain, wss);
+        
         ui.setStatus("Registered");
         ui.setButtons();
         
@@ -144,12 +158,83 @@ export async function startAndRegister(SIP, st, ui) {
   ui.setButtons();
 }
 
+// NEW: Register with SBC as a secondary registrar
+// This populates the SBC's location table with the WebSocket contact,
+// enabling incoming calls to be routed to the WebSocket client
+async function registerWithSBC(SIP, st, ui, ext, domain, wss) {
+  try {
+    if (st.sbcUa || st.sbcReg) {
+      try { await st.sbcReg?.unregister?.(); } catch {}
+      try { await st.sbcUa?.stop?.(); } catch {}
+      st.sbcUa = null;
+      st.sbcReg = null;
+    }
+
+    // Extract SBC IP/hostname from WSS URL (e.g., wss://phone.srve.cc/ws -> phone.srve.cc)
+    const wssUrl = new URL(wss);
+    const sbcHost = wssUrl.hostname; // e.g., "phone.srve.cc"
+    
+    // Create SBC URI - register with SBC instead of PBX
+    const sbcUri = SIP.UserAgent.makeURI(`sip:${ext}@${sbcHost}`);
+    if (!sbcUri) {
+      logLine(`[${nowISO()}] [sbcReg] Invalid SBC URI for sbcReg`);
+      return;
+    }
+
+    logLine(`[${nowISO()}] [sbcReg] Creating SBC registrar for ${sbcUri.toString()}`);
+
+    // Create second UA for SBC registration (no auth needed - same domain as transport)
+    st.sbcUa = new SIP.UserAgent({
+      uri: sbcUri,
+      authorizationUsername: ext,
+      authorizationPassword: "",  // Empty password for SBC, it's trusted
+      transportOptions: { server: wss },
+      sessionDescriptionHandlerFactoryOptions: {
+        peerConnectionConfiguration: { iceServers: ICE_SERVERS, iceTransportPolicy: ICE_TRANSPORT_POLICY },
+      },
+    });
+
+    // Create registerer for SBC
+    st.sbcReg = new SIP.Registerer(st.sbcUa, {
+      delegate: {
+        onAccept: (r) => {
+          const info = formatSipResponse(r);
+          logLine(`[${nowISO()}] [sbcReg] SBC registration accepted ${info}`.trim());
+        },
+        onReject: (r) => {
+          const info = formatSipResponse(r);
+          logLine(`[${nowISO()}] [sbcReg] SBC registration rejected ${info}`.trim());
+        },
+      },
+    });
+
+    st.sbcReg.stateChange?.addListener?.((s) => {
+      logLine(`[${nowISO()}] [sbcReg] state change: ${s}`);
+    });
+
+    // Send registration to SBC
+    await st.sbcUa.start();
+    logLine(`[${nowISO()}] [sbcReg] sbcUa.start() done`);
+    logLine(`[${nowISO()}] [sbcReg] Registering with SBC for incoming call routing`);
+    await st.sbcReg.register();
+    logLine(`[${nowISO()}] [sbcReg] SBC registration initiated`);
+  } catch (e) {
+    logLine(`[${nowISO()}] [sbcReg] Error registering with SBC: ${e?.message || e}`);
+  }
+}
+
 export async function stopAndUnregister(st, ui, silent = false) {
   if (!silent) logLine(`[${nowISO()}] [boot] stopAndUnregister clicked`);
 
   try {
     await st.reg?.unregister?.();
     logLine(`[${nowISO()}] [debug] unregister() sent`);
+  } catch {}
+
+  // Unregister from SBC (secondary registrar)
+  try {
+    await st.sbcReg?.unregister?.();
+    logLine(`[${nowISO()}] [debug] sbcReg.unregister() sent`);
   } catch {}
 
   st.registered = false;
@@ -160,9 +245,17 @@ export async function stopAndUnregister(st, ui, silent = false) {
     logLine(`[${nowISO()}] [debug] ua.stop() done`);
   } catch {}
 
+  // Stop SBC UA (secondary registrar)
+  try {
+    await st.sbcUa?.stop?.();
+    logLine(`[${nowISO()}] [debug] sbcUa.stop() done`);
+  } catch {}
+
   st.ua = null;
   st.reg = null;
   st.account = null;
+  st.sbcUa = null;
+  st.sbcReg = null;
 
   stopLocalAudioStream();
   ui.setStatus("Idle");

@@ -55,6 +55,7 @@ services:
       - PBX_PORT=${PBX_PORT}
       - PBX_TRANSPORT=udp
       - KAM_PUBLIC_IP=${PUBLIC_IP}
+      - KAMAILIO_IP=${PUBLIC_IP}
     depends_on:
       - rtpengine
     volumes:

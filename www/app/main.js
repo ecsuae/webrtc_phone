@@ -2,7 +2,8 @@
 import { bootLog } from "./log.js";
 import { defaultsFromBody, el, parseSipAccount, setText } from "./dom.js";
 import { createAppState, startAndRegister, stopAndUnregister } from "./sipRegister.js";
-import { startCall, hangupCall, answerIncomingCall, rejectIncomingCall } from "./sipCall.js";
+import { startCall, hangupCall } from "./sipCall.js";
+import { answerIncomingCallIsolated, rejectIncomingCallIsolated } from "./sipCallIncoming.js";
 import * as Push from "./push.js";
 
 bootLog();
@@ -273,8 +274,8 @@ el.btnCall?.addEventListener("click", () => {
 
 // End call handler
 el.btnHangup?.addEventListener("click", () => hangupCall(st, ui, false));
-el.btnAnswer?.addEventListener("click", () => answerIncomingCall(SIP, st, ui));
-el.btnReject?.addEventListener("click", () => rejectIncomingCall(st, ui));
+el.btnAnswer?.addEventListener("click", () => answerIncomingCallIsolated(SIP, st, ui));
+el.btnReject?.addEventListener("click", () => rejectIncomingCallIsolated(st, ui));
 
 el.dial?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); el.btnCall?.click(); }});
 el.pass?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (!st.registered) startAndRegister(SIP, st, ui); }});
