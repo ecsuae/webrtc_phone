@@ -586,7 +586,7 @@
         <span class="status-indicator" id="statusIndicator"></span>
         <span id="status">Idle</span>
       </div>
-      <button class="refresh-btn" id="refreshBtn" title="Hard Reload & Clear Cache" onclick="if(confirm('Reload and clear cache?')) { localStorage.clear(); sessionStorage.clear(); location.reload(true); }">
+      <button class="refresh-btn" id="refreshBtn" title="Hard Reload & Clear All Cache" onclick="clearAllCacheAndReload()">
         <i class="fas fa-redo-alt"></i>
       </button>
       <button class="refresh-btn" id="logOffBtn" style="display:none;" onclick="document.getElementById('btnStop').click();" title="Log Off">
@@ -777,7 +777,7 @@
   </div>
 
   <!-- 1) SIP.js must load first (sets window.SIP) -->
-  <script src="/vendor/sip.min.js"></script>
+  <script src="/vendor/sip.min.js?v=20260306"></script>
 
   <!-- 2) Load your refactored app as an ES module -->
   <script type="module">
@@ -813,6 +813,57 @@
     });
   </script>
 
-  <script type="module" src="/app/main.js"></script>
+  <!-- Cache clearing function for hard refresh -->
+  <script>
+    window.clearAllCacheAndReload = async function() {
+      const btn = document.getElementById('refreshBtn');
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      
+      const originalIcon = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      
+      try {
+        // Clear all storage
+        console.log('[CACHE] Clearing localStorage, sessionStorage, IndexedDB, and Service Worker caches');
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear IndexedDB
+        const dbs = await indexedDB.databases?.() || [];
+        for (const db of dbs) {
+          indexedDB.deleteDatabase(db.name);
+        }
+        
+        // Clear Service Worker caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (const cacheName of cacheNames) {
+            await caches.delete(cacheName);
+          }
+        }
+        
+        console.log('[CACHE] ✓ All caches cleared successfully');
+        
+        // Small delay for visual feedback
+        setTimeout(() => {
+          location.reload(true);
+        }, 300);
+      } catch (err) {
+        console.error('[CACHE] Error clearing cache:', err);
+        // Reload anyway even if there are errors
+        setTimeout(() => {
+          location.reload(true);
+        }, 300);
+      } finally {
+        btn.innerHTML = originalIcon;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      }
+    };
+  </script>
+
+  <!-- Force browser to reload JS with cache-busting parameter -->
+  <script type="module" src="/app/main.js?v=20260306-ringback-debug-v2"></script>
 </body>
 </html>
