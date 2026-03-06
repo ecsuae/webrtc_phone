@@ -1,10 +1,51 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
 
-let ringtoneTimer = null;
-let ringtoneCtx = null;
+let ringtoneAudio = null;
+let ringtoneRunning = false;
+let ringtoneUnlocked = false;
 let vibrationTimer = null;
 let autoStopTimer = null;
+
+// Classic old-style telephone bell ringtone - custom MP3
+const RINGTONE_URL = "/ringing_old_phone.mp3";
+
+// Prime/unlock audio for iOS - must be called during user interaction
+export function primeIncomingRingtone() {
+  if (ringtoneUnlocked) return;
+  
+  try {
+    if (!ringtoneAudio) {
+      ringtoneAudio = new Audio();
+      ringtoneAudio.src = RINGTONE_URL;
+      ringtoneAudio.type = "audio/mpeg";
+      ringtoneAudio.loop = false;  // Don't loop during priming
+      ringtoneAudio.volume = 0;     // SILENT during priming
+      ringtoneAudio.preload = "auto";
+      ringtoneAudio.setAttribute("playsinline", "true");
+      ringtoneAudio.setAttribute("webkit-playsinline", "true");
+    }
+    
+    // Play silently and immediately pause to unlock audio on iOS
+    ringtoneAudio.volume = 0;
+    ringtoneAudio.currentTime = 0;
+    const playPromise = ringtoneAudio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          ringtoneAudio.pause();
+          ringtoneAudio.currentTime = 0;
+          ringtoneUnlocked = true;
+          logLine(`[${nowISO()}] [incoming] Audio unlocked for incoming calls (iOS)`);
+        })
+        .catch(() => {
+          // Expected to fail sometimes, will retry on next user interaction
+        });
+    }
+  } catch (err) {
+    // Ignore errors during priming
+  }
+}
 
 function ensureIncomingBanner() {
   let banner = document.getElementById("incomingAlertBanner");
@@ -69,25 +110,63 @@ function ensureIncomingBanner() {
   return banner;
 }
 
-function ringOnce() {
-  if (!window.AudioContext && !window.webkitAudioContext) return;
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!ringtoneCtx) ringtoneCtx = new Ctx();
-  if (ringtoneCtx.state === "suspended") ringtoneCtx.resume().catch(() => {});
+function startRingtone() {
+  if (ringtoneRunning) return;
+  ringtoneRunning = true;
 
-  const now = ringtoneCtx.currentTime;
-  const gain = ringtoneCtx.createGain();
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-  gain.connect(ringtoneCtx.destination);
+  if (!ringtoneAudio) {
+    ringtoneAudio = new Audio();
+    ringtoneAudio.src = RINGTONE_URL;
+    ringtoneAudio.type = "audio/mpeg";
+    ringtoneAudio.preload = "auto";
+    ringtoneAudio.setAttribute("playsinline", "true");
+    ringtoneAudio.setAttribute("webkit-playsinline", "true");
+    ringtoneAudio.setAttribute("x-webkit-airplay", "deny");
+  }
 
-  const osc = ringtoneCtx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(880, now);
-  osc.connect(gain);
-  osc.start(now);
-  osc.stop(now + 0.38);
+  // Configure for actual playback (restore volume and enable loop)
+  ringtoneAudio.loop = true;
+  ringtoneAudio.volume = 0.8;
+  ringtoneAudio.currentTime = 0;
+  
+  const playPromise = ringtoneAudio.play();
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => {
+        logLine(`[${nowISO()}] [incoming] ringtone playing on ${getDeviceType()}`);
+      })
+      .catch((err) => {
+        console.error("[incoming] Failed to play ringtone:", err);
+        logLine(`[${nowISO()}] [incoming] ERROR: Failed to play ringtone - ${err.message}`);
+        ringtoneRunning = false;
+      });
+  }
+
+  logLine(`[${nowISO()}] [incoming] start ring tone (classic telephone bell)`);
+}
+
+function getDeviceType() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("iphone") || ua.includes("ipad")) return "iOS";
+  if (ua.includes("android")) return "Android";
+  return "Desktop";
+}
+
+function stopRingtone() {
+  if (!ringtoneRunning && !ringtoneAudio) return;
+
+  if (ringtoneAudio) {
+    try {
+      ringtoneAudio.pause();
+      ringtoneAudio.currentTime = 0;
+      ringtoneAudio.loop = false;  // Disable loop after stopping
+    } catch (err) {
+      console.error("[incoming] Error stopping ringtone:", err);
+    }
+  }
+
+  ringtoneRunning = false;
+  logLine(`[${nowISO()}] [incoming] stop ring tone`);
 }
 
 export function focusDialTabForIncoming() {
@@ -109,8 +188,7 @@ export function startIncomingAlert(callerDisplay) {
   if (title) title.textContent = `Incoming call: ${callerDisplay}`;
   banner.style.display = "block";
 
-  ringOnce();
-  ringtoneTimer = setInterval(ringOnce, 1200);
+  startRingtone();
 
   if (navigator.vibrate) {
     navigator.vibrate([250, 150, 250, 800]);
@@ -132,12 +210,11 @@ export function startIncomingAlert(callerDisplay) {
 }
 
 export function stopIncomingAlert() {
+  stopRingtone();
   const banner = document.getElementById("incomingAlertBanner");
   if (banner) banner.style.display = "none";
-  if (ringtoneTimer) clearInterval(ringtoneTimer);
   if (vibrationTimer) clearInterval(vibrationTimer);
   if (autoStopTimer) clearTimeout(autoStopTimer);
-  ringtoneTimer = null;
   vibrationTimer = null;
   autoStopTimer = null;
   if (navigator.vibrate) navigator.vibrate(0);

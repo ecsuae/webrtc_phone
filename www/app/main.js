@@ -3,6 +3,7 @@ import { el } from "./dom.js";
 import { createAppState, startAndRegister, stopAndUnregister } from "./sipRegister.js";
 import { startCall, hangupCall } from "./sipCall.js";
 import { answerIncomingCallIsolated, rejectIncomingCallIsolated } from "./sipCallIncoming.js";
+import { primeIncomingRingtone } from "./incoming/alert.js";
 import * as Push from "./push.js";
 import { createUi } from "./ui/appUi.js";
 import { createCallHistory } from "./ui/callHistoryLocal.js";
@@ -28,16 +29,21 @@ if (!SIP) {
 }
 
 if (el.btnStart && el.btnStop) {
-  el.btnStart.addEventListener("click", () => startAndRegister(SIP, st, ui));
+  el.btnStart.addEventListener("click", () => {
+    primeIncomingRingtone(); // Unlock audio for iOS
+    startAndRegister(SIP, st, ui);
+  });
   el.btnStop.addEventListener("click", () => stopAndUnregister(st, ui, false));
 } else if (el.btnStart) {
   el.btnStart.addEventListener("click", () => {
+    primeIncomingRingtone(); // Unlock audio for iOS
     if (st.registered) stopAndUnregister(st, ui, false);
     else startAndRegister(SIP, st, ui);
   });
 }
 
 el.btnCall?.addEventListener("click", () => {
+  primeIncomingRingtone(); // Unlock audio for iOS
   const number = ui.dial();
   if (number) callHistory.addCall(number, "outgoing");
   startCall(SIP, st, ui);
@@ -50,14 +56,27 @@ el.btnReject?.addEventListener("click", () => rejectIncomingCallIsolated(st, ui)
 el.dial?.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
+  primeIncomingRingtone(); // Unlock audio for iOS
   el.btnCall?.click();
 });
 
 el.pass?.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
+  primeIncomingRingtone(); // Unlock audio for iOS
   if (!st.registered) startAndRegister(SIP, st, ui);
 });
 
 setupTabNavigation();
 setupCallControls(st);
+
+// iOS audio unlock - prime on first user interaction
+if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+  const unlockOnInteraction = () => {
+    primeIncomingRingtone();
+    document.removeEventListener("touchstart", unlockOnInteraction);
+    document.removeEventListener("click", unlockOnInteraction);
+  };
+  document.addEventListener("touchstart", unlockOnInteraction, { once: true });
+  document.addEventListener("click", unlockOnInteraction, { once: true });
+}
