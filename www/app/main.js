@@ -79,4 +79,30 @@ if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
   };
   document.addEventListener("touchstart", unlockOnInteraction, { once: true });
   document.addEventListener("click", unlockOnInteraction, { once: true });
+
+// Mobile screen lock/unlock handling
+// Re-register when app comes back to foreground
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    // App became visible (screen unlocked or tab re-opened)
+    if (st.registered && st.reg) {
+      console.log("[Mobile] App visible - ensuring registration is active");
+      
+      // Check if UserAgent transport is connected
+      const transportState = st.ua?.transport?.state;
+      if (transportState === "Disconnected" || transportState === "Disconnecting") {
+        console.log("[Mobile] Transport disconnected, restarting registration");
+        startAndRegister(SIP, st, ui);
+      } else {
+        // Just refresh registration
+        st.reg.register().catch((err) => {
+          console.warn("[Mobile] Re-registration failed:", err);
+        });
+      }
+    }
+  } else {
+    // App became hidden (screen locked or tab switched)
+    console.log("[Mobile] App hidden - registration will persist via keepalive");
+  }
+});
 }

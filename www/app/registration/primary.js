@@ -8,6 +8,16 @@ function attachTransportListener(st, ui) {
   st.ua.transport?.stateChange?.addListener?.((state) => {
     logLine(`[${nowISO()}] [transport] ${state}`);
     ui.setTransport(String(state));
+    
+      // Auto-register when connection is restored
+      if (state === "Connected" && st.reg && !st.registered && !st.registering) {
+        logLine(`[${nowISO()}] [transport] Connection restored - auto-registering`);
+        st.registering = true;
+        st.reg.register().catch((err) => {
+          st.registering = false;
+          logLine(`[${nowISO()}] [transport] Auto-registration failed: ${err?.message || err}`);
+        });
+      }
   });
 }
 
@@ -22,7 +32,14 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
     authorizationUsername: ext,
     authorizationPassword: pass,
     sipExtension100rel: "Supported",
-    transportOptions: { server: wss },
+    transportOptions: {
+      server: wss,
+      connectionTimeout: 10,
+      keepAliveInterval: 30,
+      keepAliveDebounce: 10,
+    },
+    reconnectionAttempts: 10,
+    reconnectionDelay: 5,
     sessionDescriptionHandlerFactoryOptions: {
       peerConnectionConfiguration: { iceServers: ICE_SERVERS, iceTransportPolicy: ICE_TRANSPORT_POLICY },
     },
@@ -91,6 +108,7 @@ export async function startPrimaryRegistration(SIP, st, ui) {
   }
 
   st.reg = new SIP.Registerer(st.ua, {
+    expires: 120,
     delegate: {
       onAccept: (r) => {
         st.registered = true;

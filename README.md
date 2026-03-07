@@ -351,6 +351,8 @@ docker system df
 | `PUBLIC_IP` | Server public IP | `1.2.3.4` |
 | `PBX_IP` | PBX/FreeSWITCH IP or domain | `pbx.example.com` |
 | `PBX_PORT` | PBX SIP port | `5060` |
+| `TRUSTED_SIP_IP_1..8` | Optional extra trusted SIP source IPs | `188.34.145.229` |
+| `TRUSTED_SIP_DOMAIN_1..8` | Optional extra trusted SIP source domains | `fusn01.srve.cc` |
 | `TURN_USER` | TURN server username | `turnuser` |
 | `TURN_PASS` | TURN server password | `secure_password` |
 | `RTP_MIN` | RTP port range start | `30000` |
