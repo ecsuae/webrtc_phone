@@ -1,17 +1,19 @@
 // Load devices from API
 async function loadDevices() {
   const listEl = document.getElementById('deviceList');
+  console.log('📱 loadDevices() called');
   listEl.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading devices...</div>';
 
   try {
     const response = await fetch('/api/logs/mobile');
     const data = await response.json();
+    console.log('✓ Devices loaded:', data.devices?.length || 0, 'devices');
 
     updateStats(data);
     renderDevices(data.devices);
   } catch (err) {
     listEl.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>Failed to load devices</p></div>`;
-    console.error('Failed to load devices:', err);
+    console.error('❌ Failed to load devices:', err);
   }
 }
 
@@ -30,27 +32,60 @@ function updateStats(data) {
   document.getElementById('androidCount').textContent = androidCount;
 }
 
-// Render device list
+// Render device list with deduplication by browser fingerprint
 function renderDevices(devices) {
   const listEl = document.getElementById('deviceList');
+  console.log('🎨 renderDevices() called with', devices?.length || 0, 'devices');
 
   if (!devices || devices.length === 0) {
     listEl.innerHTML = '<div class="empty"><i class="fas fa-mobile-alt"></i><p>No devices found</p></div>';
     return;
   }
 
-  listEl.innerHTML = devices.map(device => renderDevice(device)).join('');
+  // Deduplicate: keep only the latest record per device per browser fingerprint
+  const deduped = {};
+  devices.forEach(device => {
+    const deviceId = device.deviceId;
+    const browserFingerprint = device.metadata?.browserFingerprint || 'unknown';
+    const key = `${deviceId}:${browserFingerprint}`;
+    
+    if (!deduped[key] || new Date(device.metadata?.lastSeen) > new Date(deduped[key].metadata?.lastSeen)) {
+      deduped[key] = device;
+    }
+  });
+
+  const uniqueDevices = Object.values(deduped);
+  console.log('🔍 After dedup:', uniqueDevices.length, 'unique device entries');
+  listEl.innerHTML = uniqueDevices.map(device => renderDevice(device)).join('');
+  console.log('✓ Rendered', uniqueDevices.length, 'devices to DOM');
 }
 
 // Render individual device
 function renderDevice(device) {
   const meta = device.metadata || {};
   const deviceType = meta.deviceType || 'unknown';
+  const deviceModel = meta.deviceModel || 'unknown';
+  const browserName = meta.browserName || 'unknown';
+  const browserVersion = meta.browserVersion || 'unknown';
+  const osName = meta.osName || 'unknown';
+  const osVersion = meta.osVersion || 'unknown';
+  const platform = meta.platform || 'unknown';
+  const language = meta.language || 'unknown';
+  const timeZone = meta.timeZone || 'unknown';
+  const screenInfo = meta.screenInfo || 'unknown';
   const debugMode = meta.debugMode || false;
   const currentUsername = meta.currentUsername || 'not-logged-in';
   const usernameHistory = meta.usernameHistory || [];
   const comment = meta.comment || '';
-  const lastSeen = meta.lastSeen ? new Date(meta.lastSeen).toLocaleString() : 'Never';
+  const lastSeenDate = meta.lastSeen ? new Date(meta.lastSeen) : null;
+  const lastSeen = lastSeenDate ? lastSeenDate.toLocaleString() : 'Never';
+  const ageMs = lastSeenDate ? (Date.now() - lastSeenDate.getTime()) : Number.POSITIVE_INFINITY;
+  const isOnline = ageMs <= (30 * 60 * 1000);
+  const seenMinutes = Number.isFinite(ageMs) ? Math.floor(ageMs / 60000) : null;
+  const seenText = seenMinutes === null ? 'n/a' : `${seenMinutes} min ago`;
+  const browserIdShort = meta.browserId ? String(meta.browserId).slice(-8) : 'n/a';
+  const deviceFpShort = meta.deviceFingerprint ? String(meta.deviceFingerprint).slice(-12) : 'n/a';
+  const browserFpShort = meta.browserFingerprint ? String(meta.browserFingerprint).slice(-12) : 'n/a';
   const hasLogs = device.logFileCount > 0;
 
   return `
@@ -58,13 +93,49 @@ function renderDevice(device) {
       <div class="device-header">
         <div class="device-id">${device.deviceId}</div>
         <div class="device-badges">
-          ${deviceType === 'iOS' ? '<span class="badge badge-ios"><i class="fab fa-apple"></i> iOS</span>' : ''}
-          ${deviceType === 'Android' ? '<span class="badge badge-android"><i class="fab fa-android"></i> Android</span>' : ''}
+          <span class="badge ${isOnline ? 'badge-online' : 'badge-offline'}">
+            <i class="fas ${isOnline ? 'fa-circle-check' : 'fa-circle-minus'}"></i> ${isOnline ? 'Online' : 'Offline'}
+          </span>
+          ${deviceType === 'iOS' || osName === 'iOS' || osName === 'iPadOS' ? '<span class="badge badge-ios"><i class="fab fa-apple"></i> ' + osName + ' ' + osVersion + '</span>' : ''}
+          ${deviceType === 'Android' || osName === 'Android' ? '<span class="badge badge-android"><i class="fab fa-android"></i> Android ' + osVersion + '</span>' : ''}
+          ${(deviceType !== 'iOS' && deviceType !== 'Android' && osName !== 'iOS' && osName !== 'iPadOS' && osName !== 'Android' && osName !== 'unknown') ? '<span class="badge badge-android"><i class="fas fa-desktop"></i> ' + osName + ' ' + osVersion + '</span>' : ''}
           ${debugMode ? '<span class="badge badge-debug"><i class="fas fa-bug"></i> Debug Mode</span>' : ''}
         </div>
       </div>
 
       <div class="device-info">
+        <div class="info-item">
+          <div class="label">Device Model</div>
+          <div class="value">${deviceModel}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Browser</div>
+          <div class="value">${browserName} ${browserVersion}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Browser ID</div>
+          <div class="value">...${browserIdShort}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Device FP</div>
+          <div class="value">...${deviceFpShort}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Browser FP</div>
+          <div class="value">...${browserFpShort}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Platform</div>
+          <div class="value">${platform}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Screen</div>
+          <div class="value">${screenInfo}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Locale / TZ</div>
+          <div class="value">${language} / ${timeZone}</div>
+        </div>
         <div class="info-item">
           <div class="label">Current Username</div>
           <div class="value">${currentUsername}</div>
@@ -72,6 +143,10 @@ function renderDevice(device) {
         <div class="info-item">
           <div class="label">Last Seen</div>
           <div class="value">${lastSeen}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Seen Age</div>
+          <div class="value">${seenText}</div>
         </div>
         <div class="info-item">
           <div class="label">Log Files</div>
@@ -115,13 +190,22 @@ function renderDevice(device) {
         </div>
       </div>
 
-      <button 
-        class="view-logs-btn" 
-        ${!hasLogs ? 'disabled' : ''}
-        onclick="viewLogs('${device.deviceId}')"
-      >
-        <i class="fas fa-file-alt"></i> View Logs (${device.logFileCount})
-      </button>
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button 
+          class="view-logs-btn" 
+          ${!hasLogs ? 'disabled' : ''}
+          onclick="viewLogs('${device.deviceId}')"
+        >
+          <i class="fas fa-file-alt"></i> View Logs (${device.logFileCount})
+        </button>
+        <button 
+          class="delete-btn" 
+          onclick="deleteDevice('${device.deviceId}')"
+          title="Delete this device and its logs"
+        >
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
     </div>
   `;
 }
@@ -154,6 +238,36 @@ function viewLogs(deviceId) {
   window.open(`/api/logs/mobile/${deviceId}`, '_blank');
 }
 
+// Delete a device and its logs
+async function deleteDevice(deviceId) {
+  console.log('🗑️  deleteDevice() called for:', deviceId);
+  
+  if (!confirm(`Are you sure you want to delete device ${deviceId} and all its logs?`)) {
+    console.log('❌ Delete cancelled by user');
+    return;
+  }
+
+  try {
+    console.log('📤 Sending DELETE request for:', deviceId);
+    const response = await fetch(`/api/logs/mobile/${deviceId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (response.ok) {
+      console.log('✓ Device deleted successfully:', deviceId);
+      alert('Device deleted successfully!');
+      loadDevices(); // Reload to reflect deletion
+    } else {
+      console.error('❌ Delete failed with status:', response.status);
+      alert('Failed to delete device');
+    }
+  } catch (err) {
+    console.error('❌ Error deleting device:', err);
+    alert('Error deleting device: ' + err.message);
+  }
+}
+
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
   const div = document.createElement('div');
@@ -161,12 +275,16 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Auto-refresh every 30 seconds
-setInterval(loadDevices, 30000);
+// Initial load on page ready (no auto-refresh)
+console.log('🚀 Dashboard.js script loaded');
 
-// Initial load on page ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadDevices);
+  console.log('⏳ Page still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('✓ DOMContentLoaded event fired, loading devices...');
+    loadDevices();
+  });
 } else {
+  console.log('✓ Page already loaded, loading devices immediately...');
   loadDevices();
 }

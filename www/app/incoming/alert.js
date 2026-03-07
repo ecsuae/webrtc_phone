@@ -29,6 +29,7 @@ export function primeIncomingRingtone() {
       ringtoneAudio.type = "audio/mpeg";
       ringtoneAudio.loop = false;  // Don't loop during priming
       ringtoneAudio.volume = 0;     // SILENT during priming
+      ringtoneAudio.muted = true;   // CRITICAL: Force mute for iOS
       ringtoneAudio.preload = "auto";
       ringtoneAudio.setAttribute("playsinline", "true");
       ringtoneAudio.setAttribute("webkit-playsinline", "true");
@@ -40,7 +41,8 @@ export function primeIncomingRingtone() {
       return;
     }
     
-    // Ensure audio is in safe state before priming
+    // Ensure audio is in safe state before priming - MUTED is critical for iOS
+    ringtoneAudio.muted = true;     // Force mute before play
     ringtoneAudio.volume = 0;
     ringtoneAudio.loop = false;
     ringtoneAudio.currentTime = 0;
@@ -54,6 +56,7 @@ export function primeIncomingRingtone() {
           ringtoneAudio.currentTime = 0;
           ringtoneAudio.loop = false;  // Ensure loop stays OFF after priming
           ringtoneAudio.volume = 0;    // Return to silent state
+          ringtoneAudio.muted = true;  // Keep muted after priming
           ringtoneUnlocked = true;
           logLine(`[${nowISO()}] [incoming] Audio unlocked for incoming calls (iOS)`);
         })
@@ -146,6 +149,7 @@ function startRingtone() {
   }
 
   // Configure for actual playback (restore volume and enable loop)
+  ringtoneAudio.muted = false;  // UNMUTE for actual incoming call
   ringtoneAudio.loop = true;
   ringtoneAudio.volume = 0.8;
   ringtoneAudio.currentTime = 0;

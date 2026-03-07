@@ -68,6 +68,13 @@ export function setUsername(username) {
 
   const prevUsername = state.currentUsername;
   state.currentUsername = username;
+  console.log(`[RemoteLogs] Username set to: ${username}, previous: ${prevUsername || 'none'}, state now:`, state.currentUsername);
+
+  try {
+    localStorage.setItem("webrtc_current_username", username);
+  } catch {
+    // Ignore localStorage errors.
+  }
 
   const history = getUsernameHistory();
   if (!history.includes(username)) {
@@ -81,7 +88,10 @@ export function setUsername(username) {
   }
 
   if (prevUsername !== username) {
+    console.log(`[RemoteLogs] Username changed, sending metadata update...`);
     sendMetadataToServer();
+  } else {
+    console.log(`[RemoteLogs] Username unchanged, skipping metadata update`);
   }
 }
 

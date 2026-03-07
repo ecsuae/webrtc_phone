@@ -121,6 +121,28 @@ function createLogRoutes({ requireWireGuardAccess }) {
     }
   });
 
+  router.delete('/mobile/:deviceId', requireWireGuardAccess, (req, res) => {
+    const { deviceId } = req.params;
+
+    try {
+      // Delete device logs directory
+      const deviceDir = path.join(LOGS_BASE_DIR, deviceId);
+      if (fs.existsSync(deviceDir)) {
+        fs.rmSync(deviceDir, { recursive: true, force: true });
+      }
+
+      // Delete metadata file
+      const metadataFile = path.join(ensureMetadataDir(), `${deviceId}.json`);
+      if (fs.existsSync(metadataFile)) {
+        fs.unlinkSync(metadataFile);
+      }
+
+      return res.json({ success: true, message: 'Device and logs deleted', deviceId });
+    } catch (err) {
+      return res.status(500).json({ error: 'Failed to delete device', message: err.message });
+    }
+  });
+
   return router;
 }
 

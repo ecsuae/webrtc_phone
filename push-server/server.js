@@ -2,6 +2,7 @@ const express = require('express');
 const webpush = require('web-push');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const {
   PORT,
@@ -21,6 +22,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static dashboard assets
+app.use('/src/dashboard', express.static(path.join(process.cwd(), 'src/dashboard')));
 
 const vapid = getVapidConfig();
 if (isVapidConfigured()) {

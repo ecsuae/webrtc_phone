@@ -25,15 +25,29 @@ function updateMetadata(incoming) {
   ];
   const uniqueUsernameHistory = [...new Set(mergedUsernameHistory)];
   const normalizedDeviceType = incoming.deviceType || incoming.device || existingData.deviceType || 'unknown';
+  const incomingUsername = incoming.currentUsername || 'not-logged-in';
+  const existingUsername = existingData.currentUsername || 'not-logged-in';
+  const resolvedCurrentUsername = incomingUsername !== 'not-logged-in'
+    ? incomingUsername
+    : (existingUsername !== 'not-logged-in' ? existingUsername : 'not-logged-in');
   const mergedBrowserIds = [...new Set([...(existingData.browserIds || []), ...(incoming.browserId ? [incoming.browserId] : [])])];
   const mergedBrowserFingerprints = [...new Set([...(existingData.browserFingerprints || []), ...(incoming.browserFingerprint ? [incoming.browserFingerprint] : [])])];
 
   const updatedMetadata = {
     deviceId: canonicalDeviceId,
     deviceType: normalizedDeviceType,
+    deviceModel: incoming.deviceModel || existingData.deviceModel || 'unknown',
+    browserName: incoming.browserName || existingData.browserName || 'unknown',
+    browserVersion: incoming.browserVersion || existingData.browserVersion || 'unknown',
+    osName: incoming.osName || existingData.osName || 'unknown',
+    osVersion: incoming.osVersion || existingData.osVersion || 'unknown',
+    platform: incoming.platform || existingData.platform || 'unknown',
+    language: incoming.language || existingData.language || 'unknown',
+    timeZone: incoming.timeZone || existingData.timeZone || 'unknown',
+    screenInfo: incoming.screenInfo || existingData.screenInfo || 'unknown',
     userAgent: incoming.userAgent || existingData.userAgent,
     url: incoming.url || existingData.url,
-    currentUsername: incoming.currentUsername || existingData.currentUsername || 'not-logged-in',
+    currentUsername: resolvedCurrentUsername,
     usernameHistory: uniqueUsernameHistory,
     browserId: incoming.browserId || existingData.browserId || null,
     browserIds: mergedBrowserIds,

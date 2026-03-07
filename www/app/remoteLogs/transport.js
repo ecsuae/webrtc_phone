@@ -30,7 +30,19 @@ export async function sendMetadataToServer() {
 
   try {
     const deviceInfo = getDeviceInfo();
-    console.log("[RemoteLogs] Sending metadata...");
+    console.log("[RemoteLogs] Sending metadata with:", {
+      deviceModel: deviceInfo.deviceModel,
+      browserName: deviceInfo.browserName,
+      browserVersion: deviceInfo.browserVersion,
+      osName: deviceInfo.osName,
+      osVersion: deviceInfo.osVersion,
+      platform: deviceInfo.platform,
+      language: deviceInfo.language,
+      timeZone: deviceInfo.timeZone,
+      screenInfo: deviceInfo.screenInfo,
+      currentUsername: deviceInfo.currentUsername,
+      debugMode: deviceInfo.debugMode
+    });
 
     const response = await fetch("/api/logs/mobile/metadata", {
       method: "POST",

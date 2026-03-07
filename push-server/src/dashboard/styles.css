@@ -159,6 +159,11 @@ body {
   animation: pulse 2s ease-in-out infinite;
 }
 
+.badge-online {
+  background: #dcfce7;
+  color: #166534;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
@@ -273,10 +278,23 @@ body {
   cursor: not-allowed;
 }
 
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #a0aec0;
+.delete-btn {
+  background: #f56565;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.delete-btn:hover {
+  background: #e53e3e;
+}
+
+.delete-btn:active {
+  transform: scale(0.98);
 }
 
 .empty {

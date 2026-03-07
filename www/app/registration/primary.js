@@ -105,6 +105,13 @@ export async function startPrimaryRegistration(SIP, st, ui) {
     return null;
   }
 
+  // Capture intended username early so metadata does not remain not-logged-in.
+  try {
+    setUsername(ext);
+  } catch (err) {
+    console.error('[RemoteLogs] Failed to pre-set username:', err);
+  }
+
   ui.setStatus("Starting...");
   ui.setTransport("Connecting...");
   const uri = buildUserAgent(SIP, st, ui, account, pass, wss);
@@ -169,7 +176,14 @@ export async function startPrimaryRegistration(SIP, st, ui) {
 
   st.reg.stateChange?.addListener?.((s) => {
     const low = String(s).toLowerCase();
-    if (low.includes("registered")) st.registered = true;
+    if (low.includes("registered")) {
+      st.registered = true;
+      try {
+        setUsername(ext);
+      } catch (err) {
+        console.error('[RemoteLogs] Failed to set username on stateChange:', err);
+      }
+    }
     if (low.includes("unregistered") || low.includes("terminated")) st.registered = false;
     ui.setButtons();
   });
