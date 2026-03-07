@@ -66,7 +66,7 @@ WebRTC-based SIP calling application with push notifications, multi-domain suppo
 | **config.js** | Constants, ICE servers, codec settings | Global configuration: VAPID key, G.711 codec forcing, RTP relay, password masking settings |
 | **dom.js** | `el`, `$`, helper functions | DOM selectors and utilities for input fields, form parsing, WSS normalization |
 | **log.js** | `logLine()`, `formatSipResponse()`, `bootLog()` | Logging to textarea element; application startup log |
-| **remoteLogs.js** | Metadata/log capture + fingerprint identity | Sends logs/metadata to server; uses visibility/beacon fallback; emits `browserId`, `deviceFingerprint`, `browserFingerprint` |
+| **remoteLogs.js** | Metadata/log capture + fingerprint identity (re-export entrypoint) | Thin re-export file; composes modular `remoteLogs/` services; maintains backward API compatibility |
 | **media.js** | Audio stream management | Microphone access, audio constraints (G.711), local stream handling |
 | **sdp.js** | `g711OnlyModifier()` | SDP codec filtering to enforce G.711 only |
 | **pcDebug.js** | Exports from `pc/bind.js` | PeerConnection debugging utilities |
@@ -133,6 +133,22 @@ WebRTC-based SIP calling application with push notifications, multi-domain suppo
 - 3-retry subscription for iOS reliability
 - Service Worker message listener for incoming call actions
 - Graceful permission fallback
+
+---
+
+#### `/app/remoteLogs` - Remote Logging (Activity-based Modules)
+
+| File | Exports | Purpose |
+|------|---------|------|
+| **state.js** | `state`, constants | Global state: buffers, timers, debug flag, identity fields, lifecycle tracking |
+| **identity.js** | `getOrCreateDeviceId()`, `getUsernameHistory()`, `getDeviceInfo()`, helpers | Device/browser fingerprinting; persistent ID generation; user history |
+| **transport.js** | `sendMetadataToServer()`, `sendLogsToServer()`, `pageIsVisible()`, `trySendMetadataBeacon()` | HTTP fetch/beacon operations; visibility-based send guards; error handling |
+| **service.js** | `startRemoteLogging()`, `toggleDebugMode()`, `setUsername()`, `captureLog()`, `isDebugMode()`, `getLogBuffer()`, `getInfo()` | Service orchestration; lifecycle event binding; debug mode toggle; timer management |
+
+**Key Architecture**:
+- Modular split by concern: state, identity, transport, service coordination
+- `remoteLogs.js` re-exports all public functions for backward compatibility
+- Each module under 130 lines, focused on single responsibility
 
 ---
 

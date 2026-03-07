@@ -34,21 +34,38 @@
 
 ### Remote Logging + Device Identity
 
-#### `www/app/remoteLogs.js`
-- Added robust identity fields in metadata payload:
+#### `www/app/remoteLogs.js` (Modular Split)
+- Refactored from 411 lines into modular `remoteLogs/` directory:
+  - `state.js` - State management (buffers, timers, flags)
+  - `identity.js` - Device/browser identity (fingerprints, user history, device info)
+  - `transport.js` - Network operations (fetch/beacon send, visibility guards)
+  - `service.js` - Service coordinator (startup, lifecycle events, debug toggle)
+  - `remoteLogs.js` - Thin re-export entrypoint for backward API compatibility
+- Preserved robust identity fields in metadata payload:
 	- `browserId`
 	- `deviceFingerprint`
 	- `browserFingerprint`
 - Persisted IDs via localStorage + cookie fallback
 - Stabilized metadata sending with hidden-page guard + `sendBeacon` fallback
 
-#### `push-server/server.js`
-- Added canonical device resolution on metadata upsert:
+#### `push-server/server.js` (Modular Split)
+- Refactored from 1275 lines into modular `src/` structure:
+  - `config.js` - Environment and configuration loading
+  - `middleware/accessControl.js` - Client IP normalization + WireGuard/local guards
+  - `routes/pushRoutes.js` - Push subscription/notify APIs
+  - `routes/logRoutes.js` - Metadata ingest + admin log/comment APIs
+  - `routes/systemRoutes.js` - Health endpoint + dashboard serving
+  - `services/push/subscriptionStore.js` - In-memory subscription operations
+  - `services/metadata/core.js` - Metadata read/write + canonical identity helpers
+  - `services/metadata/metadataUpdate.js` - Metadata patch/merge logic
+  - `services/metadata/dedupe.js` - Startup migration/deduplication pass
+  - `server.js` - Thin bootstrap file (~87 lines) wiring all modules
+- Canonical device resolution on metadata upsert:
 	- Match by `deviceId`
 	- Match by `browserId`
 	- Match by `deviceFingerprint`
-- Added startup dedupe migration for historical duplicate metadata
-- Added metadata/archive handling during dedupe
+- Startup dedupe migration for historical duplicate metadata
+- Metadata/archive handling during dedupe
 
 ### Dashboard Security Hardening
 
@@ -86,3 +103,6 @@
 - [x] Metadata-only devices appear in dashboard
 - [x] Device identity no longer random on every hard reload
 - [x] Frontend index split into activity-based modules
+- [x] Frontend remoteLogs split into activity-based modules
+- [x] Backend push-server split into activity-based modules
+- [x] Post-refactor endpoint verification: all routes functional, security intact
