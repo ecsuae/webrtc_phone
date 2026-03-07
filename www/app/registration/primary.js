@@ -3,6 +3,30 @@ import { formatSipResponse, logLine } from "../log.js";
 import { normalizeWssServer } from "../dom.js";
 import * as Push from "../push.js";
 import { handleIncomingCallIsolated } from "../sipCallIncoming.js";
+import { setRegistrationComplete } from "../incoming/handlers.js";
+import { setUsername } from "../remoteLogs.js";
+
+// Periodic re-registration for Android background persistence
+// Prevents registration from expiring when Android kills WebSocket connections
+function startPeriodicReregistration(st, ext) {
+  // Re-register every 2.5 minutes - keeps presence alive even if keep-alives fail
+  const reregInterval = 150 * 1000; // 2.5 minutes in milliseconds
+  
+  const reregTimer = setInterval(() => {
+    if (st.reg && st.registered) {
+      logLine(`[${nowISO()}] [registerer] Periodic re-registration for ${ext}`);
+      st.reg.register().catch((err) => {
+        logLine(`[${nowISO()}] [registerer] Periodic re-reg failed: ${err?.message || err}`);
+      });
+    } else {
+      // Clear timer if registration stops
+      clearInterval(reregTimer);
+    }
+  }, reregInterval);
+  
+  // Store timer for cleanup on unregister
+  st._reregTimer = reregTimer;
+}
 
 function attachTransportListener(st, ui) {
   st.ua.transport?.stateChange?.addListener?.((state) => {
@@ -35,11 +59,11 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
     transportOptions: {
       server: wss,
       connectionTimeout: 10,
-      keepAliveInterval: 30,
-      keepAliveDebounce: 10,
+      keepAliveInterval: 20,        // Reduced from 30s to 20s for Android background
+      keepAliveDebounce: 5,         // Reduced from 10s to 5s
     },
-    reconnectionAttempts: 10,
-    reconnectionDelay: 5,
+    reconnectionAttempts: 15,       // Increased from 10 for better recovery
+    reconnectionDelay: 3,           // Reduced from 5s for faster reconnection
     sessionDescriptionHandlerFactoryOptions: {
       peerConnectionConfiguration: { iceServers: ICE_SERVERS, iceTransportPolicy: ICE_TRANSPORT_POLICY },
     },
@@ -107,8 +131,11 @@ export async function startPrimaryRegistration(SIP, st, ui) {
     return null;
   }
 
+  // Start periodic re-registration timer for Android background persistence
+  startPeriodicReregistration(st, ext);
+
   st.reg = new SIP.Registerer(st.ua, {
-    expires: 120,
+    expires: 180,                   // Increased from 120s to 180s
     delegate: {
       onAccept: (r) => {
         st.registered = true;
@@ -117,6 +144,15 @@ export async function startPrimaryRegistration(SIP, st, ui) {
         logLine(`[${nowISO()}] [registerer] accepted ${info}`.trim());
         ui.setStatus("Registered");
         ui.setButtons();
+        
+        // Track username for mobile debugging
+        try {
+          setUsername(ext);
+        } catch (err) {
+          console.error('[RemoteLogs] Failed to set username:', err);
+        }
+        
+        setRegistrationComplete();  // Notify incoming handler that registration is complete
         const subscribedExt = st.account?.username || ext;
         if (subscribedExt) Push.subscribeAfterRegister(subscribedExt).catch(() => {});
       },

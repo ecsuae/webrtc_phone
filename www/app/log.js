@@ -1,12 +1,20 @@
 // www/app/log.js
 import { nowISO } from "./config.js";
 import { el } from "./dom.js";
+import { captureLog } from "./remoteLogs.js";
 
 export function logLine(...args) {
   const msg = args
     .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
     .join(" ");
   console.log(msg);
+  
+  // Capture log for mobile remote debugging (non-blocking)
+  try {
+    captureLog("log", msg);
+  } catch (err) {
+    // Silently fail if remote logging has issues
+  }
 
   if (el.log) {
     el.log.textContent += msg + "\n";

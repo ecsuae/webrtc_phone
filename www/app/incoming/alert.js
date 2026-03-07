@@ -6,12 +6,20 @@ let ringtoneRunning = false;
 let ringtoneUnlocked = false;
 let vibrationTimer = null;
 let autoStopTimer = null;
+let isIncomingCallActive = false;
+let pageLoadTime = Date.now();  // Prevent ghost calls in first 2 seconds
 
 // Classic old-style telephone bell ringtone - custom MP3
 const RINGTONE_URL = "/ringing_old_phone.mp3";
 
 // Prime/unlock audio for iOS - must be called during user interaction
 export function primeIncomingRingtone() {
+  // Skip priming in first 5 seconds to avoid interfering with page load
+  const timeSinceLoad = Date.now() - pageLoadTime;
+  if (timeSinceLoad < 5000) {
+    return;  // Too early, skip priming
+  }
+
   if (ringtoneUnlocked) return;
   
   try {
@@ -26,24 +34,37 @@ export function primeIncomingRingtone() {
       ringtoneAudio.setAttribute("webkit-playsinline", "true");
     }
     
-    // Play silently and immediately pause to unlock audio on iOS
+    // Only prime if no active incoming call (prevent false ringing)
+    if (isIncomingCallActive) {
+      logLine(`[${nowISO()}] [incoming] Skipped priming - incoming call already active`);
+      return;
+    }
+    
+    // Ensure audio is in safe state before priming
     ringtoneAudio.volume = 0;
+    ringtoneAudio.loop = false;
     ringtoneAudio.currentTime = 0;
+    
     const playPromise = ringtoneAudio.play();
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
+          // After priming play, immediately pause and reset
           ringtoneAudio.pause();
           ringtoneAudio.currentTime = 0;
+          ringtoneAudio.loop = false;  // Ensure loop stays OFF after priming
+          ringtoneAudio.volume = 0;    // Return to silent state
           ringtoneUnlocked = true;
           logLine(`[${nowISO()}] [incoming] Audio unlocked for incoming calls (iOS)`);
         })
         .catch(() => {
           // Expected to fail sometimes, will retry on next user interaction
+          ringtoneUnlocked = false;
         });
     }
   } catch (err) {
     // Ignore errors during priming
+    ringtoneUnlocked = false;
   }
 }
 
@@ -111,7 +132,7 @@ function ensureIncomingBanner() {
 }
 
 function startRingtone() {
-  if (ringtoneRunning) return;
+  if (ringtoneRunning || !isIncomingCallActive) return;
   ringtoneRunning = true;
 
   if (!ringtoneAudio) {
@@ -182,7 +203,16 @@ export function focusDialTabForIncoming() {
 }
 
 export function startIncomingAlert(callerDisplay) {
+  // Prevent ghost notifications in first 5 seconds of page load
+  const timeSinceLoad = Date.now() - pageLoadTime;
+  if (timeSinceLoad < 5000) {
+    logLine(`[${nowISO()}] [incoming] ⚠️ BLOCKED phantom call ${timeSinceLoad}ms after load (${callerDisplay})`);
+    return;
+  }
+
+  logLine(`[${nowISO()}] [incoming] Accepting call ${timeSinceLoad}ms after load`);
   stopIncomingAlert();
+  isIncomingCallActive = true;  // Mark that incoming call is now active
   const banner = ensureIncomingBanner();
   const title = document.getElementById("incomingAlertTitle");
   if (title) title.textContent = `Incoming call: ${callerDisplay}`;
@@ -210,6 +240,7 @@ export function startIncomingAlert(callerDisplay) {
 }
 
 export function stopIncomingAlert() {
+  isIncomingCallActive = false;  // Mark incoming call as inactive
   stopRingtone();
   const banner = document.getElementById("incomingAlertBanner");
   if (banner) banner.style.display = "none";

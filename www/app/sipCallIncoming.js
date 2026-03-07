@@ -6,4 +6,5 @@ export {
   handleIncomingCallIsolated,
   answerIncomingCallIsolated,
   rejectIncomingCallIsolated,
+  setRegistrationComplete,
 } from "./incoming/handlers.js";

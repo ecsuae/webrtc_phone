@@ -1,5 +1,7 @@
 import { logLine } from "../log.js";
 
+const SW_BUILD = "20260307-r2";
+
 export function isPushSupported() {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
@@ -11,7 +13,8 @@ export async function registerServiceWorker() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js");
+    const registration = await navigator.serviceWorker.register(`/sw.js?v=${SW_BUILD}`);
+    registration.update().catch(() => {});
     await navigator.serviceWorker.ready;
     logLine("[Push] Service worker ready");
     return registration;

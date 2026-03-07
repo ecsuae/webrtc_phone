@@ -19,6 +19,12 @@ export async function startAndRegister(SIP, st, ui) {
 export async function stopAndUnregister(st, ui, silent = false) {
   if (!silent) logLine(`[${nowISO()}] [boot] stopAndUnregister clicked`);
 
+  // Clear periodic re-registration timer
+  if (st._reregTimer) {
+    clearInterval(st._reregTimer);
+    st._reregTimer = null;
+  }
+
   try {
     await st.reg?.unregister?.();
   } catch {}

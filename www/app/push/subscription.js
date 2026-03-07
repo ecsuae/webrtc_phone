@@ -64,9 +64,33 @@ export async function unsubscribeFromPush(extension) {
 
 export async function subscribeAfterRegister(extension) {
   if (!extension) return false;
-  const permission = await requestNotificationPermission();
-  if (permission !== "granted") return false;
-  return !!(await subscribeToPush(extension));
+  
+  // On iOS, retry push subscription multiple times for reliability
+  let attempts = 3;
+  let result = false;
+  
+  while (attempts > 0 && !result) {
+    try {
+      const permission = await requestNotificationPermission();
+      if (permission === "granted") {
+        result = await subscribeToPush(extension);
+        if (result) {
+          logLine(`[Push] Successfully subscribed after register for ${extension}`);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn(`[Push] Subscribe attempt ${4 - attempts} failed:`, err);
+    }
+    
+    if (!result && attempts > 1) {
+      // Wait a short time before retrying
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    attempts--;
+  }
+  
+  return result;
 }
 
 export function getPushStatus() {

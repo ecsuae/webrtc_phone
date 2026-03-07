@@ -92,6 +92,8 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
       - PORT=3001
+    volumes:
+      - ./backups/mobile-logs:/app/../backups/mobile-logs
 
   nginx:
     image: nginx:alpine

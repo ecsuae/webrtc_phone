@@ -116,6 +116,37 @@ Open these ports on your firewall:
 - **3001** - Push server API (proxied by Nginx)
 - **2223** - RTPEngine control socket
 
+## 🛡️ Admin Dashboard Access (WireGuard Only)
+
+Device Debug Dashboard and admin log APIs are intentionally restricted.
+
+### Access URLs
+- **Public internet:** `https://phone.srve.cc/dashboard` → blocked (403)
+- **WireGuard endpoint:** `http://10.252.253.15:8081/dashboard` → allowed
+
+### Protected Admin APIs
+- `GET /api/logs/mobile`
+- `GET /api/logs/mobile/:deviceId`
+- `GET /api/logs/mobile/:deviceId/:filename`
+- `PATCH /api/logs/mobile/:deviceId/comment`
+
+### Still Public (needed by clients)
+- `POST /api/logs/mobile/metadata`
+- `POST /api/logs/mobile`
+
+### Quick Verification
+```bash
+# Public path should be denied
+curl -s -k -o /dev/null -w "%{http_code}\n" https://phone.srve.cc/dashboard
+
+# WireGuard path should be reachable
+curl -s -o /dev/null -w "%{http_code}\n" http://10.252.253.15:8081/dashboard
+```
+
+Expected result:
+- First command returns `403`
+- Second command returns `200`
+
 ## 🔔 Push Notifications
 
 Push notifications are automatically configured during setup:

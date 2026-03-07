@@ -1,5 +1,6 @@
-import { bootLog } from "./log.js";
+import { bootLog, logLine } from "./log.js";
 import { el } from "./dom.js";
+import { nowISO } from "./config.js";
 import { createAppState, startAndRegister, stopAndUnregister } from "./sipRegister.js";
 import { startCall, hangupCall } from "./sipCall.js";
 import { answerIncomingCallIsolated, rejectIncomingCallIsolated } from "./sipCallIncoming.js";
@@ -10,6 +11,7 @@ import { createCallHistory } from "./ui/callHistoryLocal.js";
 import { createCallTimer } from "./ui/callTimer.js";
 import { setupTabNavigation } from "./ui/tabNavigation.js";
 import { setupCallControls } from "./ui/callControls.js";
+import { startRemoteLogging } from "./remoteLogs.js?v=20260307-r4";
 
 bootLog();
 
@@ -28,22 +30,62 @@ if (!SIP) {
   ui.setStatus("SIP.js not loaded");
 }
 
+// Wake Lock API to keep Android device awake while registered
+let wakeLock = null;
+
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    logLine(`[${nowISO()}] [WakeLock] Screen wake lock acquired`);
+    wakeLock.addEventListener('release', () => {
+      logLine(`[${nowISO()}] [WakeLock] Released`);
+    });
+  } catch (err) {
+    logLine(`[${nowISO()}] [WakeLock] Failed: ${err.name}`);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock !== null) {
+    wakeLock.release().then(() => {
+      logLine(`[${nowISO()}] [WakeLock] Released`);
+      wakeLock = null;
+    }).catch((err) => {
+      logLine(`[${nowISO()}] [WakeLock] Release error: ${err.name}`);
+      wakeLock = null;
+    });
+  }
+}
+
+// Event handlers with Wake Lock management
 if (el.btnStart && el.btnStop) {
   el.btnStart.addEventListener("click", () => {
-    primeIncomingRingtone(); // Unlock audio for iOS
-    startAndRegister(SIP, st, ui);
+    primeIncomingRingtone();
+    startAndRegister(SIP, st, ui).then(() => {
+      if (st.registered) acquireWakeLock();
+    });
   });
-  el.btnStop.addEventListener("click", () => stopAndUnregister(st, ui, false));
+  el.btnStop.addEventListener("click", () => {
+    releaseWakeLock();
+    stopAndUnregister(st, ui, false);
+  });
 } else if (el.btnStart) {
   el.btnStart.addEventListener("click", () => {
-    primeIncomingRingtone(); // Unlock audio for iOS
-    if (st.registered) stopAndUnregister(st, ui, false);
-    else startAndRegister(SIP, st, ui);
+    primeIncomingRingtone();
+    if (st.registered) {
+      releaseWakeLock();
+      stopAndUnregister(st, ui, false);
+    } else {
+      startAndRegister(SIP, st, ui).then(() => {
+        if (st.registered) acquireWakeLock();
+      });
+    }
   });
 }
 
 el.btnCall?.addEventListener("click", () => {
-  primeIncomingRingtone(); // Unlock audio for iOS
+  primeIncomingRingtone();
   const number = ui.dial();
   if (number) callHistory.addCall(number, "outgoing");
   startCall(SIP, st, ui);
@@ -56,15 +98,17 @@ el.btnReject?.addEventListener("click", () => rejectIncomingCallIsolated(st, ui)
 el.dial?.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
-  primeIncomingRingtone(); // Unlock audio for iOS
+  primeIncomingRingtone();
   el.btnCall?.click();
 });
 
 el.pass?.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   e.preventDefault();
-  primeIncomingRingtone(); // Unlock audio for iOS
-  if (!st.registered) startAndRegister(SIP, st, ui);
+  primeIncomingRingtone();
+  if (!st.registered) startAndRegister(SIP, st, ui).then(() => {
+    if (st.registered) acquireWakeLock();
+  });
 });
 
 setupTabNavigation();
@@ -79,30 +123,76 @@ if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
   };
   document.addEventListener("touchstart", unlockOnInteraction, { once: true });
   document.addEventListener("click", unlockOnInteraction, { once: true });
+}
 
 // Mobile screen lock/unlock handling
-// Re-register when app comes back to foreground
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    // App became visible (screen unlocked or tab re-opened)
-    if (st.registered && st.reg) {
-      console.log("[Mobile] App visible - ensuring registration is active");
-      
-      // Check if UserAgent transport is connected
+function setupScreenLockRecovery() {
+  // Visibility change (tab/app hidden/shown)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      logLine(`[${nowISO()}] [mobile] App visible - checking registration`);
+      if (st.ua && st.registered) {
+        const transportState = st.ua?.transport?.state;
+        if (transportState === "Disconnected" || transportState === "Disconnecting") {
+          logLine(`[${nowISO()}] [mobile] Reconnecting after visibility change`);
+          if (st.reg) {
+            st.reg.register().catch((err) => {
+              logLine(`[${nowISO()}] [mobile] Re-register failed, restarting`);
+              startAndRegister(SIP, st, ui);
+            });
+          }
+        }
+      }
+      if (st.registered) {
+        acquireWakeLock();
+      }
+    } else {
+      logLine(`[${nowISO()}] [mobile] App hidden`);
+    }
+  });
+  
+  // Window focus
+  window.addEventListener("focus", () => {
+    if (st.ua && st.registered) {
       const transportState = st.ua?.transport?.state;
       if (transportState === "Disconnected" || transportState === "Disconnecting") {
-        console.log("[Mobile] Transport disconnected, restarting registration");
-        startAndRegister(SIP, st, ui);
-      } else {
-        // Just refresh registration
-        st.reg.register().catch((err) => {
-          console.warn("[Mobile] Re-registration failed:", err);
-        });
+        if (st.reg) {
+          st.reg.register().catch(() => {
+            logLine(`[${nowISO()}] [mobile] Focus re-register failed`);
+          });
+        }
       }
     }
-  } else {
-    // App became hidden (screen locked or tab switched)
-    console.log("[Mobile] App hidden - registration will persist via keepalive");
-  }
-});
+  });
+
+  // Page show (iOS bfcache restore)
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted && st.registered && st.reg) {
+      st.reg.register().catch((err) => {
+        logLine(`[${nowISO()}] [mobile] bfcache re-register failed: ${err?.message || err}`);
+      });
+    }
+  });
+
+  // Before unload
+  window.addEventListener("beforeunload", () => {
+    releaseWakeLock();
+  });
+}
+
+setupScreenLockRecovery();
+
+// Start remote logging for mobile debugging
+try {
+  startRemoteLogging();
+} catch (err) {
+  console.error('[RemoteLogs] Failed to start remote logging:', err);
+}
+
+// iOS: push notification setup
+if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+  window.addEventListener("load", () => {
+    logLine(`[${nowISO()}] [iOS] Push initialization`);
+    Push.init().catch(() => {});
+  });
 }

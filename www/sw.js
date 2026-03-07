@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
 // Handles incoming call notifications when page is closed
 
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.0.1';
 const CACHE_NAME = `webphone-cache-${SW_VERSION}`;
 
 // Install event
@@ -66,8 +66,15 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // For iOS: ensure notification wakes the app
   event.waitUntil(
-    self.registration.showNotification(data.title, data)
+    self.registration.showNotification(data.title, {
+      ...data,
+      // iOS-specific: higher requireInteraction to ensure wakeup
+      requireInteraction: true,
+    }).catch(err => {
+      console.error('[SW] Failed to show notification:', err);
+    })
   );
 });
 
@@ -117,6 +124,12 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Notification close handler - prevent false triggers
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed by user');
+  // Don't trigger any actions when user dismisses notification
+});
+
 // Message handler (for communication with main app)
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
@@ -130,10 +143,18 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only cache GET requests
   if (event.request.method !== 'GET') return;
+
+  const reqUrl = event.request.url;
+
+  // Never cache JS app bundles or vendor libs; always fetch latest.
+  if (reqUrl.includes('/app/') || reqUrl.includes('/vendor/') || reqUrl.endsWith('/index.html')) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
   
   // Skip caching for API calls and WebSocket
-  if (event.request.url.includes('/api/') || 
-      event.request.url.includes('wss://')) {
+  if (reqUrl.includes('/api/') || 
+      reqUrl.includes('wss://')) {
     return;
   }
 

@@ -6,6 +6,10 @@ import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
 import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js";
 
+// Track page load time for ghost call prevention
+const pageLoadTimeForIncoming = Date.now();
+let lastRegistrationCompleteTime = null;  // Track when registration actually completes
+
 function cleanupIncomingState(st, ui) {
   st.session = null;
   st.incomingInvitation = null;
@@ -15,9 +19,48 @@ function cleanupIncomingState(st, ui) {
   if (window.callTimer) window.callTimer.stop();
 }
 
+// Export function to update registration complete time from primary.js
+export function setRegistrationComplete() {
+  lastRegistrationCompleteTime = Date.now();
+  logLine(`[${nowISO()}] [incoming] Registration completed at ${lastRegistrationCompleteTime}`);
+}
+
 export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   const callerUser = invitation.remoteIdentity?.uri?.user || "Unknown";
   const callerDisplay = invitation.remoteIdentity?.displayName || callerUser;
+
+  // CRITICAL: Reject all incoming calls if not registered yet (prevents phantom calls during login)
+  if (!st.registered) {
+    logLine(`[${nowISO()}] [incoming] ⚠️ REJECTED (not registered) from ${callerDisplay}`);
+    try {
+      invitation.reject({ statusCode: 480 });
+    } catch (err) {
+      logLine(`[${nowISO()}] [incoming] Could not reject: ${err?.message || err}`);
+    }
+    return;
+  }
+
+  // Second gate: Reject calls in first 3 seconds after registration (prevents iPhone post-login phantom calls)
+  if (lastRegistrationCompleteTime !== null) {
+    const timeSinceRegComplete = Date.now() - lastRegistrationCompleteTime;
+    if (timeSinceRegComplete < 3000) {
+      logLine(`[${nowISO()}] [incoming] ⚠️ BLOCKED ${timeSinceRegComplete}ms after reg from ${callerDisplay}`);
+      try {
+        invitation.reject({ statusCode: 480 });
+      } catch (err) {}
+      return;
+    }
+  }
+
+  // Tertiary gate: ignore calls in first 5 seconds of page load (page startup protection)
+  const timeSincePageLoad = Date.now() - pageLoadTimeForIncoming;
+  if (timeSincePageLoad < 5000) {
+    logLine(`[${nowISO()}] [incoming] ⚠️ BLOCKED ${timeSincePageLoad}ms after pageload from ${callerDisplay}`);
+    try {
+      invitation.reject({ statusCode: 480 });
+    } catch (err) {}
+    return;
+  }
 
   logLine(`[${nowISO()}] [incoming] ==================== INCOMING CALL ====================`);
   logLine(`[${nowISO()}] [incoming] Caller: ${callerDisplay} (${callerUser})`);
