@@ -1,0 +1,176 @@
+/* Scrollbars, Popup Menu, Dialogs, Windows */
+
+/* Scrollbars */
+.scroller {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #516896 transparent;
+}
+
+.scroller::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+  background: #516896;
+  border-radius: 50px;
+}
+
+.scroller::-webkit-scrollbar-thumb:hover {
+  background: #697ca2;
+}
+
+/* Clean Scrollers */
+.cleanScroller {
+  scrollbar-width: thin;
+  scrollbar-color: #a6a6a6 transparent;
+}
+
+.cleanScroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cleanScroller::-webkit-scrollbar-thumb {
+  background: #a6a6a6;
+  border-radius: 5px;
+}
+
+.cleanScroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.NoItems {
+  margin-top: 50px;
+  margin-bottom: 50px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  width: 200px;
+  border: 2px dashed #9cb5d7;
+  border-radius: 15px;
+  padding: 20px;
+  color: #9cb5d7 !important;
+}
+
+.SelectItemArrow {
+  float: left;
+  margin-top: -10px;
+  margin-right: -16px;
+  margin-left: -10px;
+}
+
+.helpFieldset {
+  background-color: #f9f9f9;
+  border-right: none;
+  border-left: none;
+  border-color: #293442;
+  font-size: 13px;
+  color: #515e6f;
+}
+
+.FormTextRight {
+  display: inline-block;
+  text-align: right;
+  padding-right: 5px;
+}
+
+.textField {
+  border: 1px solid #80add4 !important;
+  border-radius: 5px;
+  padding-left: 3px !important;
+  line-height: 22px !important;
+  background-color: #f7f7f7 !important;
+  box-shadow: inset 0px 0px 3px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.contentLoading {
+  display: none;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #CCCCCC;
+  border-radius: 50px;
+  background-color: #FFFFFF;
+  text-align: center;
+  color: #333333;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.25);
+  line-height: 16px;
+  font-size: 11px;
+  background-color: #e6e6e6;
+  background-image: repeating-linear-gradient(-45deg, #e6e6e6, #e6e6e6 10px, #cfd9e8 10px, #cfd9e8 20px);
+}
+
+/* Popup Menu */
+.ui-menu {
+  top: 0px;
+  left: 0px;
+  position: fixed !important;
+  z-index: 99999999;
+  min-width: 200px !important;
+  box-sizing: border-box;
+  padding: 5px 0px !important;
+  border-radius: 5px !important;
+  background-color: #fafafa !important;
+  border: 1px solid #CCCCCC !important;
+  box-shadow: 0 0 10px rgba(127, 127, 127, 0.25) !important;
+  color: #404040 !important;
+}
+
+.ui-menu .ui-state-active {
+  color: #404040 !important;
+  background-color: #e8e8e8 !important;
+  border-color: #CCCCCC !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.ui-menu .ui-menu-item {
+  list-style-image: none !important;
+}
+
+.ui-menu .ui-menu-item-wrapper {
+  padding-left: 0.6em !important;
+}
+
+.ui-menu-icons .ui-menu-item-wrapper {
+  padding-left: 2em !important;
+}
+
+.ui-menu .ui-icon {
+  left: 0.6em !important;
+  font-size: 16px !important;
+  line-height: 14px !important;
+  height: 16px !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+
+.ui-menu .ui-widget-header {
+  font-size: 16px !important;
+  cursor: unset !important;
+}
+
+/* Windows / Dialogs */
+.ui-dialog {
+  position: fixed !important;
+  padding: 2px !important;
+}
+
+.ui-dialog .ui-dialog-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+.no-close .ui-dialog-titlebar-close {
+  display: none;
+}

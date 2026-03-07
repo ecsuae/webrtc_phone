@@ -1,0 +1,258 @@
+/* UI Components and Theme Styling */
+
+.NoSelect {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.UiText {
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 15px;
+  margin-top: 10px;
+}
+
+.UiTextHeading {
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 17px;
+  margin-top: 7px;
+  border-bottom: 1px solid #383838;
+  margin-bottom: 7px;
+  cursor: pointer;
+  padding-bottom: 3px;
+}
+
+.UiTextHeading::before {
+  content: "\f078";
+  font-family: FontAwesome;
+  font-size: 14px;
+  margin-right: 3px;
+  float: right;
+}
+
+.UiTextHeadingIcon {
+  padding: 3px;
+  font-size: 14px;
+  border-radius: 3px;
+}
+
+.UiButtonBar {
+  text-align: center;
+  height: 49px;
+  vertical-align: middle;
+  line-height: 49px;
+}
+
+.UiButtonBar button {
+  margin: 0px;
+  line-height: 100%;
+  padding: 0px 7px;
+  border-radius: 4px;
+  min-width: 30px;
+  min-height: 24px;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  margin-left: 1px;
+  margin-right: 1px;
+  outline: none;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 1px 0px rgba(250, 250, 250, 0.2), inset -1px -1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.UiButtonBar button:active {
+  background-image: none;
+}
+
+.UiButtonBar button:focus {
+  outline: none;
+}
+
+.UiButtonBar button:disabled {
+  cursor: default;
+}
+
+.UiButtonBarHtml {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  bottom: 0px;
+}
+
+.UiWindowButtonBar {
+  text-align: center;
+  height: 49px;
+  vertical-align: middle;
+  line-height: 49px;
+}
+
+.UiWindowButtonBar button {
+  margin: 0px;
+  line-height: 100%;
+  padding: 0px 7px;
+  border-radius: 4px;
+  min-width: 80px;
+  min-height: 30px;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  margin-left: 1px;
+  margin-right: 1px;
+  outline: none;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 1px 0px rgba(250, 250, 250, 0.2), inset -1px -1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.UiWindowButtonBar button:active {
+  background-image: none;
+}
+
+.UiWindowButtonBar button:focus {
+  outline: none;
+}
+
+.UiWindowButtonBar button:disabled {
+  cursor: default;
+}
+
+.UiDeleteButton {
+  color: #ac2121;
+  border: 1px solid #ac2121;
+  background-color: #ffeef1;
+}
+
+.UiInputText {
+  margin-bottom: 5px !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+.UiWindowField {
+  padding: 10px;
+  font-family: Roboto, Arial, Helvetica;
+  color: #333333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.UiSideField {
+  padding-top: 0px;
+  padding-bottom: 0px;
+  padding-left: 5%;
+  padding-right: 5%;
+}
+
+.PastePreviewContainer {
+  display: block;
+  width: 150px;
+  height: 150px;
+  border: 10px solid #FFFFFF;
+  border-radius: 200px;
+  background-color: #F3F3F3;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.PastePreview {
+  max-width: 340px;
+  max-height: 340px;
+  border: 1px solid #CCCCCC;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25);
+  margin: 5px;
+  background-color: #F3F3F3;
+  border: 10px solid #FFFFFF;
+  border-radius: 200px;
+}
+
+/* Widget Theming */
+.ui-widget {
+  font-family: Roboto, Arial, Helvetica !important;
+}
+
+.ui-widget-overlay {
+  background-color: #000000 !important;
+  opacity: 0.6 !important;
+}
+
+.ui-widget-header {
+  border: 1px solid transparent !important;
+  color: #222222 !important;
+  font-family: Roboto, Arial, Helvetica !important;
+  font-size: 17px !important;
+  font-weight: normal !important;
+}
+
+.ui-icon-closethick:before {
+  content: "\f00d";
+  font-family: FontAwesome;
+  display: block;
+  font-size: 15px;
+}
+
+.ui-icon {
+  text-indent: 0px !important;
+  background-image: none !important;
+}
+
+.ui-button {
+  min-width: unset !important;
+  min-height: unset !important;
+}
+
+.ui-dialog .ui-widget-header .ui-state-default,
+.ui-dialog .ui-widget-header .ui-button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  font-weight: normal !important;
+  color: #222222;
+}
+
+.ui-dialog .ui-widget-header .ui-state-default:hover,
+.ui-dialog .ui-widget-header .ui-button:hover {
+  border: 1px solid #b01607 !important;
+  background: #b01607 !important;
+  color: #fff !important;
+  font-weight: normal !important;
+}
+
+.ui-dialog .ui-widget-header .ui-state-active,
+.ui-dialog .ui-widget-header .ui-button:active {
+  border: 1px solid #b01607 !important;
+  background: #b01607 !important;
+  font-weight: normal !important;
+  color: #fff !important;
+}
+
+.ui-state-hover .ui-icon,
+.ui-state-focus .ui-icon,
+.ui-button:hover .ui-icon,
+.ui-button:focus .ui-icon {
+  background-image: none !important;
+}
+
+.ui-state-active .ui-icon,
+.ui-button:active .ui-icon {
+  background-image: none !important;
+}
+
+.ui-state-highlight .ui-icon,
+.ui-button .ui-state-highlight.ui-icon {
+  background-image: none !important;
+}
+
+.ui-state-error .ui-icon,
+.ui-state-error-text .ui-icon {
+  background-image: none !important;
+}
+
+.ui-button .ui-icon {
+  background-image: none !important;
+}
+
+.required:before {
+  content: "\f069";
+  font-family: FontAwesome;
+  color: red;
+  font-size: 7px;
+  vertical-align: text-top;
+  margin-right: 3px;
+}

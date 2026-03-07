@@ -5,9 +5,64 @@ WebRTC-based SIP calling application with push notifications, multi-domain suppo
 
 ## Latest Architecture Notes (07-03-2026)
 - `index.html` is now a thin shell; layout/styles/page behavior are split into small activity-based files.
+- `push-server/dashboard.html` is now a thin template; CSS and JavaScript are split into modular files under `src/dashboard/`.
 - Mobile debug dashboard and admin log APIs are restricted to WireGuard/local access.
 - Device identity now includes stable browser/device fingerprints to reduce duplicate records.
 - Push server runs startup metadata dedupe migration for historical duplicates.
+
+---
+
+## Backend Project Structure (`/push-server`)
+
+### Root & Dashboard Files
+
+| File | Purpose |
+|------|----------|
+| **server.js** | Thin bootstrap (~87 lines) wiring all modular services, middleware, and routes |
+| **dashboard.html** | Thin dashboard template (48 lines) that imports CSS and JS modules |
+| **package.json** | Dependencies: express, body-parser, uuid |
+| **README.md** | Architecture documentation describing modular route/service/middleware layout |
+
+### `/src/config`
+
+| File | Purpose |
+|------|----------|
+| **config.js** | Environment and configuration loading (port, WireGuard IP, log paths, VAPID keys) |
+
+### `/src/middleware`
+
+| File | Purpose |
+|------|----------|
+| **accessControl.js** | Client IP normalization + WireGuard/local IP guards for admin endpoints |
+
+### `/src/routes`
+
+| File | Purpose |
+|------|----------|
+| **pushRoutes.js** | Push subscription (`POST /subscribe`) and notification (`POST /notify`) APIs |
+| **logRoutes.js** | Metadata ingest (`POST /api/logs/...`), admin log queries (`GET /api/logs/mobile`), device filters, comment updates (`PATCH /api/logs/mobile/:deviceId/comment`) |
+| **systemRoutes.js** | Health endpoint (`GET /health`), dashboard serving (`GET /dashboard`) |
+
+### `/src/services/push`
+
+| File | Purpose |
+|------|----------|
+| **subscriptionStore.js** | In-memory push subscription operations (add, clear, notify) |
+
+### `/src/services/metadata`
+
+| File | Purpose |
+|------|----------|
+| **core.js** | Metadata read/write, file I/O, canonical identity resolution (match by `deviceId`, `browserId`, `deviceFingerprint`) |
+| **metadataUpdate.js** | Metadata patch/merge logic for device attributes |
+| **dedupe.js** | Startup migration/deduplication pass for historical duplicates |
+
+### `/src/dashboard`
+
+| File | Purpose |
+|------|----------|
+| **styles.css** | Dashboard styling (192 lines): theme, layout, cards, badges, animations, forms, responsive rules |
+| **dashboard.js** | Dashboard functionality (145 lines): device loading, stats, rendering, comments, logs viewer |
 
 ---
 

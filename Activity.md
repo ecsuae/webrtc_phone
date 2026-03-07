@@ -4,6 +4,7 @@
 
 | Date       | Time | Activity |
 |------------|------|----------|
+| 07-03-2026 | 10:35 | Refactored `push-server/dashboard.html` (monolithic 300+ lines) into modular structure: extracted CSS to `src/dashboard/styles.css` (192 lines), JavaScript to `src/dashboard/dashboard.js` (145 lines), and simplified HTML to clean 48-line template |
 | 07-03-2026 | 10:30 | Refactored `www/app/remoteLogs.js` (411 lines) into modular `remoteLogs/` with activity-based split: `state.js`, `identity.js`, `transport.js`, `service.js` |
 | 07-03-2026 | 10:20 | Completed post-refactor endpoint verification for split `push-server/server.js`; all routes confirmed working, security guards intact |
 | 07-03-2026 | 10:15 | Added architecture documentation to `push-server/README.md` describing modular route/service/middleware layout |

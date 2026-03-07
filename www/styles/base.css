@@ -1,0 +1,93 @@
+/* Base Layout, Loading Screen, Typography */
+
+.loading {
+  background-color: #FFFFFF;
+  position: fixed;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 99;
+}
+
+.loading span {
+  color: #222222;
+  font-size: 42px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .loading {
+    background-color: #222222;
+  }
+  .loading span {
+    color: #FFFFFF;
+  }
+}
+
+audio {
+  outline: none;
+}
+
+html {
+  margin: 0px;
+  padding: 0px;
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding: 0px;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: default;
+  overflow: hidden;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.pageContainer {
+  min-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 100%;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding: 0px;
+}
+
+.smallFlag {
+  height: 12px !important;
+  vertical-align: middle !important;
+  display: inline-block !important;
+  margin-right: 5px !important;
+  border: 1px solid #868686 !important;
+  border-radius: 2px !important;
+  background-color: #868686 !important;
+}
+
+fieldset {
+  border: 1px solid #333333;
+  border-radius: 5px;
+  text-align: left;
+}
+
+legend {
+  line-height: initial !important;
+  text-align: left;
+}
+
+hr {
+  height: 1px;
+  border: none;
+  background-color: #CCCCCC;
+  clear: both;
+}

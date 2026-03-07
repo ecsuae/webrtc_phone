@@ -2,6 +2,32 @@
 
 ## Current Working Changes
 
+### Dashboard Refactoring (Modular Split)
+
+#### `push-server/dashboard.html`
+- Simplified from 300+ lines to clean 48-line template
+- Now imports stylesheet and JavaScript as external modules
+- Focuses only on HTML structure with metadata and DOM insertion points
+
+#### `push-server/src/dashboard/styles.css`
+- Extracted 192 lines of dashboard styling into dedicated file
+- Includes all theme, layout, cards, badges, animations, forms, and responsive rules
+- Covers device list rendering, stats cards, refresh button, comment sections, and log viewer
+
+#### `push-server/src/dashboard/dashboard.js`
+- Extracted 145 lines of dashboard functionality into dedicated file
+- Implements core operations:
+  - `loadDevices()` - Fetch devices from API
+  - `updateStats()` - Compute and display statistics
+  - `renderDevices()` / `renderDevice()` - Device list rendering
+  - `updateComment()` - Save device comments via PATCH
+  - `viewLogs()` - Open device logs viewer
+  - `escapeHtml()` - XSS prevention utility
+- Auto-refresh every 30 seconds via `setInterval()`
+- Full feature parity with original monolithic version
+
+**Benefits**: Better maintainability, reusable CSS/JS modules, independent caching per asset, easier live reloading during development.
+
 ### Frontend Modular Split
 
 #### `www/index.html`

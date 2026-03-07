@@ -1,0 +1,379 @@
+/* Buddy List, Contacts, Profiles */
+
+.leftContentTable {
+  border-right-style: solid;
+  border-left-style: solid;
+}
+
+.rightContent {
+  border-right-style: solid;
+}
+
+.settingsMenu {
+  display: block;
+  float: right;
+}
+
+.noneSelected {
+  text-align: center;
+  padding: 25px;
+}
+
+.contactArea {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.buddy {
+  padding: 5px;
+  height: 38px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 5px;
+  margin-bottom: 3px;
+}
+
+.buddySelected {
+  padding: 5px;
+  height: 38px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 5px;
+  margin-bottom: 3px;
+}
+
+.buddyActiveCall {
+  padding: 5px;
+  height: 38px;
+  cursor: pointer;
+  color: #000000;
+  background-color: #eeeeee;
+  position: relative;
+  border-left: 3px solid #40bd3f;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.buddyActiveCallHollding {
+  padding: 5px;
+  height: 38px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.lineIcon {
+  border-radius: 50px;
+  width: 36px;
+  height: 36px;
+  float: left;
+  text-align: center;
+  line-height: 36px;
+  padding: 0px;
+  font-size: 24px;
+}
+
+.hrline {
+  height: 1px;
+}
+
+.buddyIcon {
+  border-radius: 50px;
+  width: 36px;
+  height: 36px;
+  background-size: 36px;
+  float: left;
+}
+
+.pinnedBuddy {
+  position: absolute;
+  top: 5px;
+  left: 33px;
+  font-size: 10px;
+  background-color: #3478f3;
+  color: #FFFFFF;
+  width: 15px;
+  height: 15px;
+  border-radius: 100%;
+  text-align: center;
+  line-height: 15px;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.profileContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.contact {
+  padding: 5px;
+  height: 38px;
+  position: relative;
+  cursor: pointer;
+}
+
+.contactNameText {
+  margin-left: 50px;
+  font-size: 15px;
+  margin-right: 25px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contactDate {
+  float: right;
+  font-size: 11px;
+  color: #999999;
+}
+
+.presenceText {
+  margin-left: 50px;
+  margin-top: 0px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hiddenBuddiesText {
+  padding: 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.searchClean {
+  border-radius: 5px;
+  padding: 5px;
+  box-sizing: border-box;
+  display: inline;
+}
+
+.searchClean:before {
+  content: "\f002";
+  font-family: FontAwesome;
+}
+
+.searchClean INPUT {
+  border: none !important;
+  margin-left: 5px;
+  outline: none;
+}
+
+.searchClean INPUT:focus {
+  border: none;
+}
+
+.clearsearchTextBtn {
+  border-radius: 100px;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background-color: transparent;
+  padding: 0px;
+  font-size: 13px;
+  box-shadow: none;
+  color: #333333;
+  min-width: 0px;
+  line-height: 16px;
+}
+
+.clearsearchTextBtn:before {
+  content: "\f05c";
+  font-family: FontAwesome;
+}
+
+.clearsearchTextBtn:hover {
+  background-color: transparent;
+}
+
+.clearsearchTextBtn:active {
+  background-color: transparent;
+}
+
+/* Profile Styles */
+.buddyProfilePic {
+  display: block;
+  width: 150px;
+  height: 150px;
+  border: 10px solid #FFFFFF;
+  border-radius: 200px;
+  margin-left: auto;
+  margin-right: auto;
+  background-size: cover;
+  background-position: center;
+  margin-top: 10px;
+  background-color: #F3F3F3;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.ProfileTextLarge {
+  font-size: 22px;
+  color: #4c4c4c;
+  line-height: 22px;
+}
+
+.ProfileTextMedium {
+  font-size: 14px;
+  color: #4c4c4c;
+  line-height: 16px;
+}
+
+.ProfileTextSmall {
+  font-size: 11px;
+  color: #4c4c4c;
+  line-height: 12px;
+}
+
+/* Conference Participants */
+.ConferenceParticipant {
+  border: 1px solid #CCCCCC;
+  background-color: #FFFFFF;
+  border-radius: 100px;
+  display: inline-block;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  width: 240px;
+  padding: 10px;
+  box-sizing: content-box;
+  vertical-align: top;
+  height: 37px;
+  font-size: 14px;
+  color: #4c4c4c;
+  cursor: pointer;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.15);
+}
+
+.ConferenceParticipant .Talking {
+  border: 3px solid green;
+  border-radius: 50px;
+  width: 32px;
+  height: 32px;
+  background-size: 32px;
+  background-color: #CCCCCC;
+  box-shadow: 1px 1px 5px rgba(0, 255, 0, 0.25);
+  float: left;
+  margin-right: 10px;
+}
+
+.ConferenceParticipant .NotTalking {
+  border: 3px solid white;
+  border-radius: 50px;
+  width: 32px;
+  height: 32px;
+  background-size: 32px;
+  background-color: #CCCCCC;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25);
+  float: left;
+  margin-right: 10px;
+}
+
+/* Status Indicators */
+.dotDefault:before,
+.dotOnline:before,
+.dotOffline:before,
+.dotRinging:before,
+.dotInUse:before,
+.dotDoNotDisturb:before,
+.dotReady:before,
+.dotOnHold:before,
+.dotFailed:before {
+  font-family: FontAwesome;
+  display: inline-block;
+}
+
+.dotDefault:before {
+  content: "\f098";
+}
+
+.dotOnline:before {
+  content: "\f098";
+  color: #3eb13e;
+}
+
+.dotOffline:before {
+  content: "\f098";
+  color: #666666;
+}
+
+.dotRinging:before {
+  content: "\f098";
+  color: #ff7300;
+}
+
+.dotInUse:before {
+  content: "\f098";
+  color: #b40202;
+}
+
+.dotDoNotDisturb:before {
+  content: "\f098";
+  color: #ff6600;
+}
+
+.dotReady:before {
+  content: "\f098";
+  color: #3fbd3f;
+}
+
+.dotOnHold:before {
+  content: "\f098";
+  color: #99fd99;
+}
+
+.dotFailed:before {
+  content: "\f1eb";
+  color: #c70000;
+}
+
+.missedNotifyer {
+  background-color: #ff0000;
+  position: absolute;
+  line-height: 18px;
+  border-radius: 20px;
+  color: #FFFFFF;
+  min-width: 0px;
+  padding-left: 4px;
+  padding-right: 4px;
+  right: 2px;
+  top: 5px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.voiceMessageNotifyer {
+  background-color: #ff0000;
+  position: absolute;
+  top: 3px;
+  left: 35px;
+  line-height: 16px;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 11px;
+  border-radius: 20px;
+  color: #FFFFFF;
+  text-align: center;
+  display: none;
+}
+
+.FlagCall {
+  color: orange;
+  font-size: 18px;
+  vertical-align: text-top;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
+}

@@ -1,0 +1,179 @@
+/* Form Controls: Text, Select, Checkbox, Radio */
+
+input[type=text],
+input[type=password],
+input[type=email],
+input[type=tel] {
+  font-size: 15px;
+  padding: 5px;
+  border: none;
+  border-radius: 0px;
+}
+
+input[type=text]:focus,
+input[type=password]:focus,
+input[type=email]:focus,
+input[type=tel]:focus {
+  outline: none;
+}
+
+/* Select Dropdown */
+select {
+  min-width: 45px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgeG1sbnM6c29kaXBvZGk9Imh0dHA6Ly9zb2RpcG9kaS5zb3VyY2Vmb3JnZS5uZXQvRFREL3NvZGlwb2RpLTAuZHRkIgogICB4bWxuczppbmtzY2FwZT0iaHR0cDovL3d3dy5pbmtzY2FwZS5vcmcvbmFtZXNwYWNlcy9pbmtzY2FwZSIKICAgdmlld0JveD0iMCAwIDMyMCA1MTIiCiAgIHZlcnNpb249IjEuMSIKICAgaWQ9InN2ZzQiCiAgIHNvZGlwb2RpOmRvY25hbWU9ImNhcmV0LWRvd24uc3ZnIgogICBpbmtzY2FwZTp2ZXJzaW9uPSIwLjkyLjMgKDI0MDU1NDYsIDIwMTgtMDMtMTEpIj4KICAKICAGICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKICAKAKAKAKAKAKAKAKAKAKAKAKAKAKAKAKAKAK… (content truncated for space) …');
+  background-size: 10px;
+  background-position: center right;
+  background-repeat: no-repeat;
+  font-size: 14px;
+  padding: 0px;
+  line-height: 22px;
+  vertical-align: middle;
+  padding-right: 16px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  white-space: nowrap !important;
+  border-radius: 0px !important;
+}
+
+select:focus {
+  outline: none;
+}
+
+/* Checkboxes */
+input[type=checkbox] {
+  display: none;
+}
+
+input[type=checkbox] + label {
+  padding: 0px;
+  line-height: 22px;
+  vertical-align: middle;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+input[type=checkbox] + label:before {
+  font-family: FontAwesome;
+  content: "\f096";
+  width: 20px;
+  display: inline-block;
+  font-size: 18px;
+  vertical-align: middle;
+  line-height: 22px;
+}
+
+input[type=checkbox]:checked + label:before {
+  font-family: FontAwesome;
+  content: "\f046";
+  width: 20px;
+  display: inline-block;
+  font-size: 18px;
+  vertical-align: middle;
+  line-height: 22px;
+}
+
+/* Radio Buttons */
+input[type=radio] {
+  display: none;
+}
+
+input[type=radio] + label {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  vertical-align: middle;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+input[type=radio] + label:before {
+  content: "\f10c";
+  font-family: FontAwesome;
+  margin-right: 3px;
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+input[type=radio]:checked + label:before {
+  font-family: FontAwesome;
+  content: "\f192";
+  margin-right: 3px;
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+/* Pill Navigation */
+.pill-nav {
+  display: inline-block;
+  color: black;
+  text-align: center;
+  font-size: 16px;
+  border: 1px solid #416493;
+  border-radius: 3px;
+  font-size: 0;
+  vertical-align: middle;
+  white-space: nowrap;
+  line-height: initial;
+}
+
+.pill-nav input[type=radio] {
+  display: none;
+}
+
+.pill-nav .radio_pill {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pill-nav input[type=radio] + label {
+  color: #416493;
+  padding: 2px 7px;
+  vertical-align: middle;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 0px;
+}
+
+.pill-nav input[type=radio] + label:before {
+  font-family: initial !important;
+  content: initial !important;
+  margin-right: initial !important;
+  font-size: initial !important;
+  vertical-align: initial !important;
+}
+
+.pill-nav input[type=radio]:checked + label {
+  background-color: #416493;
+  color: white;
+}
+
+.pill-nav input[type=radio]:checked + label:before {
+  font-family: initial !important;
+  content: initial !important;
+  margin-right: initial !important;
+  font-size: initial !important;
+  vertical-align: initial !important;
+}
+
+.pill-nav button:disabled {
+  cursor: default;
+  color: #666666;
+  background-color: #333333;
+}
+
+.pill-nav button {
+  border: none;
+  margin: 0px;
+  border-radius: 2px;
+}

@@ -1,0 +1,126 @@
+/* Message Status, Tags, Comments, CDR */
+
+.SendingMessage {
+  font-size: 13px;
+}
+
+.SentMessage {
+  color: #0099c7;
+  font-size: 13px;
+}
+
+.FailedMessage {
+  color: red;
+  font-size: 13px;
+}
+
+.DeliveredMessage {
+  color: #0099c7;
+  font-size: 13px;
+}
+
+.CompletedMessage {
+  color: #0a9c11;
+  font-size: 13px;
+}
+
+/* Tags */
+.tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tags li {
+  user-select: none;
+  float: left;
+  margin-bottom: 1px;
+  margin-top: 1px;
+  margin-left: 0px;
+  margin-right: 2px;
+  border-radius: 6px;
+  padding: 0px 5px 0px 2px;
+  line-height: 18px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tags li:hover::before {
+  content: "\f1f8";
+}
+
+.tags li::before {
+  content: "\f02b";
+  font-family: FontAwesome;
+  width: 16px;
+  display: inline-block;
+  line-height: 16px;
+  height: 16px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.tags input[type=text] {
+  font-size: 12px;
+  padding: 0px;
+  margin: 0px;
+  line-height: initial;
+  border: none;
+  width: 60px;
+}
+
+.tags .tagText:hover::before {
+  content: "\f067";
+}
+
+.tags .tagText::before {
+  content: "\f067";
+}
+
+.cdrTag {
+  margin-right: 10px;
+}
+
+.cdrTag::before {
+  content: "\f02b";
+  font-family: FontAwesome;
+  width: 16px;
+  display: inline-block;
+  line-height: 16px;
+  height: 16px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* Comments */
+.cdrComment {
+  font-size: 13px !important;
+  line-height: initial !important;
+  text-align: left;
+  padding: 5px;
+}
+
+.cdrComment input[type=text] {
+  font-size: 12px !important;
+  color: #444444 !important;
+  background-color: #FFFFFF;
+  border: none !important;
+  line-height: initial !important;
+  box-sizing: border-box;
+  width: 100%;
+  border-radius: 3px;
+  padding: 3px;
+}
+
+/* Read More */
+.messageReadMore {
+  text-align: left;
+  font-size: 12px;
+}
+
+.messageReadMore span {
+  text-decoration: underline;
+  color: #0061c7;
+}

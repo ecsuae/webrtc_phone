@@ -2,3 +2,13 @@
 @import url("./forms-buttons.css");
 @import url("./dialpad-tabs.css");
 @import url("./history-log-responsive.css");
+
+/* Additional modular CSS from phone.css split */
+@import url("./base.css");
+@import url("./ui-theme.css");
+@import url("./components.css");
+@import url("./phone-call.css");
+@import url("./contacts.css");
+@import url("./chat.css");
+@import url("./tags-text.css");
+@import url("./forms.css");

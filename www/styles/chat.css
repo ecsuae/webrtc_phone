@@ -1,0 +1,368 @@
+/* Chat Messages, Media, Timeline */
+
+.chatHistory {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  user-select: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  z-index: 1;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.sendMessageContainer {
+  width: 100%;
+  height: 80px;
+}
+
+.sendMessageContainer TD {
+  vertical-align: top;
+  text-align: center;
+}
+
+.chatMessage {
+  box-sizing: border-box;
+  padding: 8px;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  outline: none;
+  resize: none;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 15px;
+}
+
+.sendMessagePreview {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #404040;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  color: #272f39;
+  margin-bottom: 5px;
+}
+
+.sendMessagePreviewLeft {
+  margin-right: 30px;
+}
+
+.sendMessagePreviewHtml {
+  background-color: rgba(215, 232, 247, 0.8);
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  display: inline-block;
+  text-align: left;
+  max-height: 300px;
+  max-width: 85%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sendMessagePreviewContainer {
+  width: 100%;
+}
+
+.sendMessagePreviewContainer TD {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.sendImagePreview {
+  padding-top: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #404040;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  color: #272f39;
+  outline: none;
+}
+
+.previewImage {
+  cursor: pointer;
+  max-width: 320px;
+  border-radius: 5px;
+  border: 1px solid #929292;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25);
+}
+
+.previewHyperlink {
+  color: blue;
+}
+
+.buddyIconSmall {
+  display: block;
+  border-radius: 50px;
+  width: 18px;
+  height: 18px;
+  background-size: 18px;
+  background-color: #CCCCCC;
+  border: 1px solid #FFFFFF;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Their Message */
+.theirChatMessage {
+  padding-left: 5px;
+  margin-top: 5px;
+  margin-right: auto;
+  max-width: 85%;
+}
+
+.theirChatMessage TD {
+  vertical-align: top;
+  text-align: left;
+}
+
+.theirChatMessage AUDIO {
+  width: 100%;
+  height: 30px;
+  outline: none;
+  border-radius: 5px;
+  background-color: #f2f3f4;
+  color: #333333;
+}
+
+.theirChatMessage VIDEO {
+  max-width: 640px;
+  width: 100%;
+  outline: none;
+  background-color: #000000;
+  border-radius: 5px;
+}
+
+.theirChatMessageText {
+  display: inline-block;
+  padding: 5px;
+  border-radius: 8px;
+  font-size: 15px;
+  position: relative;
+}
+
+/* Our Message */
+.ourChatMessage {
+  padding-right: 5px;
+  margin-top: 5px;
+  margin-left: auto;
+  max-width: 85%;
+}
+
+.ourChatMessage TD {
+  vertical-align: top;
+  text-align: left;
+}
+
+.ourChatMessage AUDIO {
+  width: 100%;
+  height: 30px;
+  outline: none;
+  border-radius: 5px;
+  background-color: #f2f3f4;
+  color: #333333;
+}
+
+.ourChatMessage VIDEO {
+  max-width: 640px;
+  width: 100%;
+  outline: none;
+  background-color: #000000;
+  border-radius: 5px;
+}
+
+.ourChatMessageText {
+  display: inline-block;
+  padding: 5px;
+  border-radius: 8px;
+  font-size: 15px;
+  position: relative;
+}
+
+.messageDate {
+  font-size: 12px;
+}
+
+.messageText {
+  user-select: text;
+  cursor: text;
+}
+
+.chatMessageDropdown {
+  cursor: pointer;
+  position: absolute;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50px;
+}
+
+/* Call Recordings */
+.callRecordings {
+  font-size: 12px;
+}
+
+.callRecordings img {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 5px;
+  filter: blur(1px);
+  transform: scale(1.1);
+}
+
+.callRecording {
+  border-radius: 10px;
+  padding: 5px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.callRecording DIV {
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+/* Timeline */
+.callTimeline {
+  padding-bottom: 150px;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.timelineMessage {
+  margin-left: 20%;
+}
+
+.timelineMessageDot {
+  position: relative;
+  left: -6.5px;
+}
+
+.timelineMessageArea {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 0px;
+}
+
+.timelineMessageDate {
+  font-size: 12px;
+}
+
+.timelineMessageText {
+  padding: 5px;
+  border-radius: 10px;
+  margin-left: 10px;
+  font-size: 15px;
+}
+
+/* Audio Stats */
+.audioStats {
+  padding-bottom: 150px;
+  padding-right: 10px;
+  height: 100%;
+  width: calc(100% - 10px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin: auto;
+}
+
+/* Emoji Button */
+.emojiButton BUTTON {
+  font-size: 21px;
+  padding-left: 0px;
+  padding-right: 0px;
+  min-width: 30px;
+  min-height: 30px;
+  line-height: 28px;
+  text-align: center;
+}
+
+/* Progress Bar */
+.progressBarContainer {
+  border: 1px solid #787878;
+  width: 250px;
+  height: 10px;
+  background-color: #fafafa;
+  box-shadow: inset 0px 0px 3px rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.progressBarTrack {
+  background-color: #19cc19;
+  width: 0%;
+  height: 10px;
+  box-shadow: inset 3px 3px 5px rgba(255, 255, 255, 0.5);
+}
+
+/* Meter */
+.meterContainer {
+  display: inline-block;
+  width: 5px;
+  height: 28px;
+  border: 1px solid #CCCCCC;
+  background-color: #ececec;
+  padding: 0px;
+  vertical-align: middle;
+  position: relative;
+  border-radius: 3px;
+}
+
+.meterLevel {
+  background-color: #19ad19;
+  width: 100%;
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  border-radius: 2px;
+}
+
+/* Toolbar Buttons */
+.roundButtons {
+  border-radius: 100px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  padding: 0px;
+  font-size: 16px;
+  box-shadow: none;
+  min-width: 0px;
+}
+
+.toolBarButtons {
+  border-radius: 5px;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #CCCCCC;
+  background-color: #ececec;
+  padding: 0px;
+  font-size: 14px;
+  box-shadow: none;
+  color: #333333;
+  min-width: 0px;
+  vertical-align: middle;
+}
+
+.toolBarButtons:hover {
+  border: 1px solid #CCCCCC;
+  background-color: #CCCCCC;
+}
+
+.toolBarButtons:active {
+  border: 1px solid #666666;
+  background-color: #666666;
+  color: #FFFFFF;
+}
+
+.startDragDrop {
+  outline: 2px dashed #184369;
+}
