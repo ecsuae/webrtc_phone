@@ -10,6 +10,7 @@ RUN npm ci --only=production
 
 # Copy application code
 COPY server.js dashboard.html ./
+COPY src ./src
 
 # Expose port
 EXPOSE 3001

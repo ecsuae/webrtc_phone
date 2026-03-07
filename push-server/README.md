@@ -10,6 +10,46 @@ Node.js server that handles push notifications for incoming WebRTC calls.
 - REST API for subscription management
 - Integration ready for FreeSWITCH/Kamailio
 
+## Project Structure
+
+The server is now organized by activity so each concern is isolated and easier to maintain.
+
+```text
+push-server/
+  server.js                         # Thin bootstrap: wiring + startup + shutdown
+  src/
+    config.js                       # Env/config loading and defaults
+    middleware/
+      accessControl.js              # Client IP normalization + WireGuard/local guards
+    routes/
+      pushRoutes.js                 # /api/push/* subscribe/unsubscribe/notify
+      logRoutes.js                  # /api/logs/* metadata ingest + admin APIs
+      systemRoutes.js               # /health and /dashboard
+    services/
+      push/
+        subscriptionStore.js        # In-memory subscription operations
+      metadata/
+        core.js                     # Metadata read/write + canonical identity helpers
+        metadataUpdate.js           # Metadata patch/merge logic
+        dedupe.js                   # Startup migration/deduplication pass
+```
+
+### Route Ownership
+
+- `src/routes/pushRoutes.js`: push subscription and notify APIs.
+- `src/routes/logRoutes.js`: metadata ingest and admin log/device APIs.
+- `src/routes/systemRoutes.js`: health and dashboard serving.
+
+### Security Model
+
+- Public endpoints remain available for clients:
+  - `POST /api/logs/mobile/metadata`
+  - Push endpoints used by clients/integrations.
+- Admin endpoints are WireGuard/local-only via `accessControl` middleware:
+  - `GET /dashboard`
+  - `GET /api/logs/mobile`
+  - `PATCH /api/logs/mobile/comment`
+
 ## Installation
 
 ```bash
