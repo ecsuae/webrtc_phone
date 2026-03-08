@@ -4,6 +4,7 @@ import { stopLocalAudioStream } from "./media.js";
 import { createAppState } from "./registration/state.js";
 import { startPrimaryRegistration } from "./registration/primary.js";
 import { registerWithSBC, stopSecondaryRegistration } from "./registration/secondary.js";
+import { clearSessionPassword } from "./push/recoverySession.js";
 
 export { createAppState };
 
@@ -23,6 +24,17 @@ export async function stopAndUnregister(st, ui, silent = false) {
   if (st._reregTimer) {
     clearInterval(st._reregTimer);
     st._reregTimer = null;
+  }
+
+  // Clear saved registration credentials when manually logging out
+  if (!silent) {
+    try {
+      localStorage.removeItem('webrtc_last_registration');
+      clearSessionPassword();
+      logLine(`[${nowISO()}] [boot] Cleared saved registration credentials`);
+    } catch (err) {
+      console.error('[Registration] Failed to clear credentials:', err);
+    }
   }
 
   try {

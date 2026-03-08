@@ -19,6 +19,15 @@ function cleanupIncomingState(st, ui) {
   if (window.callTimer) window.callTimer.stop();
 }
 
+function endIncomingAlert(st, ui, reason = "unknown") {
+  logLine(`[${nowISO()}] [incoming] Ending incoming alert (${reason})`);
+  stopIncomingAlert();
+  stopIncomingEarlyMediaLoop(st.incomingInvitation || st.session);
+  st.incomingInvitation = null;
+  ui.setButtons();
+  ui.setStatus("Idle");
+}
+
 // Export function to update registration complete time from primary.js
 export function setRegistrationComplete() {
   lastRegistrationCompleteTime = Date.now();
@@ -82,6 +91,11 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
 
   const stateListener = (newState) => {
     logLine(`[${nowISO()}] [incoming:state] ${newState}`);
+    if (newState === SIP.SessionState.Terminating) {
+      endIncomingAlert(st, ui, "state-terminating");
+      return;
+    }
+
     if (newState === SIP.SessionState.Establishing) {
       ui.setStatus(`Answering ${callerDisplay}...`);
       return;
@@ -99,7 +113,7 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
     }
 
     if (newState === SIP.SessionState.Terminated) {
-      stopIncomingAlert();
+      endIncomingAlert(st, ui, "state-terminated");
       stopIncomingEarlyMediaLoop(invitation);
       cleanupIncomingState(st, ui);
     }
@@ -108,10 +122,10 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   invitation.stateChange?.addListener?.(stateListener);
   invitation.delegate = {
     onCancel: () => {
-      stopIncomingAlert();
-      st.incomingInvitation = null;
-      ui.setButtons();
-      ui.setStatus("Idle");
+      endIncomingAlert(st, ui, "remote-cancel");
+    },
+    onBye: () => {
+      endIncomingAlert(st, ui, "remote-bye");
     },
   };
 

@@ -219,29 +219,116 @@ function getOrCreateBrowserId() {
   return state.browserId;
 }
 
-export function getOrCreateDeviceId() {
+// Open/create IndexedDB for ultra-persistent device ID storage
+function openDeviceDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("webrtc_device_db", 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains("device")) {
+        db.createObjectStore("device");
+      }
+    };
+  });
+}
+
+// Get device ID from IndexedDB
+async function getDeviceIdFromDB() {
+  try {
+    const db = await openDeviceDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["device"], "readonly");
+      const store = transaction.objectStore("device");
+      const request = store.get("deviceId");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// Save device ID to IndexedDB
+async function saveDeviceIdToDB(deviceId) {
+  try {
+    const db = await openDeviceDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["device"], "readwrite");
+      const store = transaction.objectStore("device");
+      const request = store.put(deviceId, "deviceId");
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    // Ignore DB write failures
+  }
+}
+
+export async function getOrCreateDeviceId() {
   if (state.deviceId) return state.deviceId;
 
+  // Try multiple storage methods in order of persistence:
+  // 1. IndexedDB (survives everything except manual clearing)
+  // 2. localStorage (survives browser restarts)
+  // 3. Cookies (survives browser restarts)
+  // 4. Fingerprint (last resort - may change)
+
+  let stored = null;
+
+  // Try IndexedDB first (most persistent)
   try {
-    let stored = localStorage.getItem("webrtc_device_id") || getCookie("webrtc_device_id");
-    if (!stored) {
-      const fingerprint = getDeviceFingerprint();
-      stored = `device_${fingerprint.slice(0, 16)}`;
-    }
-    try {
-      localStorage.setItem("webrtc_device_id", stored);
-    } catch {
-      // Ignore localStorage write failures.
-    }
-    setCookie("webrtc_device_id", stored);
-    state.deviceId = stored;
-  } catch {
-    // Fallback if localStorage is not accessible.
-    const fingerprint = getDeviceFingerprint();
-    state.deviceId = `device_${fingerprint.slice(0, 16)}`;
-    setCookie("webrtc_device_id", state.deviceId);
+    stored = await getDeviceIdFromDB();
+    console.log("[identity] Device ID from IndexedDB:", stored ? "found" : "not found");
+  } catch (err) {
+    console.warn("[identity] IndexedDB read failed:", err.message);
   }
 
+  // Try localStorage if IndexedDB failed
+  if (!stored) {
+    try {
+      stored = localStorage.getItem("webrtc_device_id");
+      console.log("[identity] Device ID from localStorage:", stored ? "found" : "not found");
+    } catch {
+      stored = null;
+    }
+  }
+
+  // Try cookies if localStorage failed
+  if (!stored) {
+    stored = getCookie("webrtc_device_id");
+    console.log("[identity] Device ID from cookie:", stored ? "found" : "not found");
+  }
+
+  // Generate new device ID if nothing found
+  if (!stored) {
+    const fingerprint = getDeviceFingerprint();
+    stored = `device_${fingerprint.slice(0, 8)}`;
+    console.log("[identity] Generated NEW device ID:", stored);
+  }
+
+  // Save to ALL storage locations for maximum persistence
+  state.deviceId = stored;
+
+  // Save to IndexedDB (most persistent)
+  try {
+    await saveDeviceIdToDB(stored);
+  } catch (err) {
+    console.warn("[identity] IndexedDB write failed:", err.message);
+  }
+
+  // Save to localStorage
+  try {
+    localStorage.setItem("webrtc_device_id", stored);
+  } catch (err) {
+    console.warn("[identity] localStorage write failed:", err.message);
+  }
+
+  // Save to cookie (10 year expiry)
+  setCookie("webrtc_device_id", stored);
+
+  console.log("[identity] Using device ID:", stored);
   return state.deviceId;
 }
 

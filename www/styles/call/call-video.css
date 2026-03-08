@@ -1,0 +1,148 @@
+/* Phone/Call: video stage and preview */
+
+.FullScreenVideo {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  padding: 0px;
+  margin: 0px;
+}
+
+.StageContainer {
+  width: 100%;
+  height: calc(100% - 80px);
+  z-index: 80;
+  position: relative;
+}
+
+.StageContainer .VideosContainer {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.StageContainer .VideosContainer .VideoWrapper {
+  border-radius: 5px;
+  background-color: #000000;
+  margin: 2px;
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  align-self: center;
+}
+
+.StageContainer .VideosContainer .VideoWrapper .callerID {
+  height: 18px;
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  width: 98%;
+  text-align: left;
+  color: #cccccc;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  font-size: 100%;
+  overflow: hidden;
+  z-index: 999;
+}
+
+.StageContainer .VideosContainer .VideoWrapper .Actions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  text-align: right;
+  color: #cccccc;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  font-size: 100%;
+  z-index: 999;
+}
+
+.StageContainer .VideosContainer VIDEO {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  object-fit: contain;
+  background-color: #000000;
+  z-index: 998;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.PreviewContainer {
+  text-align: center;
+  height: 80px;
+  width: 100%;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.PreviewContainer VIDEO {
+  margin-left: 5px;
+  border-radius: 5px;
+  background-color: #000000;
+  height: 100%;
+}
+
+.StageContainer .ScratchpadContainer {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  top: 0px;
+  right: 0px;
+}
+
+.previewVideo {
+  max-height: 720px;
+  max-width: 100%;
+  background-color: #666666;
+  border: 1px solid #222222;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25);
+  border-radius: 5px;
+  transform: rotateY(180deg);
+}
+
+.videoPoster {
+  border-radius: 50px !important;
+  margin: 0px !important;
+  border: none !important;
+  color: #cccccc !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  width: 50px !important;
+  height: 50px !important;
+  padding: 0px !important;
+  position: absolute;
+  left: calc(50% - 25px);
+  top: calc(50% - 25px);
+}
+
+.videoPoster:hover {
+  color: #e0e0e0 !important;
+}
+
+.videoPoster I {
+  border: 1px solid #cccccc;
+  border-radius: 50px;
+  width: 48px;
+  text-align: center;
+  height: 48px;
+  line-height: 48px;
+  font-size: 24px;
+  background-color: rgba(0, 0, 0, 0.5);
+}

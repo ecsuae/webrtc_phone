@@ -1,0 +1,150 @@
+/* Phone/Call: core button + dial area styling */
+button {
+  margin: 0px;
+  line-height: 100%;
+  padding: 0px 7px;
+  border-radius: 5px;
+  min-width: 30px;
+  min-height: 30px;
+  font-family: Roboto, Arial, Helvetica;
+  font-size: 14px;
+  margin-left: 1px;
+  margin-right: 1px;
+  outline: none;
+  cursor: pointer;
+}
+
+button:focus {
+  outline: none;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+button:disabled:hover {
+  cursor: default;
+}
+
+/* Dial and Call Areas */
+.dialCall {
+  text-align: center;
+  padding: 25px;
+  margin-top: 10px;
+}
+
+.answerCall {
+  text-align: center;
+  padding: 25px;
+  margin-top: 10px;
+  line-height: 40px;
+}
+
+.progressCall {
+  text-align: center;
+  padding: 25px;
+  margin-top: 10px;
+}
+
+.videoCall {
+  margin-top: 10px;
+}
+
+/* Audio/Video Streams */
+.stream {
+  display: none;
+}
+
+.streamSelected {
+  height: 100%;
+  width: 100%;
+}
+
+.streamSection {
+  padding: 5px;
+  vertical-align: top;
+  position: relative;
+}
+
+.streamSectionBackground {
+  background-size: 250px;
+  background-position-x: center;
+  background-position-y: bottom;
+}
+
+/* Dial Input and Buttons */
+.dialTextInput {
+  font-size: 20px;
+  text-align: center;
+  border-radius: 0px;
+  border: none;
+  background-color: transparent;
+  outline-style: none;
+}
+
+.dialButtons {
+  font-size: 18px;
+  border: none;
+  border-radius: 100px;
+  width: 55px;
+  height: 55px;
+}
+
+.dialButtons:disabled:hover {
+  border: none;
+}
+
+.dialButtons div {
+  font-size: 24px;
+  line-height: 9px;
+  margin: 0px;
+  margin-top: 7px;
+  padding: 0px;
+}
+
+.dialButtons span {
+  font-size: 9px;
+  line-height: 9px;
+  margin: 0px;
+  padding: 0px;
+}
+
+.dialButtonsDial {
+  font-size: 25px;
+}
+
+.callingDisplayName {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.callingDisplayNumber {
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Call Avatar */
+.inCallAvatar {
+  margin-left: auto;
+  margin-right: auto;
+  width: 150px;
+  height: 150px;
+  background-size: 100%;
+  border-radius: 1000px;
+  margin-top: 10px;
+  background-color: #CCCCCC;
+  border: 1px solid #FFFFFF;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.25);
+  transition: all 200ms;
+}
+
+.callAnswerBuddyIcon {
+  border-radius: 100px;
+  width: 100px;
+  height: 100px;
+  background-size: 100px;
+  background-color: #CCCCCC;
+  border: 1px solid #3e3e3e;
+  display: inline-block;
+}

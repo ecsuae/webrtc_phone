@@ -148,9 +148,12 @@ function startRingtone() {
     ringtoneAudio.setAttribute("x-webkit-airplay", "deny");
   }
 
-  // Configure for actual playback (restore volume and enable loop)
+  // Configure for actual playback.
+  // iOS can delay JS cancel handling when locked/backgrounded, so avoid infinite loop there.
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+  const shouldLoop = !(isIOS && document.visibilityState !== "visible");
   ringtoneAudio.muted = false;  // UNMUTE for actual incoming call
-  ringtoneAudio.loop = true;
+  ringtoneAudio.loop = shouldLoop;
   ringtoneAudio.volume = 0.8;
   ringtoneAudio.currentTime = 0;
   
@@ -167,7 +170,7 @@ function startRingtone() {
       });
   }
 
-  logLine(`[${nowISO()}] [incoming] start ring tone (classic telephone bell)`);
+  logLine(`[${nowISO()}] [incoming] start ring tone (classic telephone bell, loop=${shouldLoop})`);
 }
 
 function getDeviceType() {

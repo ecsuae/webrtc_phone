@@ -13,6 +13,7 @@ export const el = {
   log: $("#log"),
   btnStart: $("#btnStart"),
   btnStop: $("#btnStop"),
+  btnInstallApp: $("#btnInstallApp"),
   btnCall: $("#btnCall"),
   btnHangup: $("#btnHangup"),
   btnAnswer: $("#btnAnswer"),

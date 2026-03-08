@@ -7,7 +7,7 @@ function updateControlVisibility(st, ui) {
 
   document.getElementById("registrationCard")?.style.setProperty("display", registered ? "none" : "");
   document.getElementById("dialpadCard")?.style.setProperty("display", registered ? "" : "none");
-  document.getElementById("refreshBtn")?.style.setProperty("display", registered ? "none" : "");
+  document.getElementById("refreshBtn")?.style.setProperty("display", "");
   document.getElementById("logOffBtn")?.style.setProperty("display", registered ? "" : "none");
   document.getElementById("accountFields")?.style.setProperty("display", registered ? "none" : "grid");
 

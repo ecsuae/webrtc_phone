@@ -1,0 +1,101 @@
+/* Minimal iOS skin */
+
+body[data-skin="minimal-ios"] {
+  --primary-color: #007aff;
+  --success-color: #34c759;
+  --danger-color: #ff3b30;
+  --bg-color: #f2f2f7;
+  --card-bg: #ffffff;
+  --text-color: #111111;
+  --border-color: #d1d1d6;
+  --shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: linear-gradient(180deg, #f8f8fb 0%, #ececf3 100%);
+}
+
+body[data-skin="minimal-ios"] #appRoot {
+  max-width: 500px;
+}
+
+body[data-skin="minimal-ios"] .card {
+  border-radius: 18px;
+  border: 1px solid #e5e5ea;
+  box-shadow: var(--shadow);
+}
+
+body[data-skin="minimal-ios"] .header h1 {
+  color: #111111;
+  letter-spacing: 1px;
+  text-shadow: none;
+  animation: none;
+}
+
+body[data-skin="minimal-ios"] .status-bar {
+  background: #f7f7fa;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+}
+
+body[data-skin="minimal-ios"] .refresh-btn {
+  border-color: #d1d1d6;
+  color: #007aff;
+}
+
+body[data-skin="minimal-ios"] .refresh-btn:hover {
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+body[data-skin="minimal-ios"] .tab-btn {
+  color: #636366;
+}
+
+body[data-skin="minimal-ios"] .tab-btn.active {
+  color: #007aff;
+  border-bottom-color: #007aff;
+}
+
+body[data-skin="minimal-ios"] .dial-display input {
+  letter-spacing: 1.2px;
+  color: #111111;
+}
+
+body[data-skin="minimal-ios"] .dial-btn {
+  border: 1px solid #d9d9de;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f1f5 100%);
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.08);
+}
+
+body[data-skin="minimal-ios"] .dial-btn span {
+  color: #8e8e93;
+}
+
+body[data-skin="minimal-ios"] .call-btn-primary {
+  background: #34c759;
+  border: 1px solid #2ea24a;
+}
+
+body[data-skin="minimal-ios"] .call-btn-danger {
+  background: #ff3b30;
+  border: 1px solid #d9362d;
+}
+
+body[data-skin="minimal-ios"] #callControls .btn-outline {
+  border-radius: 12px;
+  border: 1px solid #d1d1d6;
+  background: #ffffff;
+  color: #111111;
+  font-weight: 700;
+}
+
+body[data-skin="minimal-ios"] #btnRecord.btn-outline {
+  border-color: #ffb4ad;
+  color: #d12a1f;
+  background: #fff2f1;
+}
+
+body[data-skin="minimal-ios"] #btnConference.btn-outline {
+  border-color: #b2d7ff;
+  color: #005ecb;
+  background: #eef6ff;
+}

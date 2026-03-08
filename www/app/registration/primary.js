@@ -2,6 +2,7 @@ import { ICE_SERVERS, ICE_TRANSPORT_POLICY, nowISO, maskPassword } from "../conf
 import { formatSipResponse, logLine } from "../log.js";
 import { normalizeWssServer } from "../dom.js";
 import * as Push from "../push.js";
+import { saveSessionPassword } from "../push/recoverySession.js";
 import { handleIncomingCallIsolated } from "../sipCallIncoming.js";
 import { setRegistrationComplete } from "../incoming/handlers.js";
 import { setUsername } from "../remoteLogs.js";
@@ -9,23 +10,36 @@ import { setUsername } from "../remoteLogs.js";
 // Periodic re-registration for Android background persistence
 // Prevents registration from expiring when Android kills WebSocket connections
 function startPeriodicReregistration(st, ext) {
-  // Re-register every 2.5 minutes - keeps presence alive even if keep-alives fail
-  const reregInterval = 150 * 1000; // 2.5 minutes in milliseconds
+  // Re-register every 1 minute - AGGRESSIVE to prevent expiration during screen lock
+  const reregInterval = 60 * 1000; // 1 minute in milliseconds (was 2.5 minutes)
   
   const reregTimer = setInterval(() => {
     if (st.reg && st.registered) {
       logLine(`[${nowISO()}] [registerer] Periodic re-registration for ${ext}`);
       st.reg.register().catch((err) => {
         logLine(`[${nowISO()}] [registerer] Periodic re-reg failed: ${err?.message || err}`);
+        // Try to reconnect if registration fails
+        if (st.ua && st.ua.transport && st.ua.transport.state !== 'Connected') {
+          logLine(`[${nowISO()}] [registerer] Transport down, attempting full restart`);
+          // UA will auto-reconnect with 999 attempts
+        }
+      });
+    } else if (st.reg && !st.registered) {
+      // Not registered but have registerer - try to register
+      logLine(`[${nowISO()}] [registerer] Not registered, attempting registration`);
+      st.reg.register().catch((err) => {
+        logLine(`[${nowISO()}] [registerer] Registration attempt failed: ${err?.message || err}`);
       });
     } else {
-      // Clear timer if registration stops
+      // No registerer - clear timer
       clearInterval(reregTimer);
+      logLine(`[${nowISO()}] [registerer] No registerer, stopping periodic re-registration`);
     }
   }, reregInterval);
   
   // Store timer for cleanup on unregister
   st._reregTimer = reregTimer;
+  logLine(`[${nowISO()}] [registerer] Started aggressive 60s periodic re-registration for ${ext}`);
 }
 
 function attachTransportListener(st, ui) {
@@ -33,15 +47,21 @@ function attachTransportListener(st, ui) {
     logLine(`[${nowISO()}] [transport] ${state}`);
     ui.setTransport(String(state));
     
-      // Auto-register when connection is restored
-      if (state === "Connected" && st.reg && !st.registered && !st.registering) {
-        logLine(`[${nowISO()}] [transport] Connection restored - auto-registering`);
-        st.registering = true;
-        st.reg.register().catch((err) => {
-          st.registering = false;
-          logLine(`[${nowISO()}] [transport] Auto-registration failed: ${err?.message || err}`);
-        });
-      }
+    // Auto-register when connection is restored
+    if (state === "Connected" && st.reg && !st.registered && !st.registering) {
+      logLine(`[${nowISO()}] [transport] Connection restored - auto-registering`);
+      st.registering = true;
+      st.reg.register().catch((err) => {
+        st.registering = false;
+        logLine(`[${nowISO()}] [transport] Auto-registration failed: ${err?.message || err}`);
+      });
+    }
+    
+    // Handle disconnection - prepare for reconnection
+    if (state === "Disconnected" || state === "Disconnecting") {
+      logLine(`[${nowISO()}] [transport] Disconnected - will auto-reconnect`);
+      st.registered = false;
+    }
   });
 }
 
@@ -58,12 +78,12 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
     sipExtension100rel: "Supported",
     transportOptions: {
       server: wss,
-      connectionTimeout: 10,
-      keepAliveInterval: 20,        // Reduced from 30s to 20s for Android background
-      keepAliveDebounce: 5,         // Reduced from 10s to 5s
+      connectionTimeout: 8,          // Reduced from 10s for faster failure detection
+      keepAliveInterval: 15,         // Reduced from 20s for more aggressive keepalives
+      keepAliveDebounce: 3,          // Reduced from 5s for faster keepalive response
     },
-    reconnectionAttempts: 15,       // Increased from 10 for better recovery
-    reconnectionDelay: 3,           // Reduced from 5s for faster reconnection
+    reconnectionAttempts: 999,       // Effectively infinite reconnection attempts
+    reconnectionDelay: 2,            // Reduced from 3s for faster reconnection
     sessionDescriptionHandlerFactoryOptions: {
       peerConnectionConfiguration: { iceServers: ICE_SERVERS, iceTransportPolicy: ICE_TRANSPORT_POLICY },
     },
@@ -112,6 +132,19 @@ export async function startPrimaryRegistration(SIP, st, ui) {
     console.error('[RemoteLogs] Failed to pre-set username:', err);
   }
 
+  // Save registration credentials to localStorage for auto-restore after screen lock
+  try {
+    localStorage.setItem('webrtc_last_registration', JSON.stringify({
+      ext,
+      domain,
+      wss,
+      timestamp: Date.now()
+    }));
+    saveSessionPassword(pass);
+  } catch (err) {
+    console.error('[Registration] Failed to save credentials:', err);
+  }
+
   ui.setStatus("Starting...");
   ui.setTransport("Connecting...");
   const uri = buildUserAgent(SIP, st, ui, account, pass, wss);
@@ -142,7 +175,7 @@ export async function startPrimaryRegistration(SIP, st, ui) {
   startPeriodicReregistration(st, ext);
 
   st.reg = new SIP.Registerer(st.ua, {
-    expires: 180,                   // Increased from 120s to 180s
+    expires: 300,                   // Increased from 180s to 300s (5 minutes) for better mobile stability
     delegate: {
       onAccept: (r) => {
         st.registered = true;

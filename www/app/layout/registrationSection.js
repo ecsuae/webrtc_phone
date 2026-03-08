@@ -29,10 +29,13 @@ export function registrationSection() {
 
       <div class="row-center">
         <button id="btnStart" type="button" class="btn-primary">
-          <i class="fas fa-sign-in-alt"></i> Log In
+          <i class="fas fa-bolt"></i> Enable Calls
         </button>
         <button id="btnStop" type="button" class="btn-secondary">
           <i class="fas fa-power-off"></i> Log Off
+        </button>
+        <button id="btnInstallApp" type="button" class="btn-outline">
+          <i class="fas fa-mobile-alt"></i> Add to Home Screen
         </button>
       </div>
     </div>

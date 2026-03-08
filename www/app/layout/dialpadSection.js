@@ -7,18 +7,14 @@ export function dialpadSection() {
       </div>
 
       <div class="tab-content active" id="dial-tab">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">
-          <i class="fas fa-phone-alt"></i> Dial
-        </h3>
-
-        <div id="callTimer" style="text-align: center; margin-bottom: 16px; display: none;">
-          <div style="font-size: 28px; font-weight: 700; color: var(--success-color); font-family: monospace;">
+        <div id="callTimer" style="text-align: center; margin-bottom: 4px; display: none;">
+          <div style="font-size: 20px; font-weight: 700; color: var(--success-color); font-family: monospace;">
             <span id="timerDisplay">00:00:00</span>
           </div>
         </div>
 
         <div class="dial-display">
-          <input id="dial" type="tel" placeholder="Enter number..." />
+          <input id="dial" type="tel" placeholder="" />
         </div>
 
         <div class="dial-buttons">

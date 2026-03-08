@@ -1,0 +1,53 @@
+/* Dialer fit: tabs, dial pad sizing, call controls, history scroll */
+
+#dialpadCard .tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--card-bg);
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+}
+
+#dialpadCard .tab-content.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0;
+}
+
+#history-tab.tab-content.active {
+  overflow: auto;
+}
+
+.history-list {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.dial-buttons {
+  gap: clamp(8px, 1.5vh, 12px);
+  justify-items: center;
+}
+
+.dial-btn {
+  width: clamp(48px, 8vh, 54px);
+  height: clamp(48px, 8vh, 54px);
+}
+
+.call-actions {
+  margin-top: 2px;
+}
+
+.call-controls {
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+#callControls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.log-container pre {
+  max-height: min(35vh, 300px);
+}

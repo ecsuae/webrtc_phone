@@ -98,7 +98,8 @@ self.addEventListener('notificationclick', (event) => {
               type: 'incoming-call-action',
               action: action,
               callId: notificationData.callId,
-              from: notificationData.from
+              from: notificationData.from,
+              wakeup: true  // Signal that app should check registration
             });
             return client.focus();
           }
@@ -114,10 +115,11 @@ self.addEventListener('notificationclick', (event) => {
                   type: 'incoming-call-action',
                   action: action,
                   callId: notificationData.callId,
-                  from: notificationData.from
+                  from: notificationData.from,
+                  wakeup: true
                 });
               }
-            }, 1000);
+            }, 1500);  // Increased from 1000ms to 1500ms for better reliability
           });
         }
       })

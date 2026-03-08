@@ -2,5 +2,6 @@
 window.APP_CONFIG = window.APP_CONFIG || {
   PBX_IP: "testfusn.srve.cc",
   WSS_HOST: "phone.srve.cc",
-  TURN_HOST: "phone.srve.cc"
+  TURN_HOST: "phone.srve.cc",
+  SKIN: "modern-ops"
 };

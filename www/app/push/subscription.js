@@ -64,33 +64,36 @@ export async function unsubscribeFromPush(extension) {
 
 export async function subscribeAfterRegister(extension) {
   if (!extension) return false;
-  
-  // On iOS, retry push subscription multiple times for reliability
-  let attempts = 3;
-  let result = false;
-  
-  while (attempts > 0 && !result) {
-    try {
-      const permission = await requestNotificationPermission();
-      if (permission === "granted") {
-        result = await subscribeToPush(extension);
-        if (result) {
-          logLine(`[Push] Successfully subscribed after register for ${extension}`);
-          return true;
-        }
-      }
-    } catch (err) {
-      console.warn(`[Push] Subscribe attempt ${4 - attempts} failed:`, err);
-    }
-    
-    if (!result && attempts > 1) {
-      // Wait a short time before retrying
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    attempts--;
+
+  // Silent mode: never prompt after login.
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    logLine("[Push] Auto-subscribe skipped: permission not granted (silent mode)");
+    return false;
   }
-  
-  return result;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+
+    pushSubscription = subscription;
+    pushEnabled = true;
+    await sendSubscriptionToServer(subscription, extension);
+
+    if (subscription) {
+      logLine(`[Push] Successfully subscribed after register for ${extension}`);
+      return true;
+    }
+  } catch (err) {
+    console.warn("[Push] Subscribe after register failed:", err);
+  }
+
+  return false;
 }
 
 export function getPushStatus() {

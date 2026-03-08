@@ -1,0 +1,86 @@
+/* Viewport shell: page, app root, container, header, status, cards */
+
+html,
+body {
+  height: 100%;
+  min-height: 100dvh;
+}
+
+body {
+  padding: clamp(4px, 1.2vh, 10px);
+  overflow: hidden;
+}
+
+#appRoot {
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.container {
+  height: 100%;
+  min-height: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header {
+  margin-bottom: 0;
+  padding: 4px 0 1px;
+  flex: 0 0 auto;
+}
+
+.header h1 {
+  font-size: clamp(30px, 5.8vh, 42px);
+  line-height: 1;
+}
+
+.status-bar {
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
+.card {
+  margin-bottom: 0;
+  padding: clamp(10px, 1.6vh, 18px);
+}
+
+#registrationCard,
+#dialpadCard {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#dialpadCard {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(8px, 1.2vh, 12px);
+}
+
+@media (max-height: 740px) {
+  .header h1 {
+    font-size: clamp(30px, 5.6vh, 40px);
+  }
+
+  .status-bar {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .call-btn {
+    min-height: 46px;
+  }
+}
+
+@media (min-width: 900px) {
+  #appRoot {
+    max-width: 620px;
+  }
+}

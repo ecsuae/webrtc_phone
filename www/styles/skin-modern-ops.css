@@ -1,0 +1,143 @@
+/* Modern Ops skin */
+
+body[data-skin="modern-ops"] {
+  --primary-color: #0f766e;
+  --success-color: #16a34a;
+  --danger-color: #dc2626;
+  --bg-color: #edf2f7;
+  --card-bg: #f8fafc;
+  --text-color: #0f172a;
+  --border-color: #cbd5e1;
+  --shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(20, 184, 166, 0.15), transparent 24%),
+    radial-gradient(circle at 92% 18%, rgba(249, 115, 22, 0.14), transparent 22%),
+    linear-gradient(180deg, #f7fbff 0%, #e7edf5 100%);
+}
+
+body[data-skin="modern-ops"] #appRoot {
+  max-width: 520px;
+}
+
+body[data-skin="modern-ops"] .card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+body[data-skin="modern-ops"] .header h1 {
+  color: #0f172a;
+  letter-spacing: 2px;
+  text-shadow: none;
+  animation: none;
+}
+
+body[data-skin="modern-ops"] .status-bar {
+  border: 1px solid #d4dee8;
+  background: linear-gradient(180deg, #f9fcff 0%, #eef4fb 100%);
+  border-radius: 14px;
+}
+
+body[data-skin="modern-ops"] .tab-btn {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+body[data-skin="modern-ops"] .tab-btn.active {
+  color: #0f766e;
+  border-bottom-color: #0f766e;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-display {
+  background: linear-gradient(180deg, #f7fbff 0%, #edf4fb 100%);
+  border: 1px solid #cfe0ee;
+  border-radius: 16px;
+  margin-bottom: 10px;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-display input {
+  color: #0f172a;
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-buttons {
+  gap: 10px;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-btn {
+  border: 1px solid #c2d5e6;
+  background: linear-gradient(180deg, #ffffff 0%, #e9f2fb 100%);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+  border-radius: 18px;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-btn:hover {
+  border-color: #0f766e;
+  background: linear-gradient(180deg, #ffffff 0%, #dcf5ef 100%);
+}
+
+body[data-skin="modern-ops"] #dialpadCard .dial-btn span {
+  color: #5b7085;
+  font-weight: 600;
+}
+
+body[data-skin="modern-ops"] #dialpadCard .call-btn-primary {
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border: 1px solid #15803d;
+  box-shadow: 0 8px 16px rgba(22, 163, 74, 0.28);
+}
+
+body[data-skin="modern-ops"] #dialpadCard .call-btn-danger {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border: 1px solid #b91c1c;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.24);
+}
+
+body[data-skin="modern-ops"] #callControls {
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 8px;
+  border-top: 1px solid #d5e1ed;
+}
+
+body[data-skin="modern-ops"] #callControls .btn-outline {
+  border: 1px solid #b8c8d9;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #edf3fa 100%);
+  color: #0f172a;
+  font-weight: 700;
+  min-height: 46px;
+}
+
+body[data-skin="modern-ops"] #callControls .btn-outline:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: linear-gradient(180deg, #ffffff 0%, #e8fbf8 100%);
+}
+
+body[data-skin="modern-ops"] #btnRecord.btn-outline {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+body[data-skin="modern-ops"] #btnConference.btn-outline {
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+body[data-skin="modern-ops"] #btnTransfer.btn-outline {
+  border-color: #c7d2fe;
+  color: #3730a3;
+  background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
+}
+
+body[data-skin="modern-ops"] #btnHold.btn-outline {
+  border-color: #fde68a;
+  color: #92400e;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+}

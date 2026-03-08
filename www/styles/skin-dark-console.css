@@ -1,0 +1,105 @@
+/* Dark Console skin */
+
+body[data-skin="dark-console"] {
+  --primary-color: #22d3ee;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+  --bg-color: #0b1220;
+  --card-bg: #111827;
+  --text-color: #e5e7eb;
+  --border-color: #334155;
+  --shadow: 0 14px 32px rgba(2, 6, 23, 0.45);
+  font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 6% 10%, rgba(34, 211, 238, 0.11), transparent 24%),
+    radial-gradient(circle at 88% 20%, rgba(244, 63, 94, 0.1), transparent 18%),
+    linear-gradient(180deg, #0b1220 0%, #0a1020 100%);
+}
+
+body[data-skin="dark-console"] .card {
+  border-radius: 16px;
+  border: 1px solid #253246;
+  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, #131d31 0%, #10192b 100%);
+}
+
+body[data-skin="dark-console"] .header h1 {
+  color: #67e8f9;
+  text-shadow: none;
+  animation: none;
+}
+
+body[data-skin="dark-console"] .status-bar {
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+body[data-skin="dark-console"] .status-item,
+body[data-skin="dark-console"] #status,
+body[data-skin="dark-console"] #tstatus {
+  color: #e2e8f0;
+}
+
+body[data-skin="dark-console"] .refresh-btn {
+  background: #111827;
+  border-color: #334155;
+  color: #7dd3fc;
+}
+
+body[data-skin="dark-console"] .refresh-btn:hover {
+  border-color: #22d3ee;
+  color: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
+body[data-skin="dark-console"] .tab-btn {
+  color: #94a3b8;
+}
+
+body[data-skin="dark-console"] .tab-btn.active {
+  color: #22d3ee;
+  border-bottom-color: #22d3ee;
+}
+
+body[data-skin="dark-console"] .dial-display input {
+  color: #f8fafc;
+}
+
+body[data-skin="dark-console"] .dial-btn {
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  border: 1px solid #334155;
+  color: #f8fafc;
+  box-shadow: 0 4px 10px rgba(2, 6, 23, 0.35);
+}
+
+body[data-skin="dark-console"] .dial-btn span {
+  color: #94a3b8;
+}
+
+body[data-skin="dark-console"] #callControls .btn-outline {
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+body[data-skin="dark-console"] #btnRecord.btn-outline {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+body[data-skin="dark-console"] #btnConference.btn-outline {
+  border-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+body[data-skin="dark-console"] #btnTransfer.btn-outline {
+  border-color: #3b0764;
+  color: #c4b5fd;
+}
+
+body[data-skin="dark-console"] #btnHold.btn-outline {
+  border-color: #78350f;
+  color: #fcd34d;
+}
