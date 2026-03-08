@@ -9,6 +9,7 @@ export const el = {
   dial: $("#dial"),
   status: $("#status"),
   tstatus: $("#tstatus"),
+  domainDisplay: $("#domainDisplay"),
   remoteAudio: $("#remoteAudio"),
   log: $("#log"),
   btnStart: $("#btnStart"),

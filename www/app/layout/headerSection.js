@@ -1,7 +1,9 @@
 export function headerSection() {
   return `
     <div class="header">
-      <h1>MOBI</h1>
+      <div class="header-logo-wrap">
+        <img src="/mobi-logo.svg?v=1772995480" alt="MOBI" class="header-logo" />
+      </div>
     </div>
   `;
 }

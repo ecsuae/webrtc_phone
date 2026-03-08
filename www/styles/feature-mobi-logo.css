@@ -1,0 +1,25 @@
+/**
+ * MOBI Logo Feature Styles
+ * Styling for the MOBI logo with integrated WiFi
+ */
+
+.mobi-logo {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .mobi-logo {
+    max-width: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobi-logo {
+    max-width: 200px;
+  }
+}

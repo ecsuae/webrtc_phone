@@ -1,4 +1,5 @@
 import { defaultsFromBody, el, parseSipAccount, setText } from "../dom.js";
+import { updateUsernameDisplay, updateDomainDisplay } from "../features/accountDisplay.js";
 
 function updateControlVisibility(st, ui) {
   const registered = st.registered;
@@ -37,10 +38,17 @@ function updateControlVisibility(st, ui) {
 
   if (registered) {
     const currentAccount = st.account || ui.account();
-    const accountLabel = currentAccount?.username && currentAccount?.domain
-      ? `${currentAccount.username}@${currentAccount.domain}`
-      : (currentAccount?.username || "-");
-    setText(el.status, accountLabel);
+    if (currentAccount?.username && currentAccount?.domain) {
+      // Use account display feature to format username and domain separately
+      updateUsernameDisplay(currentAccount.username, el.status);
+      updateDomainDisplay(currentAccount.domain, el.domainDisplay);
+    } else if (currentAccount?.username) {
+      updateUsernameDisplay(currentAccount.username, el.status);
+      setText(el.domainDisplay, "-");
+    } else {
+      setText(el.status, "-");
+      setText(el.domainDisplay, "-");
+    }
   }
 
   const indicator = document.getElementById("statusIndicator");
@@ -64,8 +72,14 @@ export function createUi(st) {
     remoteAudio: () => el.remoteAudio,
     setStatus: (s) => {
       const account = st.account || ui.account();
-      const accountLabel = account?.username && account?.domain ? `${account.username}@${account.domain}` : (account?.username || "-");
-      setText(el.status, st.registered ? accountLabel : s);
+      if (st.registered && account?.username && account?.domain) {
+        // Use account display feature to format username and domain separately
+        updateUsernameDisplay(account.username, el.status);
+        updateDomainDisplay(account.domain, el.domainDisplay);
+      } else {
+        setText(el.status, s);
+        setText(el.domainDisplay, "-");
+      }
       document.getElementById("statusIndicator")?.classList.toggle("connected", st.registered);
     },
     setTransport: (s) => setText(el.tstatus, s),

@@ -14,9 +14,8 @@ export function statusBarSection() {
       <button class="refresh-btn" id="logOffBtn" style="display:none;" onclick="document.getElementById('btnStop').click();" title="Log Off">
         <i class="fas fa-power-off"></i>
       </button>
-      <div class="status-item">
-        <i class="fas fa-signal"></i>
-        <span id="tstatus">Disconnected</span>
+      <div class="status-item" id="domainDisplayContainer">
+        <span id="domainDisplay">-</span>
       </div>
     </div>
   `;

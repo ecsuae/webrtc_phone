@@ -27,17 +27,38 @@ body[data-skin="modern-ops"] .card {
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
-body[data-skin="modern-ops"] .header h1 {
-  color: #0f172a;
-  letter-spacing: 2px;
-  text-shadow: none;
-  animation: none;
+body[data-skin="modern-ops"] .header-logo-wrap {
+  width: 180px;
+  height: 58px;
+  overflow: hidden;
+  display: inline-block;
+}
+
+body[data-skin="modern-ops"] .header-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  display: block;
+  margin: 0;
+  transform: scale(1.14);
+  transform-origin: center;
+  filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.2));
 }
 
 body[data-skin="modern-ops"] .status-bar {
-  border: 1px solid #d4dee8;
-  background: linear-gradient(180deg, #f9fcff 0%, #eef4fb 100%);
-  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
 }
 
 body[data-skin="modern-ops"] .tab-btn {
@@ -140,4 +161,60 @@ body[data-skin="modern-ops"] #btnHold.btn-outline {
   border-color: #fde68a;
   color: #92400e;
   background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+@media (max-height: 900px) {
+  body[data-skin="modern-ops"] .header-logo-wrap {
+    width: 160px;
+    height: 50px;
+  }
+
+  body[data-skin="modern-ops"] .header {
+    padding: 2px 0 0;
+  }
+
+  body[data-skin="modern-ops"] .status-bar {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard {
+    padding: 6px;
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard .dial-display {
+    margin-bottom: 4px;
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard .dial-display input {
+    font-size: clamp(28px, 5vh, 38px);
+    padding: 8px;
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard .dial-buttons {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard .dial-btn {
+    width: clamp(48px, 6.8vh, 56px);
+    height: clamp(48px, 6.8vh, 56px);
+    font-size: clamp(22px, 3.2vh, 27px);
+  }
+
+  body[data-skin="modern-ops"] #dialpadCard .call-btn {
+    min-height: clamp(40px, 5.5vh, 46px);
+    font-size: clamp(15px, 2.3vh, 19px);
+  }
+
+  body[data-skin="modern-ops"] #callControls {
+    gap: 6px;
+    padding-top: 4px;
+  }
+
+  body[data-skin="modern-ops"] #callControls .btn-outline {
+    min-height: 40px;
+    font-size: 12px;
+    padding: 8px 8px;
+  }
 }

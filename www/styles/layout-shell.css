@@ -79,6 +79,28 @@ body {
   }
 }
 
+@media (max-height: 900px) {
+  body {
+    padding: clamp(2px, 0.8vh, 6px);
+  }
+
+  .container {
+    gap: 4px;
+  }
+
+  .header {
+    padding: 2px 0 0;
+  }
+
+  .header h1 {
+    font-size: clamp(28px, 5.2vh, 38px);
+  }
+
+  #dialpadCard {
+    padding: clamp(6px, 1vh, 10px);
+  }
+}
+
 @media (min-width: 900px) {
   #appRoot {
     max-width: 620px;
