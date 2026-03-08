@@ -119,6 +119,45 @@ export function captureLog(level, message) {
 
 function bindLifecycleEvents() {
   if (state.lifecycleEventsBound) return;
+  // Intercept console methods to capture all logs
+  if (!window.__consoleIntercepted) {
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      try {
+        const message = args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ");
+        captureLog("log", message);
+      } catch (err) {
+        // Silently fail
+      }
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      try {
+        const message = args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ");
+        captureLog("error", message);
+      } catch (err) {
+        // Silently fail
+      }
+    };
+
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      try {
+        const message = args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ");
+        captureLog("warn", message);
+      } catch (err) {
+        // Silently fail
+      }
+    };
+
+    window.__consoleIntercepted = true;
+    originalLog("[RemoteLogs] Console interception enabled");
+  }
 
   // When app returns to foreground, send metadata once immediately.
   document.addEventListener("visibilitychange", () => {
@@ -144,6 +183,11 @@ function bindLifecycleEvents() {
 export function startRemoteLogging() {
   initializeDebugMode();
 
+  // Prime persistent device ID asynchronously to keep startup non-blocking.
+  getOrCreateDeviceId().catch(() => {
+    // Ignore identity bootstrap failures.
+  });
+
   // Send initial metadata after a short delay to ensure page is ready.
   setTimeout(() => {
     sendMetadataToServer();
@@ -166,8 +210,14 @@ export function startRemoteLogging() {
   bindLifecycleEvents();
 
   console.log(
-    `[RemoteLogs] Service started - Device: ${getOrCreateDeviceId()}, Debug: ${state.debugMode}`
+    `[RemoteLogs] Service started - Device: ${state.deviceId || "pending"}, Debug: ${state.debugMode}`
   );
+
+  if (!state.debugMode) {
+    console.log("[RemoteLogs] To enable mobile debug logging, click the BUG icon in the status bar");
+  } else {
+    console.log("[RemoteLogs] Debug mode is ON - all console logs are being captured and sent to the dashboard");
+  }
 }
 
 export function getLogBuffer() {

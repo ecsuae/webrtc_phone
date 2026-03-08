@@ -34,25 +34,32 @@ function listMetadata(metadataDir) {
 }
 
 function resolveCanonicalDeviceId(metadataDir, incoming) {
-  const incomingId = incoming.deviceId;
-  const incomingBrowserId = incoming.browserId;
-  const incomingDeviceFp = incoming.deviceFingerprint;
+  const incomingId = typeof incoming.deviceId === 'string' && incoming.deviceId.trim()
+    ? incoming.deviceId.trim()
+    : null;
+  const incomingBrowserId = typeof incoming.browserId === 'string' && incoming.browserId.trim()
+    ? incoming.browserId.trim()
+    : null;
+  const incomingDeviceFp = typeof incoming.deviceFingerprint === 'string' && incoming.deviceFingerprint.trim()
+    ? incoming.deviceFingerprint.trim()
+    : null;
 
   if (incomingId && readMetadataById(metadataDir, incomingId)) {
     return incomingId;
   }
 
   const all = listMetadata(metadataDir);
+  const valid = all.filter((m) => typeof m.deviceId === 'string' && m.deviceId.trim());
 
   if (incomingBrowserId) {
-    const byBrowser = all.find((m) =>
+    const byBrowser = valid.find((m) =>
       m.browserId === incomingBrowserId || (Array.isArray(m.browserIds) && m.browserIds.includes(incomingBrowserId))
     );
     if (byBrowser?.deviceId) return byBrowser.deviceId;
   }
 
   if (incomingDeviceFp) {
-    const byDeviceFp = all
+    const byDeviceFp = valid
       .filter((m) => m.deviceFingerprint === incomingDeviceFp)
       .sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')));
     if (byDeviceFp[0]?.deviceId) return byDeviceFp[0].deviceId;

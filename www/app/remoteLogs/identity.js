@@ -332,6 +332,30 @@ export async function getOrCreateDeviceId() {
   return state.deviceId;
 }
 
+function getDeviceIdSyncFallback() {
+  if (state.deviceId && typeof state.deviceId === "string") return state.deviceId;
+
+  try {
+    const fromStorage = localStorage.getItem("webrtc_device_id");
+    if (fromStorage) {
+      state.deviceId = fromStorage;
+      return fromStorage;
+    }
+  } catch {
+    // Ignore localStorage read failures.
+  }
+
+  const fromCookie = getCookie("webrtc_device_id");
+  if (fromCookie) {
+    state.deviceId = fromCookie;
+    return fromCookie;
+  }
+
+  const generated = `device_${getDeviceFingerprint().slice(0, 8)}`;
+  state.deviceId = generated;
+  return generated;
+}
+
 export function getUsernameHistory() {
   try {
     const stored = localStorage.getItem("webrtc_username_history");
@@ -390,6 +414,12 @@ export function getDeviceInfo() {
   const language = navigator.language || "unknown";
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown";
   const screenInfo = `${screen.width}x${screen.height}@${window.devicePixelRatio || 1}`;
+  const deviceId = getDeviceIdSyncFallback();
+
+  // Warm persistent storage asynchronously, but never leak a Promise into payloads.
+  getOrCreateDeviceId().catch(() => {
+    // Ignore async identity warm-up failures.
+  });
 
   console.log("[RemoteLogs] Captured device info:", {
     currentUsername,
@@ -418,7 +448,7 @@ export function getDeviceInfo() {
     userAgent: navigator.userAgent,
     url: window.location.href,
     timestamp: new Date().toISOString(),
-    deviceId: getOrCreateDeviceId(),
+    deviceId,
     browserId: getOrCreateBrowserId(),
     deviceFingerprint: getDeviceFingerprint(),
     browserFingerprint: getBrowserFingerprint(),

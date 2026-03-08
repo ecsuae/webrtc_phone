@@ -1,5 +1,6 @@
 import { renderAppLayout } from "../layout/renderAppLayout.js";
-import { initDialpadInput } from "./dialpadInput.js";
+import { initDialpadInput } from "./dialpadInput.js?v=20260308-eraser-android-v15";
+import { initKeyboardToggle } from "./keyboardToggle.js?v=20260308-eraser-android-v15";
 import { setupCacheActions } from "./cacheActions.js";
 import { setupDebugToggleUi } from "./debugToggleUi.js";
 import { initSkinMode } from "./skinMode.js";
@@ -11,6 +12,7 @@ export async function bootstrapPage() {
   initSkinMode();
   renderAppLayout();
   initDialpadInput();
+  initKeyboardToggle();
   setupCacheActions();
   setupDebugToggleUi();
 

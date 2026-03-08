@@ -55,9 +55,19 @@ function renderDevices(devices) {
   });
 
   const uniqueDevices = Object.values(deduped);
-  console.log('🔍 After dedup:', uniqueDevices.length, 'unique device entries');
-  listEl.innerHTML = uniqueDevices.map(device => renderDevice(device)).join('');
-  console.log('✓ Rendered', uniqueDevices.length, 'devices to DOM');
+  const sortedDevices = uniqueDevices.sort((a, b) => {
+    const aDebug = Boolean(a?.metadata?.debugMode);
+    const bDebug = Boolean(b?.metadata?.debugMode);
+    if (aDebug !== bDebug) return bDebug - aDebug;
+
+    const aTs = a?.metadata?.lastSeen ? Date.parse(a.metadata.lastSeen) : 0;
+    const bTs = b?.metadata?.lastSeen ? Date.parse(b.metadata.lastSeen) : 0;
+    return bTs - aTs;
+  });
+
+  console.log('🔍 After dedup/sort:', sortedDevices.length, 'unique device entries');
+  listEl.innerHTML = sortedDevices.map(device => renderDevice(device)).join('');
+  console.log('✓ Rendered', sortedDevices.length, 'devices to DOM');
 }
 
 // Render individual device
@@ -288,3 +298,8 @@ if (document.readyState === 'loading') {
   console.log('✓ Page already loaded, loading devices immediately...');
   loadDevices();
 }
+
+// Keep online/offline badges fresh for active devices.
+setInterval(() => {
+  loadDevices();
+}, 30000);

@@ -7,8 +7,28 @@ const { updateMetadata } = require('../services/metadata/metadataUpdate');
 function createLogRoutes({ requireWireGuardAccess }) {
   const router = express.Router();
 
+  function sanitizeIdentityPayload(payload) {
+    const clean = { ...(payload || {}) };
+    if (typeof clean.deviceId !== 'string' || !clean.deviceId.trim()) {
+      delete clean.deviceId;
+    } else {
+      clean.deviceId = clean.deviceId.trim();
+    }
+    if (typeof clean.browserId !== 'string' || !clean.browserId.trim()) {
+      delete clean.browserId;
+    } else {
+      clean.browserId = clean.browserId.trim();
+    }
+    if (typeof clean.deviceFingerprint !== 'string' || !clean.deviceFingerprint.trim()) {
+      delete clean.deviceFingerprint;
+    } else {
+      clean.deviceFingerprint = clean.deviceFingerprint.trim();
+    }
+    return clean;
+  }
+
   router.post('/mobile/metadata', (req, res) => {
-    const payload = req.body || {};
+    const payload = sanitizeIdentityPayload(req.body || {});
     if (!payload.deviceId && !payload.deviceFingerprint && !payload.browserId) {
       return res.status(400).json({ error: 'Missing identity fields (deviceId/deviceFingerprint/browserId)' });
     }
@@ -22,7 +42,8 @@ function createLogRoutes({ requireWireGuardAccess }) {
   });
 
   router.post('/mobile', (req, res) => {
-    const { deviceId, deviceType, userAgent, url, logs, extension, info } = req.body;
+    const cleanBody = sanitizeIdentityPayload(req.body || {});
+    const { deviceId, deviceType, userAgent, url, logs, extension, info } = cleanBody;
     if (!deviceId || !Array.isArray(logs)) return res.status(400).json({ error: 'Missing deviceId or logs array' });
 
     const deviceDir = path.join(LOGS_BASE_DIR, deviceId);

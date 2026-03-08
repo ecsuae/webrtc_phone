@@ -14,7 +14,13 @@ export function dialpadSection() {
         </div>
 
         <div class="dial-display">
-          <input id="dial" type="tel" placeholder="" />
+          <button id="btnDialErase" type="button" class="dial-erase-btn" title="Erase last digit" style="display:none;">
+            <i class="fas fa-delete-left"></i>
+          </button>
+          <input id="dial" type="tel" placeholder="" readonly />
+          <button id="btnToggleKeyboard" type="button" class="keyboard-toggle-btn" title="Show mobile keyboard">
+            <i class="fas fa-keyboard"></i>
+          </button>
         </div>
 
         <div class="dial-buttons">
