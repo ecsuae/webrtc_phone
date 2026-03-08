@@ -38,13 +38,6 @@ export function dialpadSection() {
           <button class="dial-btn dial-btn-special" data-digit="#">#</button>
         </div>
 
-        <div class="call-actions">
-          <button id="btnCall" type="button" class="call-btn call-btn-primary"><i class="fas fa-phone"></i><span>Call</span></button>
-          <button id="btnHangup" type="button" class="call-btn call-btn-danger" style="display: none;"><i class="fas fa-phone-slash"></i><span>End</span></button>
-          <button id="btnAnswer" type="button" class="call-btn call-btn-primary" style="display: none;"><i class="fas fa-phone"></i><span>Answer</span></button>
-          <button id="btnReject" type="button" class="call-btn call-btn-danger" style="display: none;"><i class="fas fa-phone-slash"></i><span>Reject</span></button>
-        </div>
-
         <div class="call-controls" id="callControls" style="display: none;">
           <button id="btnMute" type="button" class="btn-outline"><i class="fas fa-microphone"></i> Mute</button>
           <button id="btnSpeaker" type="button" class="btn-outline"><i class="fas fa-volume-down"></i> Earpiece</button>
@@ -52,6 +45,13 @@ export function dialpadSection() {
           <button id="btnTransfer" type="button" class="btn-outline"><i class="fas fa-phone-volume"></i> Transfer</button>
           <button id="btnConference" type="button" class="btn-outline"><i class="fas fa-users"></i> Conference</button>
           <button id="btnRecord" type="button" class="btn-outline"><i class="fas fa-circle"></i> Record</button>
+        </div>
+
+        <div class="call-actions">
+          <button id="btnCall" type="button" class="call-btn call-btn-primary"><i class="fas fa-phone"></i><span>Call</span></button>
+          <button id="btnHangup" type="button" class="call-btn call-btn-danger" style="display: none;"><i class="fas fa-phone-slash"></i><span>End</span></button>
+          <button id="btnAnswer" type="button" class="call-btn call-btn-primary" style="display: none;"><i class="fas fa-phone"></i><span>Answer</span></button>
+          <button id="btnReject" type="button" class="call-btn call-btn-danger" style="display: none;"><i class="fas fa-phone-slash"></i><span>Reject</span></button>
         </div>
       </div>
 

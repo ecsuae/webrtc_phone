@@ -1,6 +1,41 @@
 import { defaultsFromBody, el, parseSipAccount, setText } from "../dom.js";
 import { updateUsernameDisplay, updateDomainDisplay } from "../features/accountDisplay.js";
 
+let callNavigationLockActive = false;
+let callNavigationGuardInstalled = false;
+
+function installCallNavigationGuard() {
+  if (callNavigationGuardInstalled || typeof window === "undefined") return;
+  window.addEventListener("popstate", () => {
+    if (!callNavigationLockActive) return;
+    try {
+      window.history.pushState({ dialerCallLock: true }, "", window.location.href);
+    } catch {
+      // Ignore browser history guard errors.
+    }
+    const dialBtn = document.querySelector('.tab-btn[data-tab="dial-tab"]');
+    if (dialBtn instanceof HTMLElement) dialBtn.click();
+  });
+  callNavigationGuardInstalled = true;
+}
+
+function setCallNavigationLock(enabled) {
+  installCallNavigationGuard();
+  if (!enabled) {
+    callNavigationLockActive = false;
+    return;
+  }
+
+  if (!callNavigationLockActive) {
+    try {
+      window.history.pushState({ dialerCallLock: true }, "", window.location.href);
+    } catch {
+      // Ignore browser history guard errors.
+    }
+  }
+  callNavigationLockActive = true;
+}
+
 function updateControlVisibility(st, ui) {
   const registered = st.registered;
   const hasIncoming = !!st.incomingInvitation;
@@ -12,6 +47,16 @@ function updateControlVisibility(st, ui) {
     const span = button.querySelector("span");
     if (icon && iconClass) icon.className = iconClass;
     if (span) span.textContent = text;
+  };
+
+  const activateDialTab = () => {
+    const dialBtn = document.querySelector('.tab-btn[data-tab="dial-tab"]');
+    const allBtns = document.querySelectorAll(".tab-btn[data-tab]");
+    const allTabs = document.querySelectorAll(".tab-content");
+    allBtns.forEach((btn) => btn.classList.remove("active"));
+    allTabs.forEach((tab) => tab.classList.remove("active"));
+    dialBtn?.classList.add("active");
+    document.getElementById("dial-tab")?.classList.add("active");
   };
 
   document.getElementById("registrationCard")?.style.setProperty("display", registered ? "none" : "");
@@ -54,6 +99,11 @@ function updateControlVisibility(st, ui) {
   document.querySelector(".dial-buttons")?.style.setProperty("display", inCall ? "none" : "");
   document.getElementById("callControls")?.style.setProperty("display", inCall ? "grid" : "none");
 
+  if (inCall || hasIncoming) {
+    activateDialTab();
+  }
+  setCallNavigationLock(inCall || hasIncoming);
+
   if (registered) {
     const currentAccount = st.account || ui.account();
     if (currentAccount?.username && currentAccount?.domain) {
@@ -71,6 +121,7 @@ function updateControlVisibility(st, ui) {
 
   const indicator = document.getElementById("statusIndicator");
   if (indicator) indicator.classList.toggle("connected", registered);
+  window.dispatchEvent(new Event("ui:buttons-updated"));
 }
 
 export function createUi(st) {

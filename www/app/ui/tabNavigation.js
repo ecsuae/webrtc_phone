@@ -1,14 +1,44 @@
-export function setupTabNavigation() {
+function activateTab(tabId) {
   const tabButtons = document.querySelectorAll(".tab-btn[data-tab]");
   const tabContents = document.querySelectorAll(".tab-content");
+  tabButtons.forEach((b) => b.classList.remove("active"));
+  tabContents.forEach((c) => c.classList.remove("active"));
+  const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  activeBtn?.classList.add("active");
+  document.getElementById(tabId)?.classList.add("active");
+}
+
+function lockTabsToDial(lockEnabled) {
+  const tabButtons = document.querySelectorAll(".tab-btn[data-tab]");
+  tabButtons.forEach((btn) => {
+    const isDialBtn = btn.getAttribute("data-tab") === "dial-tab";
+    btn.classList.toggle("is-tab-locked", lockEnabled && !isDialBtn);
+    btn.setAttribute("aria-disabled", lockEnabled && !isDialBtn ? "true" : "false");
+  });
+  if (lockEnabled) activateTab("dial-tab");
+}
+
+export function setupTabNavigation(st) {
+  const tabButtons = document.querySelectorAll(".tab-btn[data-tab]");
+
+  const isDialLockActive = () => !!(st?.session || st?.incomingInvitation);
+
+  const syncLockState = () => {
+    lockTabsToDial(isDialLockActive());
+  };
+
+  syncLockState();
+  window.addEventListener("ui:buttons-updated", syncLockState);
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (isDialLockActive() && btn.getAttribute("data-tab") !== "dial-tab") {
+        activateTab("dial-tab");
+        return;
+      }
+
       const tabId = btn.getAttribute("data-tab");
-      tabButtons.forEach((b) => b.classList.remove("active"));
-      tabContents.forEach((c) => c.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById(tabId)?.classList.add("active");
+      if (tabId) activateTab(tabId);
     });
   });
 }

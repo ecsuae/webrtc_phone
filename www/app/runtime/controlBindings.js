@@ -63,7 +63,7 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
     if (!st.registered) await runOneTapEnableFlow();
   });
 
-  setupTabNavigation();
+  setupTabNavigation(st);
   setupCallControls(st);
 }
 

@@ -145,3 +145,8 @@
   box-shadow: none;
   transform: none;
 }
+
+.tab-btn.is-tab-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
