@@ -1,6 +1,6 @@
-import { renderAppLayout } from "../layout/renderAppLayout.js?v=20260308-mobi-solid-v25";
-import { initDialpadInput } from "./dialpadInput.js?v=20260308-mobi-solid-v25";
-import { initKeyboardToggle } from "./keyboardToggle.js?v=20260308-mobi-solid-v25";
+import { renderAppLayout } from "../layout/renderAppLayout.js?v=1773008466";
+import { initDialpadInput } from "./dialpadInput.js?v=1773008466";
+import { initKeyboardToggle } from "./keyboardToggle.js?v=1773008466";
 import { setupCacheActions } from "./cacheActions.js";
 import { setupDebugToggleUi } from "./debugToggleUi.js";
 import { initSkinMode } from "./skinMode.js";
@@ -16,5 +16,5 @@ export async function bootstrapPage() {
   setupCacheActions();
   setupDebugToggleUi();
 
-  await import("../main.js?v=20260307-ringback-debug-v6");
+  await import("../main.js?v=1773008466");
 }

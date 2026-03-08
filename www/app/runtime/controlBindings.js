@@ -29,12 +29,23 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
 
   el.btnCall?.addEventListener("click", () => {
     primeIncomingRingtone();
+    if (st.incomingInvitation) {
+      answerIncomingCallIsolated(SIP, st, ui);
+      return;
+    }
+
     const number = ui.dial();
     if (number) callHistory.addCall(number, "outgoing");
     startCall(SIP, st, ui);
   });
 
-  el.btnHangup?.addEventListener("click", () => hangupCall(st, ui, false));
+  el.btnHangup?.addEventListener("click", () => {
+    if (st.incomingInvitation) {
+      rejectIncomingCallIsolated(st, ui);
+      return;
+    }
+    hangupCall(st, ui, false);
+  });
   el.btnAnswer?.addEventListener("click", () => answerIncomingCallIsolated(SIP, st, ui));
   el.btnReject?.addEventListener("click", () => rejectIncomingCallIsolated(st, ui));
 

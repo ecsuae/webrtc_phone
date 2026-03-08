@@ -87,7 +87,7 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   focusDialTabForIncoming();
   ui.setStatus(`Incoming: ${callerDisplay}`);
   ui.setButtons();
-  startIncomingAlert(callerDisplay);
+  startIncomingAlert(callerDisplay, { showBanner: false });
 
   const stateListener = (newState) => {
     logLine(`[${nowISO()}] [incoming:state] ${newState}`);

@@ -209,7 +209,8 @@ export function focusDialTabForIncoming() {
   if (dialTab) dialTab.classList.add("active");
 }
 
-export function startIncomingAlert(callerDisplay) {
+export function startIncomingAlert(callerDisplay, options = {}) {
+  const { showBanner = true } = options;
   // Prevent ghost notifications in first 5 seconds of page load
   const timeSinceLoad = Date.now() - pageLoadTime;
   if (timeSinceLoad < 5000) {
@@ -220,10 +221,12 @@ export function startIncomingAlert(callerDisplay) {
   logLine(`[${nowISO()}] [incoming] Accepting call ${timeSinceLoad}ms after load`);
   stopIncomingAlert();
   isIncomingCallActive = true;  // Mark that incoming call is now active
-  const banner = ensureIncomingBanner();
-  const title = document.getElementById("incomingAlertTitle");
-  if (title) title.textContent = `Incoming call: ${callerDisplay}`;
-  banner.style.display = "block";
+  if (showBanner) {
+    const banner = ensureIncomingBanner();
+    const title = document.getElementById("incomingAlertTitle");
+    if (title) title.textContent = `Incoming call: ${callerDisplay}`;
+    banner.style.display = "block";
+  }
 
   startRingtone();
 

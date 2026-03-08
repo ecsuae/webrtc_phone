@@ -6,6 +6,14 @@ function updateControlVisibility(st, ui) {
   const hasIncoming = !!st.incomingInvitation;
   const inCall = !!st.session;
 
+  const setButtonLabel = (button, iconClass, text) => {
+    if (!button) return;
+    const icon = button.querySelector("i");
+    const span = button.querySelector("span");
+    if (icon && iconClass) icon.className = iconClass;
+    if (span) span.textContent = text;
+  };
+
   document.getElementById("registrationCard")?.style.setProperty("display", registered ? "none" : "");
   document.getElementById("dialpadCard")?.style.setProperty("display", registered ? "" : "none");
   document.getElementById("refreshBtn")?.style.setProperty("display", "");
@@ -16,20 +24,30 @@ function updateControlVisibility(st, ui) {
   if (el.btnStop) el.btnStop.style.display = registered ? "" : "";
 
   if (el.btnCall) {
-    el.btnCall.disabled = !registered || inCall || hasIncoming;
-    el.btnCall.style.display = hasIncoming ? "none" : "";
+    el.btnCall.disabled = !registered || inCall;
+    el.btnCall.style.display = "";
+    if (hasIncoming) {
+      setButtonLabel(el.btnCall, "fas fa-phone", "Accept");
+    } else {
+      setButtonLabel(el.btnCall, "fas fa-phone", "Call");
+    }
   }
   if (el.btnHangup) {
-    el.btnHangup.disabled = !inCall;
-    el.btnHangup.style.display = hasIncoming ? "none" : "";
+    el.btnHangup.disabled = !(inCall || hasIncoming);
+    el.btnHangup.style.display = inCall || hasIncoming ? "" : "none";
+    if (hasIncoming) {
+      setButtonLabel(el.btnHangup, "fas fa-phone-slash", "Reject");
+    } else {
+      setButtonLabel(el.btnHangup, "fas fa-phone-slash", "End");
+    }
   }
   if (el.btnAnswer) {
     el.btnAnswer.disabled = !hasIncoming;
-    el.btnAnswer.style.display = hasIncoming ? "" : "none";
+    el.btnAnswer.style.display = "none";
   }
   if (el.btnReject) {
     el.btnReject.disabled = !hasIncoming;
-    el.btnReject.style.display = hasIncoming ? "" : "none";
+    el.btnReject.style.display = "none";
   }
 
   document.querySelector(".dial-display")?.style.setProperty("display", inCall ? "none" : "");
