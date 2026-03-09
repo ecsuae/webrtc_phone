@@ -27,10 +27,42 @@ function normalizeNumber(value) {
 function esc(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, """)
     .replace(/'/g, "&#39;");
+}
+
+function normalizeType(value) {
+  const t = String(value || "").trim().toLowerCase();
+  if (["incoming", "outgoing", "missed", "rejected", "answered"].includes(t)) return t;
+  return "outgoing";
+}
+
+function typeToLabel(type) {
+  if (type === "incoming") return "Incoming";
+  if (type === "missed") return "Missed";
+  if (type === "rejected") return "Rejected";
+  if (type === "answered") return "Answered";
+  return "Outgoing";
+}
+
+function typeToIcon(type) {
+  if (type === "incoming") return "fa-arrow-down";
+  if (type === "missed") return "fa-phone-slash";
+  if (type === "rejected") return "fa-phone-slash";
+  if (type === "answered") return "fa-phone";
+  return "fa-arrow-up";
+}
+
+function formatSipMeta(item) {
+  const code = item?.sipCode ? String(item.sipCode) : "";
+  const reason = item?.sipReason ? String(item.sipReason) : "";
+  const q850Cause = item?.q850Cause ? String(item.q850Cause) : "";
+  const q850Text = item?.q850Text ? String(item.q850Text) : "";
+  const status = code || reason ? `${code}${code && reason ? " " : ""}${reason}`.trim() : "";
+  const q850 = q850Cause ? `Q.850 ${q850Cause}${q850Text ? ` (${q850Text})` : ""}` : "";
+  return { status, q850 };
 }
 
 export function createHistoryActivity(options = {}) {
@@ -58,7 +90,6 @@ export function createHistoryActivity(options = {}) {
     try {
       let raw = localStorage.getItem(storageKey);
       if (!raw) {
-        // Backward compatibility with older history storage key.
         raw = localStorage.getItem("callHistory");
       }
       if (raw) {
@@ -73,9 +104,13 @@ export function createHistoryActivity(options = {}) {
               return {
                 number,
                 numberKey: normalizeNumber(number),
-                type: item?.type || "outgoing",
+                type: normalizeType(item?.type || "outgoing"),
                 duration: Number(item?.duration || 0),
                 timestamp: Number.isFinite(timestamp) ? timestamp : Date.now(),
+                sipCode: item?.sipCode ? String(item.sipCode) : "",
+                sipReason: item?.sipReason ? String(item.sipReason) : "",
+                q850Cause: item?.q850Cause ? String(item.q850Cause) : "",
+                q850Text: item?.q850Text ? String(item.q850Text) : "",
               };
             })
             .filter(Boolean);
@@ -135,19 +170,21 @@ export function createHistoryActivity(options = {}) {
     list.innerHTML = groups
       .map((group) => {
         const latest = group.items[0];
-        const latestType = latest?.type || "outgoing";
-        const typeLabel = latestType === "incoming" ? "Incoming" : latestType === "missed" ? "Missed" : "Outgoing";
-        const icon = latestType === "incoming" ? "fa-arrow-down" : latestType === "missed" ? "fa-phone-slash" : "fa-arrow-up";
+        const latestType = normalizeType(latest?.type || "outgoing");
+        const typeLabel = typeToLabel(latestType);
+        const icon = typeToIcon(latestType);
+        const latestMeta = formatSipMeta(latest);
 
         const detailsHtml = group.items
           .map((item) => {
-            const itemType = item.type || "outgoing";
-            const itemLabel = itemType === "incoming" ? "Incoming" : itemType === "missed" ? "Missed" : "Outgoing";
-            return `<li class="history-detail-item"><span class="history-type ${esc(itemType)}">${esc(itemLabel)}</span><span class="history-detail-time">${esc(formatDateTime(item.timestamp))}</span><button class="history-dial-btn" type="button" data-number="${esc(group.displayNumber)}" title="Call ${esc(group.displayNumber)}"><i class="fas fa-phone"></i></button></li>`;
+            const itemType = normalizeType(item.type || "outgoing");
+            const itemLabel = typeToLabel(itemType);
+            const meta = formatSipMeta(item);
+            return `<li class="history-detail-item"><span class="history-type ${esc(itemType)}">${esc(itemLabel)}</span><span class="history-detail-time">${esc(formatDateTime(item.timestamp))}${meta.status ? ` | SIP: ${esc(meta.status)}` : ""}${meta.q850 ? ` | ${esc(meta.q850)}` : ""}</span><button class="history-dial-btn" type="button" data-number="${esc(group.displayNumber)}" title="Call ${esc(group.displayNumber)}"><i class="fas fa-phone"></i></button></li>`;
           })
           .join("");
 
-        return `<li class="history-item history-group" data-number-key="${esc(group.numberKey)}"><div class="history-item-left"><div class="history-number"><span class="history-type ${esc(latestType)}"><i class="fas ${icon}"></i> ${typeLabel}</span>${esc(group.displayNumber)}</div><div class="history-time">Last: ${esc(formatTime(group.lastTimestamp))} | Total calls: ${group.count}</div></div><div class="history-item-actions"><button class="history-toggle-btn" type="button" data-action="toggle" title="Show details"><i class="fas fa-chevron-down"></i></button><button class="history-dial-btn" type="button" data-number="${esc(group.displayNumber)}" title="Call ${esc(group.displayNumber)}"><i class="fas fa-phone"></i></button></div><ul class="history-detail-list" hidden>${detailsHtml}</ul></li>`;
+        return `<li class="history-item history-group" data-number-key="${esc(group.numberKey)}"><div class="history-item-left"><div class="history-number"><span class="history-type ${esc(latestType)}"><i class="fas ${icon}"></i> ${typeLabel}</span>${esc(group.displayNumber)}</div><div class="history-time">Last: ${esc(formatTime(group.lastTimestamp))} | Total calls: ${group.count}${latestMeta.status ? ` | SIP: ${esc(latestMeta.status)}` : ""}${latestMeta.q850 ? ` | ${esc(latestMeta.q850)}` : ""}</div></div><div class="history-item-actions"><button class="history-toggle-btn" type="button" data-action="toggle" title="Show details"><i class="fas fa-chevron-down"></i></button><button class="history-dial-btn" type="button" data-number="${esc(group.displayNumber)}" title="Call ${esc(group.displayNumber)}"><i class="fas fa-phone"></i></button></div><ul class="history-detail-list" hidden>${detailsHtml}</ul></li>`;
       })
       .join("");
   }
@@ -190,16 +227,20 @@ export function createHistoryActivity(options = {}) {
 
   function addCall(number, type = "outgoing", duration = 0, meta = {}) {
     if (!number) return;
+    const normalizedType = normalizeType(type);
     calls.unshift({
       number: String(number).trim(),
       numberKey: normalizeNumber(number),
-      type,
+      type: normalizedType,
       duration,
       timestamp: Number(meta.timestamp || Date.now()),
+      sipCode: meta?.sipCode ? String(meta.sipCode) : "",
+      sipReason: meta?.sipReason ? String(meta.sipReason) : "",
+      q850Cause: meta?.q850Cause ? String(meta.q850Cause) : "",
+      q850Text: meta?.q850Text ? String(meta.q850Text) : "",
     });
 
     pruneOld();
-    // Keep a practical cap while retention filter already limits by age.
     if (calls.length > 500) calls.splice(500);
 
     save();
@@ -208,7 +249,6 @@ export function createHistoryActivity(options = {}) {
 
   load();
 
-  // Delay initial bind until layout exists.
   setTimeout(() => {
     ensureEventsBound();
     render();

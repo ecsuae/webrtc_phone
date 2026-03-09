@@ -34,8 +34,6 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
       return;
     }
 
-    const number = ui.dial();
-    if (number) callHistory.addCall(number, "outgoing");
     startCall(SIP, st, ui);
   });
 

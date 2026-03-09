@@ -136,6 +136,11 @@ export async function startCall(SIP, st, ui) {
     onAccept: async (resp) => {
       stopRingbackTone();
       const info = formatSipResponse(resp);
+      const details = getSipRejectDetails(resp);
+      window.callHistory?.addCall?.(target, "outgoing", 0, {
+        sipCode: details?.code || 200,
+        sipReason: details?.reason || "OK",
+      });
       ui.setStatus(info ? `Call established (${info})` : "Call established");
     },
     onRedirect: async (resp) => {
@@ -150,6 +155,12 @@ export async function startCall(SIP, st, ui) {
       const human = mapSipFailureToMessage(details);
       const q850 = details.q850Cause ? `; Q.850 cause=${details.q850Cause}${details.q850Text ? ` (${details.q850Text})` : ""}` : "";
       logLine(`[${nowISO()}] [call] rejected ${info || "unknown"}${q850}`);
+      window.callHistory?.addCall?.(target, "rejected", 0, {
+        sipCode: details?.code || "",
+        sipReason: details?.reason || "",
+        q850Cause: details?.q850Cause || "",
+        q850Text: details?.q850Text || "",
+      });
       ui.setStatus(info ? `${human} (${info})` : human);
       stopLocalAudioStream();
       st.session = null;
