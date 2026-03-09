@@ -27,9 +27,9 @@ function normalizeNumber(value) {
 function esc(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, """)
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -89,9 +89,7 @@ export function createHistoryActivity(options = {}) {
   function load() {
     try {
       let raw = localStorage.getItem(storageKey);
-      if (!raw) {
-        raw = localStorage.getItem("callHistory");
-      }
+      if (!raw) raw = localStorage.getItem("callHistory");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -100,7 +98,6 @@ export function createHistoryActivity(options = {}) {
               const timestamp = Number(item?.timestamp ? new Date(item.timestamp).getTime() : Date.now());
               const number = String(item?.number || "").trim();
               if (!number) return null;
-
               return {
                 number,
                 numberKey: normalizeNumber(number),
@@ -114,7 +111,6 @@ export function createHistoryActivity(options = {}) {
               };
             })
             .filter(Boolean);
-
           calls.splice(0, calls.length, ...normalized);
         }
       }
@@ -248,18 +244,10 @@ export function createHistoryActivity(options = {}) {
   }
 
   load();
-
   setTimeout(() => {
     ensureEventsBound();
     render();
   }, 0);
 
-  return {
-    calls,
-    addCall,
-    render,
-    load,
-    save,
-    historyDays,
-  };
+  return { calls, addCall, render, load, save, historyDays };
 }
