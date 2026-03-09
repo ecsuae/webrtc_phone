@@ -2,6 +2,12 @@
 
 ## Current Working Changes
 
+### Hold/Unhold MOH Resume Fix
+
+- Added troubleshooting and implementation runbook: `docs/11-MOH-FIXED.md`
+- Documents final fix for call controls where hold plays MOH and unhold restores live audio
+- Covers frontend SIP hold module behavior, SDP codec safety, and Kamailio in-dialog RTPEngine handling
+
 ### Dashboard Refactoring (Modular Split)
 
 #### `push-server/dashboard.html`

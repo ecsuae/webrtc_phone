@@ -1,6 +1,6 @@
-import { renderAppLayout } from "../layout/renderAppLayout.js?v=1773010736";
-import { initDialpadInput } from "./dialpadInput.js?v=1773010736";
-import { initKeyboardToggle } from "./keyboardToggle.js?v=1773010736";
+import { renderAppLayout } from "../layout/renderAppLayout.js?v=1773023054";
+import { initDialpadInput } from "./dialpadInput.js?v=1773023054";
+import { initKeyboardToggle } from "./keyboardToggle.js?v=1773023054";
 import { setupCacheActions } from "./cacheActions.js";
 import { setupDebugToggleUi } from "./debugToggleUi.js";
 import { initSkinMode } from "./skinMode.js";
@@ -16,5 +16,5 @@ export async function bootstrapPage() {
   setupCacheActions();
   setupDebugToggleUi();
 
-  await import("../main.js?v=1773010736");
+  await import("../main.js?v=1773023601");
 }

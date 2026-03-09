@@ -1,22 +1,95 @@
-function sendDTMFCode(st, code) {
+// Import hold feature from separate module (isolated to prevent call disruption)
+import { initializeHoldButton } from "../features/sipHold.js?v=1773023601";
+
+// ============================================================================
+// DTMF SENDING (Feature codes: Transfer, Conference, Record)
+// ============================================================================
+
+async function sendDTMFCode(st, code) {
   if (!st.session) {
     alert("No active call");
     return false;
   }
 
-  const dialInput = document.getElementById("dial");
-  if (!dialInput) return false;
-
-  return [...code].reduce(async (prev, digit) => {
-    await prev;
-    const dialBtn = document.querySelector(`.dial-btn[data-digit="${digit}"]`);
-    if (dialBtn) {
-      dialInput.value += digit;
-      dialBtn.style.transform = "scale(0.95)";
-      setTimeout(() => { dialBtn.style.transform = ""; }, 100);
-      await new Promise((r) => setTimeout(r, 150));
+  console.log("[DTMF] Attempting to send:", code);
+  
+  try {
+    // Get the peer connection and audio sender
+    const pc = st.session?.sessionDescriptionHandler?.peerConnection;
+    if (!pc) {
+      console.error("[DTMF] No peer connection available");
+      alert("Cannot send DTMF: No peer connection");
+      return false;
     }
-  }, Promise.resolve()).then(() => true);
+
+    const audioSender = pc.getSenders().find(s => s.track?.kind === "audio");
+    if (!audioSender) {
+      console.error("[DTMF] No audio sender found");
+      alert("Cannot send DTMF: No audio track");
+      return false;
+    }
+
+    const dtmfSender = audioSender.dtmf;
+    if (!dtmfSender) {
+      console.error("[DTMF] DTMF sender not available");
+      alert("Cannot send DTMF: Not supported by browser");
+      return false;
+    }
+
+    // Wait for DTMF to become ready (with timeout)
+    let attempts = 0;
+    const maxAttempts = 20; // 20 attempts * 200ms = 4 seconds max wait
+    
+    while (!dtmfSender.canInsertDTMF && attempts < maxAttempts) {
+      console.log(`[DTMF] Waiting for DTMF readiness... attempt ${attempts + 1}/${maxAttempts}`);
+      await new Promise(r => setTimeout(r, 200));
+      attempts++;
+    }
+
+    if (!dtmfSender.canInsertDTMF) {
+      console.error("[DTMF] canInsertDTMF is still false after waiting");
+      
+      // Check SDP for telephone-event support
+      const localDesc = pc.localDescription;
+      const remoteDesc = pc.remoteDescription;
+      console.log("[DTMF] Local SDP:", localDesc?.sdp?.substring(0, 500));
+      console.log("[DTMF] Remote SDP:", remoteDesc?.sdp?.substring(0, 500));
+      
+      const hasTelephoneEvent = localDesc?.sdp?.includes("telephone-event") || 
+                                remoteDesc?.sdp?.includes("telephone-event");
+      console.log("[DTMF] telephone-event codec present:", hasTelephoneEvent);
+      
+      alert("Cannot send DTMF: Call not ready. The audio codec may not support DTMF (telephone-event).");
+      return false;
+    }
+
+    console.log("[DTMF] DTMF sender is ready, inserting DTMF:", code);
+    
+    // Send DTMF tones using WebRTC RTCDTMFSender (in-band RTP)
+    // Duration: 250ms per tone, gap: 150ms between tones
+    dtmfSender.insertDTMF(code, 250, 150);
+    console.log("[DTMF] insertDTMF completed for:", code);
+    
+    // Visual feedback: only animate buttons, do NOT add to dial input
+    // DTMF should be sent silently without modifying the dial number
+    for (const digit of code) {
+      const dialBtn = document.querySelector(`.dial-btn[data-digit="${digit}"]`);
+      if (dialBtn) {
+        dialBtn.style.transform = "scale(0.95)";
+        setTimeout(() => { dialBtn.style.transform = ""; }, 100);
+      }
+      
+      // Visual delay to match audio timing
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    
+    console.log("[DTMF] Sent successfully:", code);
+    return true;
+  } catch (err) {
+    console.error("[DTMF] Failed to send:", err);
+    alert("Failed to send DTMF: " + err.message);
+    return false;
+  }
 }
 
 function onMute(st, btn) {
@@ -57,12 +130,10 @@ export function setupCallControls(st) {
   muteBtn?.addEventListener("click", () => onMute(st, muteBtn));
   speakerBtn?.addEventListener("click", () => onSpeaker(st, speakerBtn));
 
-  holdBtn?.addEventListener("click", () => {
-    if (!st.session) return alert("No active call");
-    holdBtn.classList.toggle("active");
-    const onHold = holdBtn.classList.contains("active");
-    holdBtn.innerHTML = onHold ? '<i class="fas fa-play"></i> Unhold' : '<i class="fas fa-pause"></i> Hold';
-  });
+  // Initialize hold button using separate module (isolated feature)
+  if (holdBtn) {
+    initializeHoldButton(holdBtn, st);
+  }
 
   transferBtn?.addEventListener("click", async () => {
     const number = prompt("Enter extension to transfer to:");

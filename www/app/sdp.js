@@ -14,13 +14,20 @@ function filterSdpToG711(sdp) {
   const audioLines = lines.slice(audioIndex, audioEnd);
 
   const allowed = new Set();
+  let hasRealAudioCodec = false;
   for (const line of audioLines) {
     if (!line.startsWith("a=rtpmap:")) continue;
     const [pt, rest] = line.slice(9).split(" ");
     const codec = (rest || "").split("/")[0].toLowerCase();
-    if (G711_CODECS.has(codec)) allowed.add(pt);
+    // Keep G.711 codecs (pcmu, pcma) and telephone-event for DTMF
+    if (G711_CODECS.has(codec) || codec === "telephone-event") {
+      allowed.add(pt);
+      if (codec !== "telephone-event") hasRealAudioCodec = true;
+    }
   }
-  if (!allowed.size) return sdp;
+  // Safety: never allow DTMF-only SDP. If we cannot keep at least one
+  // actual audio codec, fall back to the original SDP unchanged.
+  if (!allowed.size || !hasRealAudioCodec) return sdp;
 
   const mParts = audioLines[0].split(" ");
   const prefix = mParts.slice(0, 3);
