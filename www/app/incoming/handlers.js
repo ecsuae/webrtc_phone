@@ -5,6 +5,7 @@ import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
 import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js";
+import { dualSessionManager } from "../features/dualSessionManager.js";
 
 // Track page load time for ghost call prevention
 const pageLoadTimeForIncoming = Date.now();
@@ -112,6 +113,12 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
       if (window.callTimer) window.callTimer.start();
       attachIncomingRemoteAudio(invitation, ui);
       bindPeerConnection(invitation, "inbound");
+      
+      // Register as primary session with dual session manager
+      if (!dualSessionManager.primary) {
+        dualSessionManager.setPrimary(st);
+        logLine(`[${nowISO()}] [session:inbound] Registered as primary session`);
+      }
       return;
     }
 
@@ -121,6 +128,10 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
       }
       endIncomingAlert(st, ui, "state-terminated");
       stopIncomingEarlyMediaLoop(invitation);
+      
+      // Remove from dual session manager
+      dualSessionManager.removeSession(st);
+      
       cleanupIncomingState(st, ui);
     }
   };

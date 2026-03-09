@@ -64,7 +64,7 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
   });
 
   setupTabNavigation(st);
-  setupCallControls(st);
+  setupCallControls(SIP, st, ui);
 }
 
 export function bindIosAudioUnlock() {

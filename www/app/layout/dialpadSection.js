@@ -42,8 +42,10 @@ export function dialpadSection() {
           <button id="btnMute" type="button" class="btn-outline"><i class="fas fa-microphone"></i> Mute</button>
           <button id="btnSpeaker" type="button" class="btn-outline"><i class="fas fa-volume-down"></i> Earpiece</button>
           <button id="btnHold" type="button" class="btn-outline"><i class="fas fa-pause"></i> Hold</button>
+          <button id="btnAddCall" type="button" class="btn-outline"><i class="fas fa-user-plus"></i> Add Call</button>
+          <button id="btnSwap" type="button" class="btn-outline" style="display: none;"><i class="fas fa-exchange-alt"></i> Swap</button>
           <button id="btnTransfer" type="button" class="btn-outline"><i class="fas fa-phone-volume"></i> Transfer</button>
-          <button id="btnConference" type="button" class="btn-outline"><i class="fas fa-users"></i> Conference</button>
+          <button id="btnConference" type="button" class="btn-outline" style="display: none;"><i class="fas fa-users"></i> Conference</button>
           <button id="btnRecord" type="button" class="btn-outline"><i class="fas fa-circle"></i> Record</button>
         </div>
 

@@ -1,5 +1,5 @@
 import { nowISO } from "../config.js";
-import { formatSipResponse, logLine } from "../log.js";
+import { formatSipResponse, getSipRejectDetails, mapSipFailureToMessage, logLine } from "../log.js";
 import { g711OnlyModifier } from "../sdp.js";
 import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
@@ -9,6 +9,7 @@ import {
   startRingbackTone,
   stopRingbackTone,
 } from "./ringback.js";
+import { dualSessionManager } from "../features/dualSessionManager.js";
 
 function configureRemoteAudio(ui) {
   const audioEl = ui?.remoteAudio?.();
@@ -32,12 +33,22 @@ function onOutboundStateChange(SIP, inviter, st, ui) {
     if (s === SIP.SessionState.Established) {
       stopRingbackTone();
       if (window.callTimer) window.callTimer.start();
+      
+      // Register as primary session with dual session manager
+      if (!dualSessionManager.primary) {
+        dualSessionManager.setPrimary(st);
+        logLine(`[${nowISO()}] [session:outbound] Registered as primary session`);
+      }
       return;
     }
 
     if (s === SIP.SessionState.Terminated) {
       stopRingbackTone();
       clearEarlyMediaAttachLoop(inviter);
+      
+      // Remove from dual session manager
+      dualSessionManager.removeSession(st);
+      
       st.session = null;
       stopLocalAudioStream();
       ui.setButtons();
@@ -135,7 +146,11 @@ export async function startCall(SIP, st, ui) {
     onReject: async (resp) => {
       stopRingbackTone();
       const info = formatSipResponse(resp);
-      ui.setStatus(info ? `Call failed (${info})` : "Call failed");
+      const details = getSipRejectDetails(resp);
+      const human = mapSipFailureToMessage(details);
+      const q850 = details.q850Cause ? `; Q.850 cause=${details.q850Cause}${details.q850Text ? ` (${details.q850Text})` : ""}` : "";
+      logLine(`[${nowISO()}] [call] rejected ${info || "unknown"}${q850}`);
+      ui.setStatus(info ? `${human} (${info})` : human);
       stopLocalAudioStream();
       st.session = null;
       ui.setButtons();

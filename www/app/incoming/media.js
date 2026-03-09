@@ -1,5 +1,6 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
+import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js";
 
 export function attachIncomingRemoteAudio(session, ui) {
   try {
@@ -33,6 +34,10 @@ export function attachIncomingRemoteAudio(session, ui) {
           .then(() => logLine(`[${nowISO()}] [incoming:media] Audio playing`))
           .catch((err) => logLine(`[${nowISO()}] [incoming:media] Play blocked: ${err?.name || err?.message || err}`));
       }
+
+      enforceCurrentAudioRoute(audioEl).catch((err) => {
+        logLine(`[${nowISO()}] [incoming:media] audio route apply failed: ${err?.message || err}`);
+      });
     };
 
     pc.addEventListener("track", (ev) => {

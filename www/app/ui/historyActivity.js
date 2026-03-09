@@ -56,11 +56,31 @@ export function createHistoryActivity(options = {}) {
 
   function load() {
     try {
-      const raw = localStorage.getItem(storageKey);
+      let raw = localStorage.getItem(storageKey);
+      if (!raw) {
+        // Backward compatibility with older history storage key.
+        raw = localStorage.getItem("callHistory");
+      }
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          calls.splice(0, calls.length, ...parsed);
+          const normalized = parsed
+            .map((item) => {
+              const timestamp = Number(item?.timestamp ? new Date(item.timestamp).getTime() : Date.now());
+              const number = String(item?.number || "").trim();
+              if (!number) return null;
+
+              return {
+                number,
+                numberKey: normalizeNumber(number),
+                type: item?.type || "outgoing",
+                duration: Number(item?.duration || 0),
+                timestamp: Number.isFinite(timestamp) ? timestamp : Date.now(),
+              };
+            })
+            .filter(Boolean);
+
+          calls.splice(0, calls.length, ...normalized);
         }
       }
     } catch (err) {

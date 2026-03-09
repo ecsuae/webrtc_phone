@@ -1,5 +1,6 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
+import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js";
 
 export function attachRemoteAudio(session, ui) {
   try {
@@ -33,6 +34,10 @@ export function attachRemoteAudio(session, ui) {
           console.warn("[EARLY-MEDIA] Play blocked:", e?.name, e?.message);
         });
       }
+
+      enforceCurrentAudioRoute(audioEl).catch((err) => {
+        console.warn("[audio-route] outgoing apply failed:", err?.message || err);
+      });
     };
 
     // Listen for new tracks (e.g., when 183 with SDP arrives, or re-INVITE updates)

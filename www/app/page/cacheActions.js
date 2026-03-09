@@ -16,12 +16,16 @@ export function setupCacheActions() {
       const password = localStorage.getItem("sipPassword");
       const hideShortcut = localStorage.getItem("hideInstallShortcut");
       const selectedSkin = localStorage.getItem("webrtc_skin");
+      const callHistoryV2 = localStorage.getItem("callHistoryV2");
+      const callHistoryLegacy = localStorage.getItem("callHistory");
 
       localStorage.clear();
       if (username) localStorage.setItem("sipUsername", username);
       if (password) localStorage.setItem("sipPassword", password);
       if (hideShortcut) localStorage.setItem("hideInstallShortcut", hideShortcut);
       if (selectedSkin) localStorage.setItem("webrtc_skin", selectedSkin);
+      if (callHistoryV2) localStorage.setItem("callHistoryV2", callHistoryV2);
+      if (callHistoryLegacy) localStorage.setItem("callHistory", callHistoryLegacy);
 
       sessionStorage.clear();
 

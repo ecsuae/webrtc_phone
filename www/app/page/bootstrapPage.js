@@ -16,5 +16,5 @@ export async function bootstrapPage() {
   setupCacheActions();
   setupDebugToggleUi();
 
-  await import("../main.js?v=1773024201");
+  await import("../main.js?v=1773031000");
 }
