@@ -4,7 +4,7 @@ import { nowISO } from "./config.js";
 import { createAppState, startAndRegister, stopAndUnregister } from "./sipRegister.js";
 import * as Push from "./push.js";
 import { createUi } from "./ui/appUi.js";
-import { createCallHistory } from "./ui/callHistoryLocal.js";
+import { createHistoryActivity } from "./ui/historyActivity.js";
 import { createCallTimer } from "./ui/callTimer.js";
 import { startRemoteLogging } from "./remoteLogs.js?v=20260307-r4";
 import { checkIOSInstallation } from "./ui/iosInstallPrompt.js";
@@ -21,7 +21,14 @@ bootLog();
 const SIP = window.SIP;
 const st = createAppState();
 const ui = createUi(st);
-const callHistory = createCallHistory();
+const callHistory = createHistoryActivity({
+  historyDays: 10,
+  onDial: (number) => {
+    if (!number || !el.dial) return;
+    el.dial.value = number;
+    el.btnCall?.click();
+  },
+});
 const callTimer = createCallTimer();
 
 window.callHistory = callHistory;

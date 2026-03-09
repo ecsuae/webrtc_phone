@@ -37,6 +37,7 @@ export function setRegistrationComplete() {
 export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   const callerUser = invitation.remoteIdentity?.uri?.user || "Unknown";
   const callerDisplay = invitation.remoteIdentity?.displayName || callerUser;
+  let wasAnswered = false;
 
   // CRITICAL: Reject all incoming calls if not registered yet (prevents phantom calls during login)
   if (!st.registered) {
@@ -102,6 +103,8 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
     }
 
     if (newState === SIP.SessionState.Established) {
+      wasAnswered = true;
+      window.callHistory?.addCall?.(callerUser, "incoming");
       stopIncomingAlert();
       st.session = invitation;
       ui.setStatus(`On call with ${callerDisplay}`);
@@ -113,6 +116,9 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
     }
 
     if (newState === SIP.SessionState.Terminated) {
+      if (!wasAnswered) {
+        window.callHistory?.addCall?.(callerUser, "missed");
+      }
       endIncomingAlert(st, ui, "state-terminated");
       stopIncomingEarlyMediaLoop(invitation);
       cleanupIncomingState(st, ui);
