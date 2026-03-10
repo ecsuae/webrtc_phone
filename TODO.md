@@ -1,17 +1,23 @@
-# TODO - Call History SIP Codes & Call Outcome Tracking
+# TODO - Phase 1 Desktop-First Refactor & Stabilization
 
-- [x] Add SIP reject detail parser in `www/app/log.js` (status/reason + Q.850 Reason header parsing)
-- [x] Update `www/app/outgoing/call.js` to map common reject codes to user-friendly messages while preserving protocol detail logs
-- [x] Update `www/app/outgoing/addCall.js` with same reject-detail UX logic
-
-- [ ] Extend `www/app/ui/historyActivity.js` model and renderer to include:
-  - [ ] call direction/type normalization
-  - [ ] sipCode/sipReason/q850Cause/q850Text fields
-  - [ ] display SIP code/reason in history group and detail rows
-- [ ] Update `www/app/outgoing/call.js` to write history entries on accept/reject with SIP metadata
-- [ ] Update `www/app/incoming/handlers.js` to write incoming/missed/rejected/answered history with SIP metadata where available
-- [ ] Update `www/app/runtime/controlBindings.js` to avoid premature/duplicate history entries for outgoing calls
-- [ ] Run critical-path verification:
-  - [ ] Search-based validation for history call sites
-  - [ ] Basic static checks (imports/usages)
-  - [ ] Summarize expected runtime behavior for incoming/outgoing/missed/rejected with SIP codes
+- [x] Fix critical syntax/typo defects (no behavior redesign):
+  - [x] `www/app/ui/historyActivity.js` syntax sanity
+  - [x] `www/app/outgoing/call.js` typo/corruption sanity
+- [x] Create desktop orchestration modules (max ~150 lines each):
+  - [x] `www/app/runtime/desktop/registrationDesktop.js`
+  - [x] `www/app/runtime/desktop/callFlowDesktop.js`
+  - [x] `www/app/runtime/desktop/pushDesktop.js`
+  - [x] `www/app/runtime/desktop/callControlsDesktop.js`
+  - [x] `www/app/runtime/desktop/bootstrapDesktop.js`
+- [x] Move desktop wiring from `www/app/main.js` to desktop bootstrap entry
+- [x] Keep mobile recovery/push behavior intact behind platform guards
+- [ ] Run critical-path checks:
+  - [x] import/export integrity search
+  - [ ] local smoke run via existing server flow
+  - [ ] summarize remaining Android/iPhone test matrix
+- [x] Regression fix: prevent duplicate tab/call-controls init in desktop bootstrap (`setupDesktopCallControls` no-op)
+- [x] Regression fix: unify registration state object by passing shared `st` from `bootstrapDesktopApp` into `createDesktopRegistration`
+- [ ] Validate regression fix on runtime:
+  - [ ] successful REGISTER flips UI from login card to dialpad card
+  - [ ] Start/Stop + account field visibility follows `st.registered`
+  - [ ] outbound call uses same registered state without "Not registered" mismatch
