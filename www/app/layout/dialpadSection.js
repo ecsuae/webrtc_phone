@@ -43,10 +43,34 @@ export function dialpadSection() {
           <button id="btnSpeaker" type="button" class="btn-outline"><i class="fas fa-volume-down"></i> Earpiece</button>
           <button id="btnHold" type="button" class="btn-outline"><i class="fas fa-pause"></i> Hold</button>
           <button id="btnAddCall" type="button" class="btn-outline"><i class="fas fa-user-plus"></i> Add Call</button>
+          <button id="btnKeypad" type="button" class="btn-outline"><i class="fas fa-th"></i> Keypad</button>
           <button id="btnSwap" type="button" class="btn-outline" style="display: none;"><i class="fas fa-exchange-alt"></i> Swap</button>
           <button id="btnTransfer" type="button" class="btn-outline"><i class="fas fa-phone-volume"></i> Transfer</button>
           <button id="btnConference" type="button" class="btn-outline" style="display: none;"><i class="fas fa-users"></i> Conference</button>
           <button id="btnRecord" type="button" class="btn-outline"><i class="fas fa-circle"></i> Record</button>
+        </div>
+
+        <div class="dtmf-overlay" id="dtmfOverlay" style="display:none;">
+          <div class="dtmf-overlay-content">
+            <div class="dtmf-overlay-header">
+              <div class="dtmf-overlay-title">Keypad</div>
+              <button id="btnDtmfClose" type="button" class="btn-outline dtmf-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="dtmf-buttons">
+              <button class="dtmf-btn" data-digit="1">1</button>
+              <button class="dtmf-btn" data-digit="2">2</button>
+              <button class="dtmf-btn" data-digit="3">3</button>
+              <button class="dtmf-btn" data-digit="4">4</button>
+              <button class="dtmf-btn" data-digit="5">5</button>
+              <button class="dtmf-btn" data-digit="6">6</button>
+              <button class="dtmf-btn" data-digit="7">7</button>
+              <button class="dtmf-btn" data-digit="8">8</button>
+              <button class="dtmf-btn" data-digit="9">9</button>
+              <button class="dtmf-btn" data-digit="*">*</button>
+              <button class="dtmf-btn" data-digit="0">0</button>
+              <button class="dtmf-btn" data-digit="#">#</button>
+            </div>
+          </div>
         </div>
 
         <div class="call-actions">

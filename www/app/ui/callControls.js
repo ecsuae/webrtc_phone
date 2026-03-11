@@ -117,10 +117,25 @@ export function setupCallControls(SIP, st, ui) {
   const speakerBtn = document.getElementById("btnSpeaker");
   const holdBtn = document.getElementById("btnHold");
   const addCallBtn = document.getElementById("btnAddCall");
+  const keypadBtn = document.getElementById("btnKeypad");
   const swapBtn = document.getElementById("btnSwap");
   const transferBtn = document.getElementById("btnTransfer");
   const conferenceBtn = document.getElementById("btnConference");
   const recordBtn = document.getElementById("btnRecord");
+
+  const dtmfOverlay = document.getElementById("dtmfOverlay");
+  const dtmfCloseBtn = document.getElementById("btnDtmfClose");
+  const dtmfButtons = document.querySelectorAll(".dtmf-btn");
+
+  const closeDtmfOverlay = () => {
+    if (!dtmfOverlay) return;
+    dtmfOverlay.style.display = "none";
+  };
+
+  const openDtmfOverlay = () => {
+    if (!dtmfOverlay) return;
+    dtmfOverlay.style.display = "flex";
+  };
 
   // Update button visibility based on dual session state
   const updateDualSessionUI = () => {
@@ -146,6 +161,39 @@ export function setupCallControls(SIP, st, ui) {
   if (speakerBtn) {
     initializeAudioRouteButton(speakerBtn);
   }
+
+  keypadBtn?.addEventListener("click", () => {
+    if (!st.session) {
+      alert("No active call");
+      return;
+    }
+    if (!dtmfOverlay) return;
+    const visible = dtmfOverlay.style.display !== "none";
+    if (visible) closeDtmfOverlay();
+    else openDtmfOverlay();
+  });
+
+  dtmfCloseBtn?.addEventListener("click", closeDtmfOverlay);
+  dtmfOverlay?.addEventListener("click", (e) => {
+    if (e.target === dtmfOverlay) closeDtmfOverlay();
+  });
+
+  dtmfButtons.forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (!st.session) {
+        alert("No active call");
+        return;
+      }
+      const digit = btn.getAttribute("data-digit") || "";
+      if (!digit) return;
+      btn.style.transform = "scale(0.96)";
+      setTimeout(() => {
+        btn.style.transform = "";
+      }, 90);
+      await sendDTMFCode(st, digit);
+    });
+  });
 
   // Initialize hold button using separate module (isolated feature)
   if (holdBtn) {

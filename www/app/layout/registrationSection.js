@@ -23,7 +23,12 @@ export function registrationSection() {
         </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label>Password</label>
-          <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="********" />
+          <div class="password-field">
+            <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="********" />
+            <button id="btnPassToggle" type="button" class="pass-toggle-btn" aria-label="Show password">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
         </div>
       </div>
 
