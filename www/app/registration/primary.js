@@ -7,41 +7,6 @@ import { handleIncomingCallIsolated } from "../sipCallIncoming.js";
 import { setRegistrationComplete } from "../incoming/handlers.js";
 import { setUsername } from "../remoteLogs.js";
 
-// Periodic re-registration for Android background persistence
-// Prevents registration from expiring when Android kills WebSocket connections
-function startPeriodicReregistration(st, ext) {
-  // Re-register every 1 minute - AGGRESSIVE to prevent expiration during screen lock
-  const reregInterval = 60 * 1000; // 1 minute in milliseconds (was 2.5 minutes)
-  
-  const reregTimer = setInterval(() => {
-    if (st.reg && st.registered) {
-      logLine(`[${nowISO()}] [registerer] Periodic re-registration for ${ext}`);
-      st.reg.register().catch((err) => {
-        logLine(`[${nowISO()}] [registerer] Periodic re-reg failed: ${err?.message || err}`);
-        // Try to reconnect if registration fails
-        if (st.ua && st.ua.transport && st.ua.transport.state !== 'Connected') {
-          logLine(`[${nowISO()}] [registerer] Transport down, attempting full restart`);
-          // UA will auto-reconnect with 999 attempts
-        }
-      });
-    } else if (st.reg && !st.registered) {
-      // Not registered but have registerer - try to register
-      logLine(`[${nowISO()}] [registerer] Not registered, attempting registration`);
-      st.reg.register().catch((err) => {
-        logLine(`[${nowISO()}] [registerer] Registration attempt failed: ${err?.message || err}`);
-      });
-    } else {
-      // No registerer - clear timer
-      clearInterval(reregTimer);
-      logLine(`[${nowISO()}] [registerer] No registerer, stopping periodic re-registration`);
-    }
-  }, reregInterval);
-  
-  // Store timer for cleanup on unregister
-  st._reregTimer = reregTimer;
-  logLine(`[${nowISO()}] [registerer] Started aggressive 60s periodic re-registration for ${ext}`);
-}
-
 function attachTransportListener(st, ui) {
   st.ua.transport?.stateChange?.addListener?.((state) => {
     logLine(`[${nowISO()}] [transport] ${state}`);
@@ -60,7 +25,10 @@ function attachTransportListener(st, ui) {
     // Handle disconnection - prepare for reconnection
     if (state === "Disconnected" || state === "Disconnecting") {
       logLine(`[${nowISO()}] [transport] Disconnected - will auto-reconnect`);
-      st.registered = false;
+      // Do not force UI back to login while a call (or incoming call) is active.
+      if (!st.session && !st.incomingInvitation) {
+        st.registered = false;
+      }
     }
   });
 }
@@ -170,9 +138,6 @@ export async function startPrimaryRegistration(SIP, st, ui) {
     st.ua = null;
     return null;
   }
-
-  // Start periodic re-registration timer for Android background persistence
-  startPeriodicReregistration(st, ext);
 
   st.reg = new SIP.Registerer(st.ua, {
     expires: 300,                   // Increased from 180s to 300s (5 minutes) for better mobile stability

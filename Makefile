@@ -124,7 +124,7 @@ render:
 	  www/index.html.template; do \
 	  if [ ! -f $$f ]; then echo "Missing $$f"; exit 1; fi; \
 	done; \
-	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX}'; \
+	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX} $${DIAL_MAX_DIGITS}'; \
 	envsubst "$$VARS" < coturn/turnserver.conf.template > coturn/turnserver.conf; \
 	envsubst "$$VARS" < rtpengine/rtpengine.conf.template > rtpengine/rtpengine.conf; \
 	envsubst "$$VARS" < kamailio/local.cfg.template > kamailio/local.cfg; \

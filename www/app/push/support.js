@@ -1,6 +1,6 @@
 import { logLine } from "../log.js";
 
-const SW_BUILD = "20260307-r2";
+const SW_BUILD = "20260310-r2";
 
 function shouldShowSessionPrompt(key) {
   try {

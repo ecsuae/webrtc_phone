@@ -2,24 +2,47 @@
 export const $ = (sel) => document.querySelector(sel);
 
 export const el = {
-  ext: $("#ext"),
-  domain: $("#domain"),
-  pass: $("#pass"),
-  wss: $("#wsshost"),
-  dial: $("#dial"),
-  status: $("#status"),
-  tstatus: $("#tstatus"),
-  domainDisplay: $("#domainDisplay"),
-  remoteAudio: $("#remoteAudio"),
-  log: $("#log"),
-  btnStart: $("#btnStart"),
-  btnStop: $("#btnStop"),
-  btnInstallApp: $("#btnInstallApp"),
-  btnCall: $("#btnCall"),
-  btnHangup: $("#btnHangup"),
-  btnAnswer: $("#btnAnswer"),
-  btnReject: $("#btnReject"),
+  ext: null,
+  domain: null,
+  pass: null,
+  wss: null,
+  dial: null,
+  status: null,
+  tstatus: null,
+  domainDisplay: null,
+  remoteAudio: null,
+  log: null,
+  btnStart: null,
+  btnStop: null,
+  btnInstallApp: null,
+  btnCall: null,
+  btnHangup: null,
+  btnAnswer: null,
+  btnReject: null,
 };
+
+export function refreshEl() {
+  el.ext = $("#ext");
+  el.domain = $("#domain");
+  el.pass = $("#pass");
+  el.wss = $("#wsshost");
+  el.dial = $("#dial");
+  el.status = $("#status");
+  el.tstatus = $("#tstatus");
+  el.domainDisplay = $("#domainDisplay");
+  el.remoteAudio = $("#remoteAudio");
+  el.log = $("#log");
+  el.btnStart = $("#btnStart");
+  el.btnStop = $("#btnStop");
+  el.btnInstallApp = $("#btnInstallApp");
+  el.btnCall = $("#btnCall");
+  el.btnHangup = $("#btnHangup");
+  el.btnAnswer = $("#btnAnswer");
+  el.btnReject = $("#btnReject");
+  return el;
+}
+
+refreshEl();
 
 export function setText(node, text) {
   if (!node) return;

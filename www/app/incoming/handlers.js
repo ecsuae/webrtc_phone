@@ -4,7 +4,8 @@ import { g711OnlyModifier } from "../sdp.js";
 import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
-import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js";
+import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js?v=1773032001";
+import { dualSessionManager } from "../features/dualSessionManager.js";
 
 // Track page load time for ghost call prevention
 const pageLoadTimeForIncoming = Date.now();
@@ -104,7 +105,10 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
 
     if (newState === SIP.SessionState.Established) {
       wasAnswered = true;
-      window.callHistory?.addCall?.(callerUser, "incoming");
+      window.callHistory?.addCall?.(callerUser, "answered", 0, {
+        sipCode: 200,
+        sipReason: "OK",
+      });
       stopIncomingAlert();
       st.session = invitation;
       ui.setStatus(`On call with ${callerDisplay}`);
@@ -112,15 +116,28 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
       if (window.callTimer) window.callTimer.start();
       attachIncomingRemoteAudio(invitation, ui);
       bindPeerConnection(invitation, "inbound");
+      
+      // Register as primary session with dual session manager
+      if (!dualSessionManager.primary) {
+        dualSessionManager.setPrimary(st);
+        logLine(`[${nowISO()}] [session:inbound] Registered as primary session`);
+      }
       return;
     }
 
     if (newState === SIP.SessionState.Terminated) {
       if (!wasAnswered) {
-        window.callHistory?.addCall?.(callerUser, "missed");
+        window.callHistory?.addCall?.(callerUser, "missed", 0, {
+          sipCode: 480,
+          sipReason: "Temporarily Unavailable",
+        });
       }
       endIncomingAlert(st, ui, "state-terminated");
       stopIncomingEarlyMediaLoop(invitation);
+      
+      // Remove from dual session manager
+      dualSessionManager.removeSession(st);
+      
       cleanupIncomingState(st, ui);
     }
   };
@@ -187,9 +204,15 @@ export async function rejectIncomingCallIsolated(st, ui) {
   const invitation = st.incomingInvitation;
   if (!invitation) return;
 
+  const caller = invitation.remoteIdentity?.uri?.user || "Unknown";
+
   stopIncomingAlert();
   try {
     invitation.reject({ statusCode: 603 });
+    window.callHistory?.addCall?.(caller, "rejected", 0, {
+      sipCode: 603,
+      sipReason: "Decline",
+    });
   } catch (err) {
     logLine(`[${nowISO()}] [incoming:reject] ERROR rejecting: ${err?.message || err}`);
   }

@@ -16,12 +16,16 @@ export function setupCacheActions() {
       const password = localStorage.getItem("sipPassword");
       const hideShortcut = localStorage.getItem("hideInstallShortcut");
       const selectedSkin = localStorage.getItem("webrtc_skin");
+      const callHistoryV2 = localStorage.getItem("callHistoryV2");
+      const callHistoryLegacy = localStorage.getItem("callHistory");
 
       localStorage.clear();
       if (username) localStorage.setItem("sipUsername", username);
       if (password) localStorage.setItem("sipPassword", password);
       if (hideShortcut) localStorage.setItem("hideInstallShortcut", hideShortcut);
       if (selectedSkin) localStorage.setItem("webrtc_skin", selectedSkin);
+      if (callHistoryV2) localStorage.setItem("callHistoryV2", callHistoryV2);
+      if (callHistoryLegacy) localStorage.setItem("callHistory", callHistoryLegacy);
 
       sessionStorage.clear();
 
@@ -44,12 +48,18 @@ export function setupCacheActions() {
         }
       }
 
+      // Give the browser a moment to detach the old SW controller before navigating.
+      await new Promise((r) => setTimeout(r, 250));
+
       console.log("[CACHE] Cache clear complete");
     } catch (err) {
       console.error("[CACHE] Error clearing cache:", err);
     } finally {
       setTimeout(() => {
-        location.reload();
+        // Force a fresh navigation (avoids reusing cached JS module graphs on Android).
+        const url = new URL(location.href);
+        url.searchParams.set("r", String(Date.now()));
+        location.replace(url.toString());
       }, 300);
       btn.innerHTML = originalIcon;
       btn.style.opacity = "1";

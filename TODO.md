@@ -1,0 +1,23 @@
+# TODO - Phase 1 Desktop-First Refactor & Stabilization
+
+- [x] Fix critical syntax/typo defects (no behavior redesign):
+  - [x] `www/app/ui/historyActivity.js` syntax sanity
+  - [x] `www/app/outgoing/call.js` typo/corruption sanity
+- [x] Create desktop orchestration modules (max ~150 lines each):
+  - [x] `www/app/runtime/desktop/registrationDesktop.js`
+  - [x] `www/app/runtime/desktop/callFlowDesktop.js`
+  - [x] `www/app/runtime/desktop/pushDesktop.js`
+  - [x] `www/app/runtime/desktop/callControlsDesktop.js`
+  - [x] `www/app/runtime/desktop/bootstrapDesktop.js`
+- [x] Move desktop wiring from `www/app/main.js` to desktop bootstrap entry
+- [x] Keep mobile recovery/push behavior intact behind platform guards
+- [ ] Run critical-path checks:
+  - [x] import/export integrity search
+  - [ ] local smoke run via existing server flow
+  - [ ] summarize remaining Android/iPhone test matrix
+- [x] Regression fix: prevent duplicate tab/call-controls init in desktop bootstrap (`setupDesktopCallControls` no-op)
+- [x] Regression fix: unify registration state object by passing shared `st` from `bootstrapDesktopApp` into `createDesktopRegistration`
+- [ ] Validate regression fix on runtime:
+  - [ ] successful REGISTER flips UI from login card to dialpad card
+  - [ ] Start/Stop + account field visibility follows `st.registered`
+  - [ ] outbound call uses same registered state without "Not registered" mismatch

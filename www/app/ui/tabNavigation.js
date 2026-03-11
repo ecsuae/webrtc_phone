@@ -14,6 +14,24 @@ function lockTabsToDial(lockEnabled) {
     const isDialBtn = btn.getAttribute("data-tab") === "dial-tab";
     btn.classList.toggle("is-tab-locked", lockEnabled && !isDialBtn);
     btn.setAttribute("aria-disabled", lockEnabled && !isDialBtn ? "true" : "false");
+
+    // On mobile, CSS alone may not reliably prevent accidental navigation.
+    // Hard-disable interaction for non-dial tabs during an active call.
+    if (lockEnabled && !isDialBtn) {
+      btn.style.pointerEvents = "none";
+    } else {
+      btn.style.pointerEvents = "";
+    }
+  });
+
+  const tabContents = document.querySelectorAll(".tab-content");
+  tabContents.forEach((content) => {
+    const isDialTab = content.id === "dial-tab";
+    if (lockEnabled && !isDialTab) {
+      content.style.pointerEvents = "none";
+    } else {
+      content.style.pointerEvents = "";
+    }
   });
   if (lockEnabled) activateTab("dial-tab");
 }

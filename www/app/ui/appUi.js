@@ -6,6 +6,12 @@ let callNavigationGuardInstalled = false;
 
 function installCallNavigationGuard() {
   if (callNavigationGuardInstalled || typeof window === "undefined") return;
+
+  const forceDialTab = () => {
+    const dialBtn = document.querySelector('.tab-btn[data-tab="dial-tab"]');
+    if (dialBtn instanceof HTMLElement) dialBtn.click();
+  };
+
   window.addEventListener("popstate", () => {
     if (!callNavigationLockActive) return;
     try {
@@ -13,9 +19,34 @@ function installCallNavigationGuard() {
     } catch {
       // Ignore browser history guard errors.
     }
-    const dialBtn = document.querySelector('.tab-btn[data-tab="dial-tab"]');
-    if (dialBtn instanceof HTMLElement) dialBtn.click();
+    forceDialTab();
   });
+
+  // Stop accidental taps/swipes from switching tabs during a call.
+  // Capture phase so it wins against other handlers.
+  const interactionGuard = (e) => {
+    if (!callNavigationLockActive) return;
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    const tabBtn = target.closest?.('.tab-btn[data-tab]');
+    const tab = tabBtn?.getAttribute?.('data-tab');
+    if (tab && tab !== 'dial-tab') {
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      forceDialTab();
+    }
+  };
+  document.addEventListener("touchstart", interactionGuard, { capture: true, passive: false });
+  document.addEventListener("click", interactionGuard, { capture: true });
+
+  // Best-effort protection against leaving the page while a call is active.
+  window.addEventListener("beforeunload", (e) => {
+    if (!callNavigationLockActive) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
   callNavigationGuardInstalled = true;
 }
 
@@ -40,6 +71,7 @@ function updateControlVisibility(st, ui) {
   const registered = st.registered;
   const hasIncoming = !!st.incomingInvitation;
   const inCall = !!st.session;
+  const showDialpad = registered || inCall || hasIncoming;
 
   const setButtonLabel = (button, iconClass, text) => {
     if (!button) return;
@@ -60,7 +92,7 @@ function updateControlVisibility(st, ui) {
   };
 
   document.getElementById("registrationCard")?.style.setProperty("display", registered ? "none" : "");
-  document.getElementById("dialpadCard")?.style.setProperty("display", registered ? "" : "none");
+  document.getElementById("dialpadCard")?.style.setProperty("display", showDialpad ? "" : "none");
   document.getElementById("refreshBtn")?.style.setProperty("display", "");
   document.getElementById("logOffBtn")?.style.setProperty("display", registered ? "" : "none");
   document.getElementById("accountFields")?.style.setProperty("display", registered ? "none" : "grid");
@@ -138,7 +170,8 @@ export function createUi(st) {
     wss: () => el.wss?.value,
     wssFallback: () => (window.location?.host || d.wssHost || ""),
     dial: () => el.dial?.value?.trim(),
-    remoteAudio: () => el.remoteAudio,
+    // Layout is rendered dynamically, so always resolve the audio element at call time.
+    remoteAudio: () => document.getElementById("remoteAudio"),
     setStatus: (s) => {
       const account = st.account || ui.account();
       if (st.registered && account?.username && account?.domain) {

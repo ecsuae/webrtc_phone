@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
 // Handles incoming call notifications when page is closed
 
-const SW_VERSION = '1.0.1';
+const SW_VERSION = '1.0.3';
 const CACHE_NAME = `webphone-cache-${SW_VERSION}`;
 
 // Install event
@@ -66,15 +66,37 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  // For iOS: ensure notification wakes the app
+  // Proactively wake any open clients (Android reliability under screen lock).
+  // This allows the page to re-register/reconnect immediately via its SW message handler.
+  const wakeClients = clients
+    .matchAll({ type: 'window', includeUncontrolled: true })
+    .then((clientList) => {
+      for (const client of clientList) {
+        try {
+          client.postMessage({
+            type: 'incoming-call-action',
+            action: 'wakeup',
+            callId: data.data.callId,
+            from: data.data.from,
+            wakeup: true,
+          });
+        } catch (err) {
+          console.warn('[SW] Failed to post wakeup message:', err);
+        }
+      }
+    });
+
+  // Ensure notification wakes the app and keep SW alive long enough to message clients.
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      ...data,
-      // iOS-specific: higher requireInteraction to ensure wakeup
-      requireInteraction: true,
-    }).catch(err => {
-      console.error('[SW] Failed to show notification:', err);
-    })
+    Promise.all([
+      wakeClients,
+      self.registration.showNotification(data.title, {
+        ...data,
+        requireInteraction: true,
+      }).catch(err => {
+        console.error('[SW] Failed to show notification:', err);
+      })
+    ])
   );
 });
 

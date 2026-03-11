@@ -11,6 +11,23 @@ const holdState = {
   pending: false,
 };
 
+function emitHoldState() {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("sip:hold-state", {
+        detail: {
+          active: holdState.active,
+          pending: holdState.pending,
+        },
+      })
+    );
+  } catch {}
+}
+
+export function isSIPHoldActive() {
+  return !!holdState.active;
+}
+
 function recoverRemoteAudioPlayback(session, reason = "unknown") {
   try {
     const pc = session?.sessionDescriptionHandler?.peerConnection;
@@ -270,6 +287,7 @@ export async function setSIPHold(st, shouldHold) {
     }
 
     holdState.active = shouldHold;
+    emitHoldState();
     recoverRemoteAudioPlayback(st.session, shouldHold ? "after-hold" : "after-unhold");
     logPeerState(pc, shouldHold ? "after-hold-invite" : "after-unhold-invite");
 
@@ -288,6 +306,7 @@ export async function setSIPHold(st, shouldHold) {
     return false;
   } finally {
     holdState.pending = false;
+    emitHoldState();
   }
 }
 
@@ -299,6 +318,9 @@ export async function setSIPHold(st, shouldHold) {
  */
 export function initializeHoldButton(holdBtn, st) {
   if (!holdBtn) return;
+  
+  // Store reference for external updates
+  holdBtn._stateRef = st;
   
   holdBtn.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -327,15 +349,34 @@ export function initializeHoldButton(holdBtn, st) {
 
     if (success) {
       // Update button state
-      holdBtn.classList.toggle("active", willBeOnHold);
-      const isNowOnHold = willBeOnHold;
-      holdBtn.innerHTML = isNowOnHold
-        ? '<i class="fas fa-play"></i> Unhold'
-        : '<i class="fas fa-pause"></i> Hold';
-      console.log(`[Hold UI] state=${isNowOnHold ? "hold active" : "hold released"}`);
+      updateHoldButtonUI(holdBtn, willBeOnHold);
+      console.log(`[Hold UI] state=${willBeOnHold ? "hold active" : "hold released"}`);
     } else {
       console.warn("[Hold UI] hold request failed; call remains active");
       // Note: This is logged but doesn't alert, allowing call to continue
     }
   });
+}
+
+/**
+ * Update hold button UI to reflect hold state
+ * Can be called externally when hold state changes programmatically
+ */
+export function updateHoldButtonUI(holdBtn, isOnHold) {
+  if (!holdBtn) return;
+  
+  holdBtn.classList.toggle("active", isOnHold);
+  holdBtn.innerHTML = isOnHold
+    ? '<i class="fas fa-play"></i> Unhold'
+    : '<i class="fas fa-pause"></i> Hold';
+}
+
+/**
+ * Sync hold button UI with actual hold state
+ */
+export function syncHoldButtonUI() {
+  const holdBtn = document.getElementById("btnHold");
+  if (holdBtn) {
+    updateHoldButtonUI(holdBtn, holdState.active);
+  }
 }

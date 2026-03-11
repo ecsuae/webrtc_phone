@@ -1,6 +1,5 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
-import { attachRemoteStream } from "../media.js";
 import { candType, short } from "./utils.js";
 import { logSelectedPair, startRtpStats, stopRtpStats } from "./stats.js";
 
@@ -11,8 +10,6 @@ export function bindPeerConnection(session, label) {
 
   pc.addEventListener("track", (ev) => {
     logLine(`[${nowISO()}] [pc:${label}] track`);
-    const stream = ev.streams?.[0];
-    if (stream) attachRemoteStream(stream);
   });
 
   pc.addEventListener("icecandidate", (ev) => {

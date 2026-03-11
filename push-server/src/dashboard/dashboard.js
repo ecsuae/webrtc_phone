@@ -204,9 +204,17 @@ function renderDevice(device) {
         <button 
           class="view-logs-btn" 
           ${!hasLogs ? 'disabled' : ''}
-          onclick="viewLogs('${device.deviceId}')"
+          onclick="viewLatestLogs('${device.deviceId}')"
         >
-          <i class="fas fa-file-alt"></i> View Logs (${device.logFileCount})
+          <i class="fas fa-file-alt"></i> View Latest Logs
+        </button>
+        <button 
+          class="flush-btn" 
+          ${!hasLogs ? 'disabled' : ''}
+          onclick="flushLogs('${device.deviceId}')"
+          title="Delete log files for this device (keep metadata)"
+        >
+          <i class="fas fa-broom"></i> Flush Logs
         </button>
         <button 
           class="delete-btn" 
@@ -243,9 +251,108 @@ async function updateComment(deviceId) {
   }
 }
 
-// View logs for a device
-function viewLogs(deviceId) {
-  window.open(`/api/logs/mobile/${deviceId}`, '_blank');
+// View latest logs for a device
+async function viewLatestLogs(deviceId) {
+  try {
+    const res = await fetch(`/api/logs/mobile/${deviceId}/latest`);
+    if (!res.ok) {
+      alert(`Failed to load latest logs (${res.status})`);
+      return;
+    }
+    const data = await res.json();
+
+    let modal = document.getElementById('logModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'logModal';
+      modal.style.position = 'fixed';
+      modal.style.inset = '0';
+      modal.style.background = 'rgba(0,0,0,0.6)';
+      modal.style.zIndex = '9999';
+      modal.style.padding = '20px';
+      modal.style.display = 'flex';
+      modal.style.alignItems = 'stretch';
+      modal.style.justifyContent = 'center';
+
+      const inner = document.createElement('div');
+      inner.style.background = '#fff';
+      inner.style.borderRadius = '8px';
+      inner.style.maxWidth = '1200px';
+      inner.style.width = '100%';
+      inner.style.display = 'flex';
+      inner.style.flexDirection = 'column';
+      inner.style.overflow = 'hidden';
+
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.alignItems = 'center';
+      header.style.justifyContent = 'space-between';
+      header.style.padding = '12px 16px';
+      header.style.borderBottom = '1px solid #e2e8f0';
+
+      const title = document.createElement('div');
+      title.id = 'logModalTitle';
+      title.style.fontWeight = '700';
+      title.textContent = 'Logs';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.style.border = 'none';
+      closeBtn.style.background = '#e2e8f0';
+      closeBtn.style.padding = '8px 12px';
+      closeBtn.style.borderRadius = '6px';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.addEventListener('click', () => {
+        modal.remove();
+      });
+
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+
+      const pre = document.createElement('pre');
+      pre.id = 'logModalPre';
+      pre.style.margin = '0';
+      pre.style.padding = '16px';
+      pre.style.overflow = 'auto';
+      pre.style.flex = '1';
+      pre.style.fontSize = '12px';
+      pre.style.lineHeight = '1.4';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.wordBreak = 'break-word';
+
+      inner.appendChild(header);
+      inner.appendChild(pre);
+      modal.appendChild(inner);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+    }
+
+    const titleEl = document.getElementById('logModalTitle');
+    const preEl = document.getElementById('logModalPre');
+    if (titleEl) titleEl.textContent = `Latest Logs: ${data.deviceId} / ${data.filename || ''}`;
+    if (preEl) preEl.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    alert('Error loading latest logs: ' + err.message);
+  }
+}
+
+// Flush logs for a device but keep metadata
+async function flushLogs(deviceId) {
+  if (!confirm(`Flush logs for ${deviceId}? (Device metadata will be kept)`)) return;
+  try {
+    const res = await fetch(`/api/logs/mobile/${deviceId}/logs`, { method: 'DELETE' });
+    if (!res.ok) {
+      alert(`Failed to flush logs (${res.status})`);
+      return;
+    }
+    const data = await res.json();
+    alert(`Logs flushed: deleted ${data.deleted || 0} files`);
+    loadDevices();
+  } catch (err) {
+    alert('Error flushing logs: ' + err.message);
+  }
 }
 
 // Delete a device and its logs

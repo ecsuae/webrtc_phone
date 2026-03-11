@@ -4,7 +4,8 @@ export function initDialpadInput() {
   const eraseBtn = document.getElementById("btnDialErase");
   if (!dialInput) return;
 
-  const MAX_DIAL_CHARS = 12;
+  const cfgMax = Number(document.body?.dataset?.maxDialDigits || "");
+  const MAX_DIAL_CHARS = Number.isFinite(cfgMax) && cfgMax > 0 ? cfgMax : 15;
   const ALLOWED_CHARS = "0123456789*#+";
 
   const emitDialInput = () => {

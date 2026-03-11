@@ -1,5 +1,5 @@
-export const MAX_LOGS_PER_BATCH = 100;
-export const SEND_INTERVAL = 60000; // Send every 60 seconds
+export const MAX_LOGS_PER_BATCH = 5000;
+export const SEND_INTERVAL = 45000; // Send every 45 seconds
 export const METADATA_SEND_INTERVAL = 60000; // Send metadata every 60 seconds
 
 export const state = {
@@ -7,6 +7,7 @@ export const state = {
   sendTimer: null,
   metadataTimer: null,
   debugMode: false,
+  batchId: null,
   currentUsername: null,
   deviceId: null,
   browserId: null,

@@ -5,6 +5,8 @@ import { setupTabNavigation } from "../ui/tabNavigation.js";
 import { setupCallControls } from "../ui/callControls.js";
 
 export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEnableFlow, stopAndUnregister, releaseWakeLock }) {
+  const passToggleBtn = document.getElementById("btnPassToggle");
+
   if (el.btnStart && el.btnStop) {
     el.btnStart.addEventListener("click", async () => {
       primeIncomingRingtone();
@@ -34,8 +36,6 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
       return;
     }
 
-    const number = ui.dial();
-    if (number) callHistory.addCall(number, "outgoing");
     startCall(SIP, st, ui);
   });
 
@@ -63,8 +63,20 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
     if (!st.registered) await runOneTapEnableFlow();
   });
 
+  passToggleBtn?.addEventListener("click", () => {
+    const input = el.pass;
+    if (!input) return;
+    const icon = passToggleBtn.querySelector("i");
+    const isHidden = (input.getAttribute("type") || "password") === "password";
+
+    input.setAttribute("type", isHidden ? "text" : "password");
+    passToggleBtn.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
+    if (icon) icon.className = isHidden ? "fas fa-eye-slash" : "fas fa-eye";
+    input.focus();
+  });
+
   setupTabNavigation(st);
-  setupCallControls(st);
+  setupCallControls(SIP, st, ui);
 }
 
 export function bindIosAudioUnlock() {
@@ -72,6 +84,34 @@ export function bindIosAudioUnlock() {
 
   const unlockOnInteraction = () => {
     primeIncomingRingtone();
+    document.removeEventListener("touchstart", unlockOnInteraction);
+    document.removeEventListener("click", unlockOnInteraction);
+  };
+
+  document.addEventListener("touchstart", unlockOnInteraction, { once: true });
+  document.addEventListener("click", unlockOnInteraction, { once: true });
+}
+
+export function bindAndroidAudioUnlock() {
+  if (!/Android/i.test(navigator.userAgent)) return;
+
+  const unlockOnInteraction = () => {
+    primeIncomingRingtone();
+    try {
+      const audioEl = document.getElementById("remoteAudio");
+      if (!audioEl) return;
+      audioEl.autoplay = true;
+      audioEl.playsInline = true;
+      audioEl.muted = true;
+      const p = audioEl.play?.();
+      if (p && typeof p.finally === "function") {
+        p.finally(() => {
+          audioEl.muted = false;
+        });
+      } else {
+        audioEl.muted = false;
+      }
+    } catch {}
     document.removeEventListener("touchstart", unlockOnInteraction);
     document.removeEventListener("click", unlockOnInteraction);
   };
