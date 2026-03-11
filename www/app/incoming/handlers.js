@@ -4,7 +4,7 @@ import { g711OnlyModifier } from "../sdp.js";
 import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
-import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js";
+import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js?v=1773032001";
 import { dualSessionManager } from "../features/dualSessionManager.js";
 
 // Track page load time for ghost call prevention

@@ -84,6 +84,7 @@ export async function sendLogsToServer() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...getDeviceInfo(),
+        batchId: state.batchId,
         logs: logsToSend,
       }),
     });

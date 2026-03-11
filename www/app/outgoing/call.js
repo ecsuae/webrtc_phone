@@ -3,7 +3,7 @@ import { formatSipResponse, getSipRejectDetails, mapSipFailureToMessage, logLine
 import { g711OnlyModifier } from "../sdp.js";
 import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
-import { attachRemoteAudio, startEarlyMediaAttachLoop, clearEarlyMediaAttachLoop } from "./media.js";
+import { attachRemoteAudio, startEarlyMediaAttachLoop, clearEarlyMediaAttachLoop } from "./media.js?v=1773032001";
 import {
   primeOutboundRingbackContext,
   startRingbackTone,
@@ -20,7 +20,19 @@ function configureRemoteAudio(ui) {
   audioEl.volume = 0.7;
   const prePlayPromise = audioEl.play?.();
   if (prePlayPromise && typeof prePlayPromise.catch === "function") {
-    prePlayPromise.catch(() => {});
+    prePlayPromise.catch(() => {
+      try {
+        audioEl.muted = true;
+        const p2 = audioEl.play?.();
+        if (p2 && typeof p2.finally === "function") {
+          p2.finally(() => {
+            audioEl.muted = false;
+          });
+        } else {
+          audioEl.muted = false;
+        }
+      } catch {}
+    });
   }
 }
 

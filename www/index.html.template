@@ -4,70 +4,28 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${DOMAIN} Webphone</title>
-  <style>
-    body{font-family:system-ui,Arial;margin:24px;max-width:900px}
-    input,button{padding:10px;margin:6px 0;width:100%;max-width:420px}
-    .row{display:flex;gap:16px;flex-wrap:wrap}
-    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
-    #status{font-weight:700}
-    pre{background:#111;color:#0f0;padding:12px;border-radius:10px;overflow:auto;min-height:220px}
-    small{opacity:.75}
-  </style>
+
+  <link rel="manifest" href="/manifest.json?v=20260307-r2">
+  <meta name="theme-color" content="#2563eb">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/styles/index.css?v=1773023054">
 </head>
-<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}">
-  <h2>WebRTC SIP.js Webphone (SIP over WSS)</h2>
-  <small>Uses local bundled SIP.js: <code>/vendor/sip.min.js</code></small>
+<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}" data-skin="modern-ops" data-max-dial-digits="${DIAL_MAX_DIGITS}">
+  <div id="appRoot"></div>
 
-  <div class="card">
-    <div>Status: <span id="status">Idle</span></div>
-    <div>Transport: <span id="tstatus">-</span></div>
-  </div>
+  <script src="/vendor/sip.min.js?v=20260306"></script>
+  <script type="module">
+    import { bootstrapPage } from "/app/page/bootstrapPage.js?v=1773032001";
 
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>Domain (FusionPBX)</label><br/>
-        <input id="domain" value="${PBX_IP}" />
-      </div>
-      <div>
-        <label>WSS Host (your SBC)</label><br/>
-        <input id="wsshost" value="${DOMAIN}" />
-      </div>
-    </div>
-
-    <div class="row">
-      <div>
-        <label>Extension</label><br/>
-        <input id="ext" name="ext" autocomplete="username" placeholder="e.g. 100360" />
-      </div>
-      <div>
-        <label>Password</label><br/>
-        <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="Extension password" />
-      </div>
-    </div>
-
-    <button id="btnStart">Connect + Register</button>
-    <button id="btnStop">Unregister + Disconnect</button>
-  </div>
-
-  <div class="card">
-    <h3>Call</h3>
-    <input id="dial" placeholder="Destination (e.g. 1001 or +923001234567)" />
-    <button id="btnCall">Call</button>
-    <button id="btnHangup">Hangup</button>
-    <audio id="remoteAudio" autoplay></audio>
-  </div>
-
-  <div class="card">
-    <h3>Log</h3>
-    <pre id="log"></pre>
-  </div>
-
-  <!-- IMPORTANT: local bundled SIP.js (exposes window.SIP) -->
-  <script src="/vendor/sip.min.js"></script>
-
-  <!-- your app -->
-  <script src="/app.js"></script>
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        bootstrapPage();
+      });
+    } else {
+      bootstrapPage();
+    }
+  </script>
 </body>
 </html>
 

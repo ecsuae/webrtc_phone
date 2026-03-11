@@ -29,6 +29,23 @@ function initializeDebugMode() {
     state.debugMode = false;
   }
   console.log(`[RemoteLogs] Debug mode initialized: ${state.debugMode}`);
+
+  // If debug mode is already enabled (e.g., persisted across reloads), ensure we have
+  // a stable batchId so the server can aggregate uploads into a single file.
+  if (state.debugMode) {
+    try {
+      const existing = sessionStorage.getItem("webrtc_debug_batch_id");
+      if (existing && existing.trim()) {
+        state.batchId = existing.trim();
+      } else {
+        state.batchId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem("webrtc_debug_batch_id", state.batchId);
+      }
+    } catch {
+      state.batchId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    console.log(`[RemoteLogs] Debug batchId (init): ${state.batchId}`);
+  }
   return state.debugMode;
 }
 
@@ -40,6 +57,26 @@ export function toggleDebugMode() {
     // Ignore localStorage errors.
   }
   console.log(`[RemoteLogs] Debug mode ${state.debugMode ? "ENABLED" : "DISABLED"}`);
+
+  if (state.debugMode) {
+    try {
+      const existing = sessionStorage.getItem("webrtc_debug_batch_id");
+      if (existing && existing.trim()) {
+        state.batchId = existing.trim();
+      } else {
+        state.batchId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem("webrtc_debug_batch_id", state.batchId);
+      }
+    } catch {
+      state.batchId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    console.log(`[RemoteLogs] Debug batchId: ${state.batchId}`);
+  } else {
+    state.batchId = null;
+    try {
+      sessionStorage.removeItem("webrtc_debug_batch_id");
+    } catch {}
+  }
 
   // Clear existing buffer if disabling debug mode.
   if (!state.debugMode) {

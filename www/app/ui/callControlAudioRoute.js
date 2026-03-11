@@ -1,8 +1,13 @@
 const STORAGE_KEY = "audioRouteMode";
 
+try {
+  console.log("[audio-route] module=v1773034001");
+} catch {}
+
 const state = {
   mode: "earpiece",
   listenersBound: false,
+  lastEnforceAt: 0,
 };
 
 function isMobileClient() {
@@ -63,47 +68,16 @@ async function trySetSink(audioEl, mode) {
 
 function applyAndroidAudioRoute(audioEl, mode) {
   if (!audioEl) return;
-  
-  // On Android, we need to manipulate the audio element attributes
-  // to trigger the correct routing behavior.
-  audioEl.muted = false;
-  audioEl.volume = 1.0;
-  
-  // Force the browser to reconsider audio routing by toggling play state
-  if (audioEl.srcObject) {
-    const stream = audioEl.srcObject;
-    const audioTracks = stream.getAudioTracks();
-    
-    if (audioTracks.length > 0) {
-      const track = audioTracks[0];
-      console.log(`[audio-route] Android: applying ${mode} route to track`, track.label);
-      
-      // On Android Chrome, the speakerphone mode is influenced by
-      // the echoCancellation and noiseSuppression constraints.
-      // For speaker mode, we want lower processing; for earpiece, higher processing.
-      const constraints = {
-        echoCancellation: mode === "earpiece",
-        noiseSuppression: mode === "earpiece",
-        autoGainControl: mode === "earpiece"
-      };
-      
-      track.applyConstraints(constraints).then(() => {
-        console.log(`[audio-route] Android constraints applied:`, constraints);
-      }).catch(err => {
-        console.warn(`[audio-route] Android constraints failed:`, err?.message || err);
-      });
-    }
-    
-    // Additional Android-specific hint: pause and play to trigger routing refresh
-    if (!audioEl.paused) {
-      audioEl.pause();
-      setTimeout(() => {
-        audioEl.play().catch(e => console.warn("[audio-route] play() after pause failed:", e));
-      }, 50);
-    }
+
+  // On Android web browsers, programmatic routing between earpiece/speaker is
+  // generally not reliably exposed to web apps.
+  // Avoid pause/play tricks (can lead to play() being blocked and cause no-audio).
+  // Instead, keep playback active and apply a safe volume profile.
+  applyVolumeFallback(audioEl, mode);
+
+  if (audioEl.srcObject && audioEl.paused) {
+    audioEl.play().catch((e) => console.warn("[audio-route] Android play() failed:", e));
   }
-  
-  console.log(`[audio-route] Android: ${mode} mode applied`);
 }
 
 function applyVolumeFallback(audioEl, mode) {
@@ -111,8 +85,8 @@ function applyVolumeFallback(audioEl, mode) {
   audioEl.muted = false;
 
   // Mobile browsers often do not expose output route APIs.
-  // Keep a stronger gain difference so the mode toggle is meaningful.
-  audioEl.volume = mode === "speaker" ? 1.0 : 0.35;
+  // Do not drop earpiece volume too low (can sound like one-way/no audio).
+  audioEl.volume = mode === "speaker" ? 1.0 : 0.85;
 }
 
 function updateButtonUi(button, mode, sinkSupported) {
@@ -128,6 +102,11 @@ function updateButtonUi(button, mode, sinkSupported) {
 }
 
 export async function enforceCurrentAudioRoute(audioEl = document.getElementById("remoteAudio")) {
+  const now = Date.now();
+  // Avoid re-entrant enforcement loops (e.g. play->enforce->play->play event...).
+  if (now - (state.lastEnforceAt || 0) < 500) return;
+  state.lastEnforceAt = now;
+
   const mode = state.mode || readMode();
   state.mode = mode;
 
@@ -137,8 +116,7 @@ export async function enforceCurrentAudioRoute(audioEl = document.getElementById
   let usedSink = false;
   
   if (isAndroid) {
-    // Android-specific audio routing using track constraints
-    console.log(`[audio-route] Applying Android-specific routing for ${mode}`);
+    // Android web browsers generally do not expose reliable output routing APIs.
     applyAndroidAudioRoute(audioEl, mode);
   } else {
     // Try standard setSinkId for other platforms
@@ -161,7 +139,11 @@ export function bindAudioRoutePersistence(audioEl = document.getElementById("rem
   };
 
   audioEl.addEventListener("loadedmetadata", replay);
-  audioEl.addEventListener("play", replay);
+  // On Android, "play" can be noisy and re-entrant (and can destabilize call UX).
+  // Only re-apply on metadata changes.
+  if (!/Android/i.test(navigator.userAgent || "")) {
+    audioEl.addEventListener("play", replay);
+  }
 }
 
 export function initializeAudioRouteButton(button) {

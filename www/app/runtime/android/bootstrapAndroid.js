@@ -9,18 +9,18 @@ import { hydratePasswordInput } from "../../push/recoverySession.js";
 import { setupMobileRecovery } from "../mobileRecovery.js";
 import { setupServiceWorkerWakeHandler } from "../swWakeHandler.js";
 import { createAppState } from "../../sipRegister.js";
-import { createDesktopRegistration } from "./registrationDesktop.js";
-import { setupDesktopCallFlow } from "./callFlowDesktop.js";
-import { setupDesktopPush } from "./pushDesktop.js";
-import { setupDesktopCallControls } from "./callControlsDesktop.js";
+import { createAndroidRegistration } from "./registrationAndroid.js";
+import { setupAndroidCallFlow } from "./callFlowAndroid.js";
+import { setupAndroidPush } from "./pushAndroid.js";
+import { setupAndroidCallControls } from "./callControlsAndroid.js";
 
-export function bootstrapDesktopApp(SIP = window.SIP) {
+export function bootstrapAndroidApp(SIP = window.SIP) {
   bootLog();
 
   const st = createAppState();
   const ui = createUi(st);
 
-  const registration = createDesktopRegistration({
+  const registration = createAndroidRegistration({
     SIP,
     st,
     ui,
@@ -41,11 +41,11 @@ export function bootstrapDesktopApp(SIP = window.SIP) {
   window.callHistory = callHistory;
   window.callTimer = callTimer;
 
-  setupDesktopPush({ el, logLine, nowISO });
+  setupAndroidPush({ el, logLine, nowISO });
 
   if (!SIP) ui.setStatus("SIP.js not loaded");
 
-  setupDesktopCallFlow({
+  setupAndroidCallFlow({
     el,
     st,
     ui,
@@ -56,7 +56,7 @@ export function bootstrapDesktopApp(SIP = window.SIP) {
     releaseWakeLock: registration.releaseWakeLock,
   });
 
-  setupDesktopCallControls({ SIP, st, ui });
+  setupAndroidCallControls({ SIP, st, ui });
 
   setupMobileRecovery({
     st,

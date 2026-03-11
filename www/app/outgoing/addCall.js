@@ -6,7 +6,7 @@ import { formatSipResponse, getSipRejectDetails, mapSipFailureToMessage, logLine
 import { g711OnlyModifier } from "../sdp.js";
 import { bindPeerConnection } from "../pcDebug.js";
 import { ensureMicAccess, getLocalStream } from "../media.js";
-import { attachRemoteAudio } from "../outgoing/media.js";
+import { attachRemoteAudio } from "../outgoing/media.js?v=1773032001";
 import { dualSessionManager } from "../features/dualSessionManager.js";
 import { setSIPHold, syncHoldButtonUI } from "../features/sipHold.js?v=1773023601";
 

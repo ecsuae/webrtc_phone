@@ -1,4 +1,4 @@
-import { toggleDebugMode, isDebugMode } from "../remoteLogs.js?v=20260307-r4";
+import { toggleDebugMode, isDebugMode } from "../remoteLogs.js?v=20260310-r1";
 
 export function setupDebugToggleUi() {
   window.toggleDebugModeUI = function () {

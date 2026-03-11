@@ -13,8 +13,10 @@ This document captures the **desktop runtime modularization** introduced in Phas
 www/index.html
   -> /app/page/bootstrapPage.js?v=1773032001
     -> dynamic import /app/main.js?v=1773032001
-      -> bootstrapDesktopApp(window.SIP)
-         from /app/runtime/desktop/bootstrapDesktop.js?v=1773032001
+      -> platform router (Android / iOS / Desktop)
+         in /app/main.js?v=1773032001
+         -> bootstrapDesktopApp(window.SIP)
+            from /app/runtime/desktop/bootstrapDesktop.js?v=1773032001
 ```
 
 ### New desktop modules added
@@ -114,6 +116,7 @@ Desktop push setup split from main orchestration.
 - `www/app/registration/primary.js`
   - actual SIP UserAgent/Registerer lifecycle
   - sets `st.registered = true` in accept/state-change path
+  - platform-specific behaviors (Android periodic re-registration) are now handled in runtime wrappers (not here)
 
 - `www/app/ui/appUi.js`
   - login/dialpad visibility uses `st.registered` (`updateControlVisibility` path)
@@ -128,7 +131,10 @@ Desktop push setup split from main orchestration.
   - imports bumped to `v=1773032001`
   - dynamic import `../main.js?v=1773032001`
 - `www/app/main.js`
-  - imports `./runtime/desktop/bootstrapDesktop.js?v=1773032001`
+  - routes by platform:
+    - `./runtime/android/bootstrapAndroid.js?v=1773032001`
+    - `./runtime/ios/bootstrapIos.js?v=1773032001`
+    - `./runtime/desktop/bootstrapDesktop.js?v=1773032001`
 
 ---
 
@@ -185,12 +191,37 @@ bootstrapDesktopApp(SIP)
 www/
 └── app/
     └── runtime/
-        └── desktop/
-            ├── bootstrapDesktop.js
-            ├── registrationDesktop.js
-            ├── callFlowDesktop.js
-            ├── callControlsDesktop.js
-            └── pushDesktop.js
+        ├── android/
+        │   └── bootstrapAndroid.js
+        ├── desktop/
+        │   ├── bootstrapDesktop.js
+        │   ├── registrationDesktop.js
+        │   ├── callFlowDesktop.js
+        │   ├── callControlsDesktop.js
+        │   └── pushDesktop.js
+        └── ios/
+            └── bootstrapIos.js
+```
+
+## Desktop linked file map
+
+```text
+www/index.html
+  -> www/app/page/bootstrapPage.js
+     -> dynamic import www/app/main.js
+        -> www/app/runtime/desktop/bootstrapDesktop.js
+           -> www/app/runtime/desktop/registrationDesktop.js
+              -> www/app/runtime/registerFlow.js
+              -> www/app/runtime/wakeLockManager.js
+              -> www/app/sipRegister.js
+                 -> www/app/registration/primary.js
+           -> www/app/runtime/desktop/callFlowDesktop.js
+              -> www/app/runtime/controlBindings.js
+                 -> www/app/ui/tabNavigation.js
+                 -> www/app/ui/callControls.js
+           -> www/app/runtime/desktop/pushDesktop.js
+           -> www/app/runtime/mobileRecovery.js
+           -> www/app/runtime/swWakeHandler.js
 ```
 
 ## Notes

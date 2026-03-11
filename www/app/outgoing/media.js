@@ -1,12 +1,16 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
-import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js";
+import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js?v=1773034001";
 
 export function attachRemoteAudio(session, ui) {
   try {
     const audioEl = ui?.remoteAudio?.();
     const pc = session?.sessionDescriptionHandler?.peerConnection;
-    if (!audioEl || !pc) return;
+    if (!audioEl || !pc) {
+      logLine(`[${nowISO()}] [outgoing:media] attachRemoteAudio skipped: audioEl=${!!audioEl}, pc=${!!pc}`);
+      console.log(`[${nowISO()}] [outgoing:media] attachRemoteAudio skipped: audioEl=${!!audioEl}, pc=${!!pc}`);
+      return;
+    }
 
     const bindAndPlay = (stream, trackKind = "audio", reason = "event") => {
       if (!stream) return;
@@ -22,16 +26,39 @@ export function attachRemoteAudio(session, ui) {
       audioEl.muted = false;
       audioEl.volume = 1;
 
+      // If the same track is already playing, do not spam play()/route enforcement.
+      if (sameTrack && !audioEl.paused && audioEl.srcObject) {
+        return;
+      }
+
       // Avoid reloading the media element for the same track. Reloads during
       // re-INVITE can interrupt playback and cause one-way/no audio symptoms.
       if (!sameTrack) {
         audioEl.srcObject = stream;
       }
 
+      console.log(`[${nowISO()}] [outgoing:media] Remote ${trackKind} bound to audio element (reason=${reason})`);
+      try {
+        console.log(
+          `[${nowISO()}] [outgoing:media] audioEl state paused=${audioEl.paused} muted=${audioEl.muted} volume=${audioEl.volume} hasSrc=${!!audioEl.srcObject}`
+        );
+      } catch {}
+
       const p = audioEl.play?.();
       if (p && typeof p.catch === "function") {
         p.catch((e) => {
           console.warn("[EARLY-MEDIA] Play blocked:", e?.name, e?.message);
+          try {
+            audioEl.muted = true;
+            const p2 = audioEl.play?.();
+            if (p2 && typeof p2.finally === "function") {
+              p2.finally(() => {
+                audioEl.muted = false;
+              });
+            } else {
+              audioEl.muted = false;
+            }
+          } catch {}
         });
       }
 
@@ -58,6 +85,47 @@ export function attachRemoteAudio(session, ui) {
     const audioReceiver = pc.getReceivers?.().find((r) => r.track && r.track.kind === "audio");
     if (audioReceiver?.track) {
       bindAndPlay(new MediaStream([audioReceiver.track]), "audio", "getReceivers");
+    }
+
+    // Lightweight diagnostics (Android): confirm inbound RTP is flowing.
+    if (/Android/i.test(navigator.userAgent || "") && !pc.__outboundInboundAudioStatsBound) {
+      pc.__outboundInboundAudioStatsBound = true;
+      let ticks = 0;
+      const timer = setInterval(async () => {
+        ticks += 1;
+        try {
+          const receiver = pc.getReceivers?.().find((r) => r.track && r.track.kind === "audio") || null;
+          const track = receiver?.track || null;
+          const trackLine =
+            `[${nowISO()}] [outgoing:media] [diag] recvTrack=` +
+            `${!!track} muted=${track?.muted} enabled=${track?.enabled} readyState=${track?.readyState}`;
+          logLine(trackLine);
+          console.log(trackLine);
+
+          if (typeof pc.getStats === "function") {
+            const stats = await pc.getStats();
+            let inboundBytes = null;
+            stats.forEach((r) => {
+              if (r.type === "inbound-rtp" && r.kind === "audio") {
+                if (typeof r.bytesReceived === "number") inboundBytes = r.bytesReceived;
+              }
+            });
+            if (inboundBytes !== null) {
+              const bytesLine = `[${nowISO()}] [outgoing:media] [diag] inbound-audio bytesReceived=${inboundBytes}`;
+              logLine(bytesLine);
+              console.log(bytesLine);
+            }
+          }
+        } catch (e) {
+          const errLine = `[${nowISO()}] [outgoing:media] [diag] stats error: ${e?.message || e}`;
+          logLine(errLine);
+          console.warn(errLine);
+        }
+
+        if (ticks >= 6 || session?.state === "Terminated") {
+          clearInterval(timer);
+        }
+      }, 1000);
     }
   } catch (e) {
     console.error("[EARLY-MEDIA] Error attaching remote audio:", e);

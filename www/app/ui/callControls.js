@@ -1,6 +1,6 @@
 // Import hold feature from separate module (isolated to prevent call disruption)
 import { initializeHoldButton, isSIPHoldActive, syncHoldButtonUI } from "../features/sipHold.js?v=1773023601";
-import { initializeAudioRouteButton } from "./callControlAudioRoute.js";
+import { initializeAudioRouteButton } from "./callControlAudioRoute.js?v=1773034001";
 import { initializeAddCallButton } from "./callControlAddCall.js";
 import { dualSessionManager } from "../features/dualSessionManager.js";
 import { nowISO } from "../config.js";

@@ -48,12 +48,18 @@ export function setupCacheActions() {
         }
       }
 
+      // Give the browser a moment to detach the old SW controller before navigating.
+      await new Promise((r) => setTimeout(r, 250));
+
       console.log("[CACHE] Cache clear complete");
     } catch (err) {
       console.error("[CACHE] Error clearing cache:", err);
     } finally {
       setTimeout(() => {
-        location.reload();
+        // Force a fresh navigation (avoids reusing cached JS module graphs on Android).
+        const url = new URL(location.href);
+        url.searchParams.set("r", String(Date.now()));
+        location.replace(url.toString());
       }, 300);
       btn.innerHTML = originalIcon;
       btn.style.opacity = "1";
