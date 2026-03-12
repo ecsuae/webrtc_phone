@@ -16,6 +16,7 @@ const { dedupeMetadataStore } = require('./src/services/metadata/dedupe');
 const { createSubscriptionStore } = require('./src/services/push/subscriptionStore');
 const { createPushRoutes } = require('./src/routes/pushRoutes');
 const { createLogRoutes } = require('./src/routes/logRoutes');
+const { createConferenceRoutes } = require('./src/routes/conferenceRoutes');
 const { createSystemRoutes } = require('./src/routes/systemRoutes');
 
 const app = express();
@@ -35,7 +36,7 @@ if (isVapidConfigured()) {
   console.warn('⚠ Then update .env file with the generated keys');
 }
 
-const { requireWireGuardAccess } = createAccessControl({ wgCidrPrefix: WG_CIDR_PREFIX });
+const { getClientIp, requireWireGuardAccess } = createAccessControl({ wgCidrPrefix: WG_CIDR_PREFIX });
 const subscriptionStore = createSubscriptionStore();
 
 app.use(
@@ -50,6 +51,21 @@ app.use(
 );
 
 app.use('/api/logs', createLogRoutes({ requireWireGuardAccess }));
+
+app.use(
+  '/api/conference',
+  createConferenceRoutes({
+    getClientIp,
+    mapPath: process.env.CONFERENCE_PIN_MAP_PATH || './conferencePins.json',
+    pinPepper: process.env.CONFERENCE_PIN_PEPPER || '',
+    tokenSecret: process.env.CONFERENCE_JOIN_TOKEN_SECRET || '',
+    tokenTtlSec: Number(process.env.CONFERENCE_JOIN_TOKEN_TTL_SEC || 90),
+    guestSip: {
+      username: process.env.CONFERENCE_GUEST_SIP_USER || '',
+      password: process.env.CONFERENCE_GUEST_SIP_PASS || '',
+    },
+  })
+);
 
 app.use(
   '/',

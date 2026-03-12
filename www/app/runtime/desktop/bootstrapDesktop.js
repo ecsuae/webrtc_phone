@@ -10,7 +10,7 @@ import { setupMobileRecovery } from "../mobileRecovery.js";
 import { setupServiceWorkerWakeHandler } from "../swWakeHandler.js";
 import { createAppState } from "../../sipRegister.js";
 import { createDesktopRegistration } from "./registrationDesktop.js";
-import { setupDesktopCallFlow } from "./callFlowDesktop.js";
+import { setupDesktopCallFlow } from "./callFlowDesktop.js?v=1773032001";
 import { setupDesktopPush } from "./pushDesktop.js";
 import { setupDesktopCallControls } from "./callControlsDesktop.js";
 

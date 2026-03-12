@@ -102,13 +102,15 @@ export async function startPrimaryRegistration(SIP, st, ui) {
 
   // Save registration credentials to localStorage for auto-restore after screen lock
   try {
-    localStorage.setItem('webrtc_last_registration', JSON.stringify({
-      ext,
-      domain,
-      wss,
-      timestamp: Date.now()
-    }));
-    saveSessionPassword(pass);
+    if (!st._skipCredentialPersist) {
+      localStorage.setItem('webrtc_last_registration', JSON.stringify({
+        ext,
+        domain,
+        wss,
+        timestamp: Date.now()
+      }));
+      saveSessionPassword(pass);
+    }
   } catch (err) {
     console.error('[Registration] Failed to save credentials:', err);
   }

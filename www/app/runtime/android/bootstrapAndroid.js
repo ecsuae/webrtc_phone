@@ -10,7 +10,7 @@ import { setupMobileRecovery } from "../mobileRecovery.js";
 import { setupServiceWorkerWakeHandler } from "../swWakeHandler.js";
 import { createAppState } from "../../sipRegister.js";
 import { createAndroidRegistration } from "./registrationAndroid.js";
-import { setupAndroidCallFlow } from "./callFlowAndroid.js";
+import { setupAndroidCallFlow } from "./callFlowAndroid.js?v=1773032001";
 import { setupAndroidPush } from "./pushAndroid.js";
 import { setupAndroidCallControls } from "./callControlsAndroid.js";
 

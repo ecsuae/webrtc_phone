@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/styles/index.css?v=1773023054">
 </head>
-<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}" data-skin="modern-ops" data-max-dial-digits="${DIAL_MAX_DIGITS}">
+<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}" data-skin="modern-ops" data-max-dial-digits="${DIAL_MAX_DIGITS}" data-conference-enabled="${CONFERENCE_FEATURE_ENABLED}" data-turn-host="${TURN_HOST}" data-turn-user="${TURN_USER}" data-turn-pass="${TURN_PASS}">
   <div id="appRoot"></div>
 
   <script src="/vendor/sip.min.js?v=20260306"></script>

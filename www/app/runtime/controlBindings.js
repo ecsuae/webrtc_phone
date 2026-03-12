@@ -1,11 +1,15 @@
 import { primeIncomingRingtone } from "../incoming/alert.js";
 import { startCall, hangupCall } from "../sipCall.js";
 import { answerIncomingCallIsolated, rejectIncomingCallIsolated } from "../sipCallIncoming.js";
+import { joinConferenceFromPin } from "../conference/join.js";
 import { setupTabNavigation } from "../ui/tabNavigation.js";
 import { setupCallControls } from "../ui/callControls.js";
+import { logLine } from "../log.js";
 
 export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEnableFlow, stopAndUnregister, releaseWakeLock }) {
   const passToggleBtn = document.getElementById("btnPassToggle");
+  const joinConferenceBtn = document.getElementById("btnJoinConference");
+  const conferenceEnabled = String(document?.body?.dataset?.conferenceEnabled || "").toLowerCase() === "true";
 
   if (el.btnStart && el.btnStop) {
     el.btnStart.addEventListener("click", async () => {
@@ -30,13 +34,24 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
   }
 
   el.btnCall?.addEventListener("click", () => {
+    try {
+      logLine(`[ui] btnCall clicked (registered=${!!st.registered}, inCall=${!!st.session}, hasIncoming=${!!st.incomingInvitation})`);
+    } catch {}
+
     primeIncomingRingtone();
     if (st.incomingInvitation) {
       answerIncomingCallIsolated(SIP, st, ui);
       return;
     }
 
-    startCall(SIP, st, ui);
+    void startCall(SIP, st, ui).catch((err) => {
+      try {
+        logLine(`[ui] startCall failed: ${err?.message || err}`);
+      } catch {}
+      try {
+        ui?.setStatus?.("Call failed");
+      } catch {}
+    });
   });
 
   el.btnHangup?.addEventListener("click", () => {
@@ -73,6 +88,16 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
     passToggleBtn.setAttribute("aria-label", isHidden ? "Hide password" : "Show password");
     if (icon) icon.className = isHidden ? "fas fa-eye-slash" : "fas fa-eye";
     input.focus();
+  });
+
+  if (conferenceEnabled) joinConferenceBtn?.addEventListener("click", async () => {
+    if (!joinConferenceBtn) return;
+    joinConferenceBtn.disabled = true;
+    try {
+      await joinConferenceFromPin({ el, st, ui, SIP, runOneTapEnableFlow });
+    } finally {
+      joinConferenceBtn.disabled = false;
+    }
   });
 
   setupTabNavigation(st);

@@ -104,7 +104,7 @@ export async function requestNotificationPermission() {
     logLine("[Push] Notification permission previously denied");
     if (shouldShowSessionPrompt("push-permission-denied-guidance-shown")) {
       if (isIOS) {
-        alert("⚠️ Notification permission denied.\n\nTo enable: Go to iPhone Settings → Safari → Phone.srve.cc → Allow Notifications");
+        alert(`⚠️ Notification permission denied.\n\nTo enable: Go to iPhone Settings → Safari → ${window.location.host} → Allow Notifications`);
       } else {
         alert("⚠️ Notification permission denied.\n\nTo enable: Click the lock/info icon in the address bar → Notifications → Allow");
       }

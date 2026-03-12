@@ -6,5 +6,8 @@
 backups/
 *.tar.gz
 
+# conference PIN mapping (server-side secret)
+push-server/conferencePins.json
+
 # copies
 * copy.*

@@ -8,13 +8,13 @@ services:
       - ./certs:/certs:ro
     command: >
       -n
-      --realm=testfusn.srve.cc
-      --server-name=testfusn.srve.cc
+      --realm=${DOMAIN}
+      --server-name=${DOMAIN}
       --fingerprint
       --lt-cred-mech
-      --user=turnuser:turnpass
-      --listening-ip=38.242.157.239
-      --relay-ip=38.242.157.239
+      --user=${TURN_USER}:${TURN_PASS}
+      --listening-ip=${PUBLIC_IP}
+      --relay-ip=${TURN_RELAY_IP}
       --listening-port=3478
       --tls-listening-port=5349
       --cert=/certs/fullchain.pem
@@ -40,7 +40,7 @@ services:
       - --log-stderr
       - --log-level=7
       - --listen-ng=127.0.0.1:2223
-      - --interface=eth0!38.242.157.239
+      - --interface=eth0!${PUBLIC_IP}
       - --port-min=30000
       - --port-max=31000
 
@@ -56,6 +56,22 @@ services:
       - PBX_TRANSPORT=udp
       - KAM_PUBLIC_IP=${PUBLIC_IP}
       - KAMAILIO_IP=${PUBLIC_IP}
+      - PBX_MAP_1_DOMAIN=${PBX_MAP_1_DOMAIN}
+      - PBX_MAP_1_HOST=${PBX_MAP_1_HOST}
+      - PBX_MAP_2_DOMAIN=${PBX_MAP_2_DOMAIN}
+      - PBX_MAP_2_HOST=${PBX_MAP_2_HOST}
+      - PBX_MAP_3_DOMAIN=${PBX_MAP_3_DOMAIN}
+      - PBX_MAP_3_HOST=${PBX_MAP_3_HOST}
+      - PBX_MAP_4_DOMAIN=${PBX_MAP_4_DOMAIN}
+      - PBX_MAP_4_HOST=${PBX_MAP_4_HOST}
+      - PBX_MAP_5_DOMAIN=${PBX_MAP_5_DOMAIN}
+      - PBX_MAP_5_HOST=${PBX_MAP_5_HOST}
+      - PBX_MAP_6_DOMAIN=${PBX_MAP_6_DOMAIN}
+      - PBX_MAP_6_HOST=${PBX_MAP_6_HOST}
+      - PBX_MAP_7_DOMAIN=${PBX_MAP_7_DOMAIN}
+      - PBX_MAP_7_HOST=${PBX_MAP_7_HOST}
+      - PBX_MAP_8_DOMAIN=${PBX_MAP_8_DOMAIN}
+      - PBX_MAP_8_HOST=${PBX_MAP_8_HOST}
       - TRUSTED_SIP_IP_1=${TRUSTED_SIP_IP_1}
       - TRUSTED_SIP_IP_2=${TRUSTED_SIP_IP_2}
       - TRUSTED_SIP_IP_3=${TRUSTED_SIP_IP_3}

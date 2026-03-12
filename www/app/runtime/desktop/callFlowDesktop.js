@@ -1,4 +1,4 @@
-import { bindControlHandlers, bindIosAudioUnlock } from "../controlBindings.js";
+import { bindControlHandlers, bindIosAudioUnlock } from "../controlBindings.js?v=1773032001";
 
 export function setupDesktopCallFlow({
   el,

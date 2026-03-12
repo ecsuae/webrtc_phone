@@ -10,7 +10,7 @@ import { setupMobileRecovery } from "../mobileRecovery.js";
 import { setupServiceWorkerWakeHandler } from "../swWakeHandler.js";
 import { createAppState } from "../../sipRegister.js";
 import { createIosRegistration } from "./registrationIos.js";
-import { setupIosCallFlow } from "./callFlowIos.js";
+import { setupIosCallFlow } from "./callFlowIos.js?v=1773032001";
 import { setupIosPush } from "./pushIos.js";
 import { setupIosCallControls } from "./callControlsIos.js";
 
