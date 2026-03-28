@@ -123,8 +123,11 @@ export const dualSessionManager = {
     logLine(`[${nowISO()}] [DualSession] Conference requested`);
     
     try {
-      const primarySession = this.primary.session;
-      const secondarySession = this.secondary.session;
+      const held = this.getHeldSession();
+      const active = this.getActiveSession();
+
+      const primarySession = held?.st?.session || this.primary.session;
+      const secondarySession = active?.st?.session || this.secondary.session;
       
       // Validate sessions are in proper state
       if (!primarySession || !secondarySession) {
@@ -181,21 +184,22 @@ export const dualSessionManager = {
       
       // RFC 3891: Replaces header format with to-tag and from-tag
       const replacesValue = `${secondaryCallId};to-tag=${secondaryRemoteTag};from-tag=${secondaryLocalTag}`;
-      
-      // Build Refer-To URI with Replaces as URI parameter (RFC 3515 section 2.4.2)
-      const referToUriStr = secondaryRemoteUri.toString();
-      const referToWithReplaces = `<${referToUriStr}?Replaces=${encodeURIComponent(replacesValue)}>`;
-      
-      logLine(`[${nowISO()}] [DualSession] Conferencing: REFER with Replaces to ${referToUriStr}`);
-      console.log('[DualSession] Replaces value:', replacesValue);
-      
-      // Use primary session to REFER to secondary's remote URI with Replaces
-      // This tells the PBX to bridge both calls
+
+      // Build Refer-To URI with Replaces as SIP URI *header* (after '?')
+      // Do not inject a raw Refer-To header via extraHeaders; SIP.js will create one.
+      const referToUri = secondaryRemoteUri.clone ? secondaryRemoteUri.clone() : secondaryRemoteUri;
       try {
-        await primarySession.refer(secondaryRemoteUri, {
-          extraHeaders: [
-            `Refer-To: ${referToWithReplaces}`
-          ],
+        if (!referToUri.headers) referToUri.headers = {};
+        referToUri.headers.Replaces = [encodeURIComponent(replacesValue)];
+      } catch {}
+
+      const referToUriStr = referToUri.toString ? referToUri.toString() : String(referToUri);
+      logLine(`[${nowISO()}] [DualSession] Conferencing: REFER to ${referToUriStr}`);
+      console.log('[DualSession] Replaces value:', replacesValue);
+
+      // Use held session to REFER remote party to the active call (attended transfer/merge)
+      try {
+        await primarySession.refer(referToUri, {
           requestDelegate: {
             onAccept: (response) => {
               logLine(`[${nowISO()}] [DualSession] REFER accepted: ${response?.message?.statusCode || 'OK'}`);
