@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { LOGS_BASE_DIR, ensureMetadataDir } = require('../services/metadata/core');
 const { updateMetadata } = require('../services/metadata/metadataUpdate');
+const { ingestEvents } = require('../services/callLogStore');
 
 function createLogRoutes({ requireWireGuardAccess }) {
   const router = express.Router();
@@ -38,6 +39,25 @@ function createLogRoutes({ requireWireGuardAccess }) {
     }
     return clean;
   }
+
+  // ---------------------------------------------------------------------------
+  // Call/media diagnostic event ingest — called by browser callMediaLog.js
+  // Public endpoint: no auth required (browser clients cannot carry auth tokens).
+  // Rate-limiting is implicit via the callLogStore ring buffer cap.
+  // ---------------------------------------------------------------------------
+  router.post('/call', (req, res) => {
+    const { events } = req.body || {};
+    if (!Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: 'Missing or empty events array' });
+    }
+    // Reject oversized batches (browser sends max 5 at a time)
+    if (events.length > 20) {
+      return res.status(400).json({ error: 'Batch too large' });
+    }
+    const sourceIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+    const accepted = ingestEvents(events, sourceIp);
+    return res.json({ ok: true, accepted });
+  });
 
   router.post('/mobile/metadata', (req, res) => {
     const payload = sanitizeIdentityPayload(req.body || {});

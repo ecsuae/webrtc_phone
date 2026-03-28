@@ -44,6 +44,14 @@ export function registrationSection() {
         </button>
       </div>
 
+      <div style="margin-top: 12px; text-align: center;">
+        <button id="btnMobileCompat" type="button" class="mobile-compat-btn" title="LTE/5G Compatibility Mode">
+          <i class="fas fa-signal"></i> <span class="compat-label">LTE/5G Mode</span>
+        </button>
+      </div>
+
+      <div id="regDiagWidget" style="display:none; margin-top:10px;"></div>
+
       ${
         conferenceEnabled
           ? `

@@ -27,6 +27,8 @@ _Last updated: 2026-03-28_
 | `www/app/registration/state.js` | `createAppState()` — creates the `st` object |
 | `www/app/registration/primary.js` | Main registration logic: `startPrimaryRegistration()`, `buildUserAgent()` |
 | `www/app/registration/secondary.js` | SBC fallback (disabled) |
+| `www/app/registration/regDiag.js` | Registration diagnostics — step/error state machine, widget renderer |
+| `www/app/registration/regDiagCatalog.js` | Shared error catalog — `shortLabel` (frontend) + full technical fields |
 | `www/app/runtime/registerFlow.js` | Shared `startAndRegister()` used by all platforms |
 | `www/app/runtime/desktop/registrationDesktop.js` | Desktop registration entry |
 | `www/app/runtime/ios/registrationIos.js` | iOS registration entry |
@@ -178,6 +180,54 @@ The incoming call handler (`handleIncomingCallIsolated`) reads this timestamp an
 
 ---
 
+## Mobile Network Compatibility Mode
+
+**File:** `www/app/features/mobileNetworkMode.js`
+
+An optional user-controlled toggle for LTE/5G environments where ICE/STUN fails through carrier CGNAT.
+
+- **Toggle:** "LTE/5G Mode" button below the Register button in the registration card
+- **Storage:** `localStorage` key `webrtc_mobile_compat_mode`
+- **Effect:** When enabled, `buildUserAgent()` uses `iceTransportPolicy: "relay"` instead of `ICE_TRANSPORT_POLICY` from `config.js`
+- **Scope:** Only affects ICE policy at UA construction time. All other registration behavior is unchanged
+- **Init:** `initMobileCompatToggle()` called from `bootstrapPage.js` after layout render (all platforms)
+- **Log:** Debug panel shows `ICE policy=relay (LTE/5G compat)` when active
+
+This is a genuine relay-mode flag — not an encryption feature. Normal Wi-Fi users should leave it off.
+
+## LTE/mobile registration stability (2026-03-28)
+
+Three server-side/client-side changes that improve LTE registration reliability:
+
+1. **Nginx `proxy_buffering off` on `/ws`** — ensures Kamailio ping/pong frames are forwarded immediately without Nginx output buffering. Required for WebSocket keepalive to work reliably through carrier CGNAT.
+
+2. **SIP.js `connectionTimeout: 15s`** — increased from 8s to give LTE TLS cold-start (DNS + TCP + TLS handshake) enough headroom. Only slows failure detection on broken connections; no behavioral change on working ones.
+
+3. **Kamailio `keepalive_timeout: 20s`** — reduced from 30s to ping the WS connection more frequently, staying inside the 30–60s NAT table expiry window of most LTE carriers.
+
+## Registration diagnostics
+
+**Module:** `www/app/registration/regDiag.js`
+
+Structured step and error codes are emitted at each observable point in the registration flow and rendered as a compact widget below the LTE/5G Mode button on the login card.
+
+- Step codes REG-001–REG-010 advance as the flow progresses
+- Error codes REG-E001–REG-E009 halt the step display with a red indicator
+- A Trace ID (`T-XXXXXX`) is generated per attempt — include in support reports
+- Widget auto-hides 3s after REG-010 (success)
+
+**Frontend display rules:** The login widget shows only user-safe text — no SIP, WSS, Kamailio, PBX, or transport names. Error state shows `Registration failed` + `REG-Exxx: shortLabel`. Technical detail is in `console.debug` only (visible in browser devtools, not in the UI).
+
+**Admin page:** Full technical catalog at `http://10.252.253.15:8081/diagnostics/errors` (WireGuard-only). Shows long descriptions, likely layers, causes, recommended checks.
+
+**Shared catalog:** `regDiagCatalog.js` (ES module) and `push-server/src/diagCatalog.js` (CommonJS) mirror the same catalog. Keep in sync.
+
+**REG-008/009 not wired:** SIP.js handles the 401 Digest challenge→retry internally. These codes are reserved for future server-side Kamailio logging (KAM-004/005).
+
+Full code reference and KAM server-side recommendations: [10-registration-diagnostics-and-error-codes.md](10-registration-diagnostics-and-error-codes.md)
+
+---
+
 ## Debugging
 
 | Symptom | Check |
@@ -188,3 +238,5 @@ The incoming call handler (`handleIncomingCallIsolated`) reads this timestamp an
 | iOS phantom calls after login | `setRegistrationComplete()` called from `onRegister`, GATE 2 timing |
 | Registration drops when app backgrounds | Check 150s interval is running, Kamailio expiry alignment |
 | Push recovery fails to register | `push/recoverySession.js` credential retrieval, `startAndRegister()` in `mobileRecovery.js` |
+| Registration fails only on LTE | Check nginx `proxy_buffering off` in `/ws`, Kamailio keepalive_timeout, SIP.js connectionTimeout |
+| No audio only on LTE (registration OK) | Enable LTE/5G Compatibility Mode (forces TURN relay), check TURN credentials and coturn reachability |

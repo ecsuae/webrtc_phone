@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 COMPOSE := docker compose
 
-.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push kam-check
+.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push kam-check routing-apply
 
 help:
 	@echo "WebRTC SBC - Available Commands:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make rebuild-push   - Rebuild push-server only"
 	@echo "  make test-push      - Send test push notification"
 	@echo "  make kam-check      - Validate Kamailio config syntax"
+	@echo "  make routing-apply  - Apply routing-config.json to .env and re-render configs"
 	@echo ""
 
 setup:
@@ -139,3 +140,12 @@ kam-check:
 	@echo "Validating Kamailio config..."
 	@docker exec kamailio kamailio -c -f /etc/kamailio/kamailio.cfg >/tmp/kam-check.log 2>&1 || (cat /tmp/kam-check.log; exit 1)
 	@echo "OK: Kamailio config is valid"
+
+routing-apply:
+	@echo "Applying routing-config.json to .env..."
+	@python3 scripts/apply-routing-config.py
+	@echo "Running make render..."
+	@$(MAKE) --no-print-directory render
+	@echo ""
+	@echo "Done. Restart Kamailio to activate:"
+	@echo "  docker compose restart kamailio"

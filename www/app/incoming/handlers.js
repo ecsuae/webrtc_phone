@@ -6,6 +6,10 @@ import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
 import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js?v=1773032001";
 import { dualSessionManager } from "../features/dualSessionManager.js";
+import { guardLteRelayReadiness, checkLteRelayAvailable, MEDIA_ERRORS } from "../features/lteCallGuard.js";
+import { sendCallMediaEvent } from "../features/callMediaLog.js";
+import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
+import { ICE_SERVERS } from "../config.js";
 
 // Track page load time for ghost call prevention
 const pageLoadTimeForIncoming = Date.now();
@@ -180,6 +184,42 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
   st.incomingInvitation = null;
   ui.setStatus(`Answering ${callerDisplay}...`);
 
+  const aor = invitation.localIdentity?.uri
+    ? `${invitation.localIdentity.uri.user}@${invitation.localIdentity.uri.host}`
+    : null;
+  const callId = invitation.request?.callId || null;
+
+  // LTE pre-flight check for incoming answer — same as outbound path.
+  // Must run BEFORE accept() to prevent answering with 0.0.0.0:9 SDP.
+  if (isMobileCompatModeEnabled()) {
+    logLine(`[${nowISO()}] [incoming:answer] LTE mode: running pre-flight TURN relay check...`);
+    ui.setStatus("Checking media relay...");
+    let preCheck;
+    try {
+      preCheck = await checkLteRelayAvailable(ICE_SERVERS);
+    } catch {
+      preCheck = { relay: 0, total: 0, timedOut: true };
+    }
+    logLine(`[${nowISO()}] [incoming:answer] pre-flight result: relay=${preCheck.relay} total=${preCheck.total} timedOut=${preCheck.timedOut}`);
+    sendCallMediaEvent({
+      type: preCheck.relay > 0 ? 'preflight-ok' : 'preflight-fail',
+      code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
+      aor, callId, lteMode: true, dir: 'inbound',
+      relay: preCheck.relay, total: preCheck.total, timedOut: preCheck.timedOut,
+      msg: preCheck.relay > 0 ? 'TURN relay reachable' : (preCheck.timedOut ? 'ICE gathering timed out' : 'Zero relay candidates'),
+    });
+    if (preCheck.relay === 0) {
+      const errCode = preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001';
+      const errDef = MEDIA_ERRORS[errCode];
+      logLine(`[${nowISO()}] [incoming:answer] ${errCode} — rejecting call before accept(): ${errDef.longDescription}`);
+      ui.setStatus(errDef.userMessage);
+      try { invitation.reject({ statusCode: 488 }); } catch {}
+      cleanupIncomingState(st, ui);
+      return;
+    }
+    logLine(`[${nowISO()}] [incoming:answer] pre-flight OK — ${preCheck.relay} relay candidate(s) — proceeding`);
+  }
+
   try {
     const inviteOptions = {
       sessionDescriptionHandlerModifiers: [g711OnlyModifier],
@@ -191,6 +231,21 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
 
     await invitation.accept(inviteOptions);
     startIncomingEarlyMediaLoop(invitation, ui);
+
+    // LTE relay guard — monitors ICE gathering in relay-only mode after answer.
+    guardLteRelayReadiness(invitation, {
+      aor,
+      callId,
+      dir: 'inbound',
+      onFail: (code, userMessage) => {
+        logLine(`[${nowISO()}] [incoming:answer] ${code} — aborting call: ${userMessage}`);
+        ui.setStatus(userMessage);
+        try { invitation.bye(); } catch {}
+        cleanupIncomingState(st, ui);
+      },
+    });
+
+    sendCallMediaEvent({ type: 'call-answer', aor, callId, dir: 'inbound', lteMode: null });
   } catch (err) {
     logLine(`[${nowISO()}] [incoming:answer] ERROR accepting call: ${err?.message || err}`);
     stopLocalAudioStream();

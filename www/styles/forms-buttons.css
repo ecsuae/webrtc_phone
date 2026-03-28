@@ -156,3 +156,110 @@ button:disabled {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
   50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
 }
+
+/* LTE/5G Compatibility Mode toggle */
+.mobile-compat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.mobile-compat-btn:hover {
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+.mobile-compat-btn.mobile-compat-active {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Registration diagnostics widget */
+#regDiagWidget {
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  overflow: hidden;
+}
+
+.diag-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  background: rgba(241, 245, 249, 0.6);
+}
+
+.diag-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.diag-text {
+  flex: 1;
+  color: #334155;
+  overflow: hidden;
+}
+
+.diag-code {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diag-expand-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 11px;
+  padding: 0 2px;
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: none;
+  transform: none;
+}
+
+.diag-expand-btn:hover {
+  box-shadow: none;
+  transform: none;
+  color: #334155;
+}
+
+.diag-detail {
+  padding: 6px 10px 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  color: #475569;
+  line-height: 1.6;
+}
+
+.diag-detail.diag-hidden {
+  display: none;
+}
+
+.diag-lbl {
+  font-weight: 600;
+  color: #334155;
+  margin-right: 4px;
+}
+
+.diag-hint {
+  color: #94a3b8;
+  font-style: italic;
+}
+

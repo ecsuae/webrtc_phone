@@ -24,6 +24,7 @@ services:
       --no-multicast-peers
       --no-cli
       --log-file=stdout
+      --verbose
 
   rtpengine:
     image: davehorton/rtpengine:latest
@@ -108,8 +109,11 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
       - PORT=3001
+      - ADMIN_BIND_HOST=${ADMIN_BIND_HOST}
+      - ADMIN_BIND_PORT=${ADMIN_BIND_PORT}
     volumes:
       - ./backups/mobile-logs:/app/../backups/mobile-logs
+      - ./routing-config.json:/app/routing-config.json
 
   nginx:
     image: nginx:alpine

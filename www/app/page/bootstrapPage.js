@@ -5,6 +5,7 @@ import { initKeyboardToggle } from "./keyboardToggle.js?v=1773032001";
 import { setupCacheActions } from "./cacheActions.js";
 import { setupDebugToggleUi } from "./debugToggleUi.js";
 import { initSkinMode } from "./skinMode.js";
+import { initMobileCompatToggle } from "../features/mobileNetworkMode.js";
 
 export async function bootstrapPage() {
   console.log("[boot] index module loader running");
@@ -17,6 +18,7 @@ export async function bootstrapPage() {
   initKeyboardToggle();
   setupCacheActions();
   setupDebugToggleUi();
+  initMobileCompatToggle();
 
   await import("../main.js?v=1773032001");
 }

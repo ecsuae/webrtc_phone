@@ -163,7 +163,15 @@ if ($rd == PBX_MAP_2_DOMAIN) → route to PBX_MAP_2_HOST
 ...fallback to PBX_IP
 ```
 
-To add a new domain: add `PBX_MAP_N_DOMAIN` and `PBX_MAP_N_HOST` to `.env`, re-run `make config`, restart Kamailio.
+To add a new domain: add `PBX_MAP_N_DOMAIN` and `PBX_MAP_N_HOST` to `.env`, re-run `make render`, restart Kamailio.
+
+**Alternatively, use the admin UI** at `http://10.252.253.15:8081/admin/routing` (WireGuard-only):
+1. Edit PBX mappings and trusted IPs in the web form
+2. Click Save (writes `routing-config.json`)
+3. On the server: `make routing-apply` → reads routing-config.json, updates `.env` PBX_MAP_* and TRUSTED_SIP_* entries, runs `make render`
+4. `docker compose restart kamailio`
+
+`routing-config.json` is the authoritative source when using the admin UI. `.env` is updated from it by `make routing-apply`. Secrets (VAPID keys, TURN credentials, etc.) in `.env` are never touched by the routing apply script.
 
 ---
 
@@ -195,12 +203,18 @@ Some IP addresses and domain literals remain hardcoded in `kamailio/kamailio.cfg
 
 ---
 
+## IPv6 readiness note
+
+The server has a public IPv6 address (`2a02:c207:2265:2549::1`) but `phone.srve.cc` currently has **no AAAA DNS record** — only an A record. Nginx now listens on both `listen 443 ssl` and `listen [::]:443 ssl` so that when an AAAA record is added, IPv6 clients will connect without further changes.
+
+If you add an AAAA record to DNS, verify CoTURN also serves IPv6 clients (add `listening-ip=::` to the CoTURN template).
+
 ## Rules for future changes
 
 1. **Never add domain names, IP addresses, ports, usernames, or passwords to source files.** Always add to `.env` + render via template.
 2. **Never edit generated files.** Edit `.template` versions. The generated file will be overwritten on next `make config`.
 3. **After any `.env` change:** run `make config` then restart affected containers (`make restart` or targeted `docker-compose restart <service>`).
-4. **To add a new PBX domain:** add `PBX_MAP_N_DOMAIN` + `PBX_MAP_N_HOST` to `.env`, update `local.cfg.template` if needed, run `make config`, restart Kamailio.
+4. **To add a new PBX domain:** use the admin routing UI (`/admin/routing`) or add `PBX_MAP_N_DOMAIN` + `PBX_MAP_N_HOST` to `.env` directly; run `make render`, restart Kamailio.
 5. **VAPID key rotation:** update both keys in `.env`, run `make config`, restart push-server, re-subscribe all clients (old subscriptions will fail with 410 and be auto-removed by push-server).
 
 ---

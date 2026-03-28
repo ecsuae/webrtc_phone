@@ -16,7 +16,7 @@
 
   <script src="/vendor/sip.min.js?v=20260306"></script>
   <script type="module">
-    import { bootstrapPage } from "/app/page/bootstrapPage.js?v=1773032001";
+    import { bootstrapPage } from "/app/page/bootstrapPage.js?v=1773032002";
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => {

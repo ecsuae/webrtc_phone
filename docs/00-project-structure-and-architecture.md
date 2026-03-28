@@ -87,7 +87,7 @@ Every bootstrap creates `st` via `createAppState()` (`www/app/registration/state
 | `app/registration/` | UA creation, REGISTER flow, transport listener, state factory |
 | `app/incoming/` | Incoming INVITE gating (4 gates), answer, reject, alert |
 | `app/outgoing/` | Outgoing INVITE, hangup, add-call, ringback |
-| `app/features/` | `sipHold.js` (hold/unhold), `dualSessionManager.js` (multi-call) |
+| `app/features/` | `sipHold.js` (hold/unhold), `dualSessionManager.js` (multi-call), `lteCallGuard.js` (ICE relay guard), `callMediaLog.js` (event transport), `mobileNetworkMode.js` (LTE toggle) |
 | `app/conference/` | Conference PIN lookup, guest SIP credentials |
 | `app/push/` | SW subscription, VAPID, support detection, mobile recovery |
 | `app/runtime/desktop/` | Desktop-specific bootstrap, call flow, controls, push |
@@ -128,7 +128,11 @@ push-server/src/
   dashboard/styles.css               Dashboard CSS
 ```
 
-Push server listens on port `3131` (default). Dashboard available only via WireGuard at `http://10.252.253.15:8081/dashboard`.
+Push server starts two listeners:
+- Main API: `127.0.0.1:3001` — Nginx proxies `/api/` here; never directly reachable from internet
+- Admin: `10.252.253.15:8081` — WireGuard-only; serves `/dashboard` and `/diagnostics/errors`
+
+Both are the same Express app. Admin bind host/port configured via `.env` (`ADMIN_BIND_HOST`, `ADMIN_BIND_PORT`).
 
 ---
 
@@ -187,6 +191,8 @@ These are production-validated behaviors. Do not remove or change them without u
 | [07-phase-kamailio-rtpengine-nginx.md](07-phase-kamailio-rtpengine-nginx.md) | SIP proxy, media engine, nginx, deployment |
 | [08-phase-multi-domain-and-env.md](08-phase-multi-domain-and-env.md) | .env pipeline, multi-PBX domain, hardcoding issues |
 | [09-phase-dual-session-and-conference.md](09-phase-dual-session-and-conference.md) | Add call, swap, conference REFER+Replaces |
+| [11-admin-routing-config.md](11-admin-routing-config.md) | Admin routing config page, routing-config.json, make routing-apply |
+| [12-lte-media-diagnostics.md](12-lte-media-diagnostics.md) | LTE no-audio root cause, MEDIA error codes, relay guard, call media event log |
 
 ---
 

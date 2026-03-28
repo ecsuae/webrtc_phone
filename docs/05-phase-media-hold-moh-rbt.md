@@ -234,6 +234,36 @@ ICE_SERVERS = [
 
 `FORCE_RELAY = false` by default.
 
+### LTE/5G Compatibility Mode (relay override)
+
+**File:** `www/app/features/mobileNetworkMode.js`
+
+When the user enables "LTE/5G Mode", `buildUserAgent()` in `primary.js` passes `iceTransportPolicy: "relay"` to the PeerConnection configuration instead of the default `"all"`. This forces all WebRTC media through the TURN relay, bypassing carrier CGNAT that may block UDP STUN candidates.
+
+- Effective on the next UA construction (next login or reconnect)
+- Adds TURN relay overhead — only appropriate when ICE fails on mobile data
+- Does not change signaling, codec, or any other media behavior
+- An explicit log is written at UA build time: `ICE transport policy = relay — LTE/5G media relay mode ACTIVE`
+
+**LTE relay path — why media-address matters in RTPEngine:**
+
+When relay mode is ON, the browser only offers TURN relay candidates. RTPEngine generates ICE candidates and sends them in the SDP to the browser. For TURN relay to work, CoTURN must route from the browser's relay allocation to RTPEngine. This requires RTPEngine's ICE candidates to advertise the correct **public IP**. If RTPEngine advertises a container/private IP, CoTURN cannot route packets and audio fails on LTE even though signaling succeeds.
+
+**Fix applied:** RTPEngine is configured with `--interface=eth0!${PUBLIC_IP}` in docker-compose.yml, which already causes it to advertise the correct public IP in all ICE candidates. No `media-address` flag is needed in `60-media.cfg`.
+
+**Warning — two confirmed regression causes in `60-media.cfg`:**
+
+1. `media-address=$env(KAM_PUBLIC_IP)` in the PBX→WebRTC `else` branches causes **asymmetric audio on Wi-Fi**. RTPEngine already uses the correct public IP from `--interface=eth0!PUBLIC_IP`. Do NOT add `media-address` to these paths.
+
+2. `rtcp-mux=answer codec-mask=PCMA codec-mask=PCMU` in MEDIA_ANSWER else (outgoing call answer path) causes **asymmetric audio on Wi-Fi** (one-sided). The OFFER path sets up the session without rtcp-mux state (`ICE=remove` to PBX); adding `rtcp-mux=answer` in ANSWER creates mismatched state in RTPEngine. Confirmed broken and reverted 2026-03-29.
+
+The MEDIA_ANSWER else branch must remain exactly:
+```
+rtpengine_answer("RTP/SAVPF replace-origin replace-session-connection ICE=force DTLS=passive")
+```
+
+The `is_local_call` ext-to-ext branch (dead code — `is_local_call` is never set) retains `media-address=$env(KAM_PUBLIC_IP)` from a prior commit. This is harmless since that branch never fires.
+
 ---
 
 ## PeerConnection debugging
@@ -244,6 +274,9 @@ Bound during `Established` state in both call flows. Logs:
 - ICE connection state changes
 - ICE candidate pair selection
 - RTP stats (inbound packet counts)
+- Candidate type summary at gathering complete: `candidates: host=N srflx=N relay=N`
+- LTE relay-only confirmation: `LTE relay-only mode confirmed — all media through TURN relay`
+- ICE failure: logs candidate counts for triage (`relay=N host=N srflx=N`)
 
 Used by the post-unhold RTP recovery to snapshot packet counts.
 

@@ -10,6 +10,10 @@ import {
   stopRingbackTone,
 } from "./ringback.js";
 import { dualSessionManager } from "../features/dualSessionManager.js";
+import { guardLteRelayReadiness, checkLteRelayAvailable, MEDIA_ERRORS } from "../features/lteCallGuard.js";
+import { sendCallMediaEvent } from "../features/callMediaLog.js";
+import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
+import { ICE_SERVERS } from "../config.js";
 
 function configureRemoteAudio(ui) {
   const audioEl = ui?.remoteAudio?.();
@@ -39,7 +43,9 @@ function configureRemoteAudio(ui) {
 function onOutboundStateChange(SIP, inviter, st, ui) {
   return (s) => {
     logLine(`[${nowISO()}] [session:outbound] ${s}`);
-    bindPeerConnection(inviter, "outbound");
+    const _aor = st.account ? `${st.account.rawUsername}@${st.account.domain}` : undefined;
+    const _callId = inviter.outgoingRequestMessage?.callId || undefined;
+    bindPeerConnection(inviter, "outbound", { aor: _aor, callId: _callId });
     attachRemoteAudio(inviter, ui);
 
     if (s === SIP.SessionState.Established) {
@@ -97,6 +103,41 @@ export async function startCall(SIP, st, ui) {
   }
 
   logLine(`[${nowISO()}] [call] dialing ${target} (encoded: ${encodedTarget})`);
+
+  // LTE pre-flight check — runs BEFORE invite() so a bad INVITE is never sent.
+  // If TURN is unreachable in relay-only mode, abort here with MEDIA-E001.
+  // Wi-Fi path (isMobileCompatModeEnabled() == false) is completely unaffected.
+  if (isMobileCompatModeEnabled()) {
+    const aorForCheck = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
+    logLine(`[${nowISO()}] [call] LTE mode: running pre-flight TURN relay check...`);
+    ui.setStatus("Checking media relay...");
+    let preCheck;
+    try {
+      preCheck = await checkLteRelayAvailable(ICE_SERVERS);
+    } catch {
+      preCheck = { relay: 0, total: 0, timedOut: true };
+    }
+    logLine(`[${nowISO()}] [call] pre-flight result: relay=${preCheck.relay} total=${preCheck.total} timedOut=${preCheck.timedOut}`);
+    sendCallMediaEvent({
+      type: preCheck.relay > 0 ? 'preflight-ok' : 'preflight-fail',
+      code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
+      aor: aorForCheck, lteMode: true,
+      relay: preCheck.relay, total: preCheck.total, timedOut: preCheck.timedOut,
+      msg: preCheck.relay > 0 ? 'TURN relay reachable' : (preCheck.timedOut ? 'ICE gathering timed out' : 'Zero relay candidates — TURN unreachable'),
+    });
+    if (preCheck.relay === 0) {
+      const errCode = preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001';
+      const errDef = MEDIA_ERRORS[errCode];
+      logLine(`[${nowISO()}] [call] ${errCode} — aborting call before INVITE: ${errDef.longDescription}`);
+      ui.setStatus(errDef.userMessage);
+      stopLocalAudioStream();
+      st.session = null;
+      ui.setButtons();
+      return;
+    }
+    logLine(`[${nowISO()}] [call] pre-flight OK — ${preCheck.relay} relay candidate(s) — proceeding`);
+  }
+
   configureRemoteAudio(ui);
 
   const inviter = new SIP.Inviter(st.ua, targetUri, {
@@ -180,14 +221,40 @@ export async function startCall(SIP, st, ui) {
     },
   };
 
+  const aor = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
+
   st.session = inviter;
-  bindPeerConnection(inviter, "outbound");
+  bindPeerConnection(inviter, "outbound", { aor });
   inviter.stateChange.addListener(onOutboundStateChange(SIP, inviter, st, ui));
   ui.setButtons();
 
   try {
     await inviter.invite({ requestDelegate });
     ui.setStatus("Calling...");
+
+    // LTE relay guard — monitors ICE gathering in relay-only mode.
+    // If zero relay candidates are gathered, cancels and surfaces MEDIA-E001.
+    // Non-blocking: does not delay the invite.
+    const callId = inviter.outgoingRequestMessage?.callId || null;
+    guardLteRelayReadiness(inviter, {
+      aor,
+      callId,
+      dir: 'outbound',
+      onFail: (code, userMessage) => {
+        logLine(`[${nowISO()}] [call] ${code} — aborting call: ${userMessage}`);
+        ui.setStatus(userMessage);
+        try {
+          if (inviter.state === SIP.SessionState.Established) inviter.bye();
+          else inviter.cancel();
+        } catch {}
+        stopLocalAudioStream();
+        st.session = null;
+        ui.setButtons();
+        stopRingbackTone();
+      },
+    });
+
+    sendCallMediaEvent({ type: 'call-start', aor, callId, dir: 'outbound', lteMode: null });
   } catch (e) {
     stopRingbackTone();
     logLine(`[${nowISO()}] [error] invite failed`, e?.message || e);
