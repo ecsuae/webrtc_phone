@@ -1,0 +1,147 @@
+# AI Working Rules
+
+This file is the standing instruction set for any AI working on this WebRTC SIP softphone project.
+
+## 1. Core workflow
+- Work phase by phase and function by function.
+- Stay only within the current task scope unless explicitly told to move forward.
+- Prefer small, safe, incremental changes.
+- Verify runtime behavior when practical, not just code intent.
+- When runtime behavior and code differ, trust runtime evidence.
+
+## 2. Protection of already working code
+- Do not disturb already stable and tested features.
+- New work must not break completed working areas such as:
+  - registration
+  - outgoing calls
+  - incoming calls
+  - hold / unhold
+  - push notifications
+  - Kamailio / RTPEngine integration
+  - multi-domain support
+- If a new feature depends on an unfinished area, isolate it behind feature flags, separate modules, or separate folders where possible.
+
+## 3. Phase and feature isolation
+- Keep code clearly separated by functionality and by phase.
+- New work should be isolated in dedicated files/modules/folders where practical.
+- Do not mix unfinished experimental logic into stable production flows.
+- If a feature is incomplete, prefer making it env-controlled or disabled by default rather than half-integrated into the main UI/flow.
+
+## 4. Documentation is mandatory
+- Treat all markdown files under `docs/` as living documentation.
+- Whenever code, structure, config, flows, modules, deployment behavior, env variables, or architecture changes, update the relevant docs.
+- Do not leave documentation outdated after making code changes.
+- Preserve archive docs as historical reference, but do not use them as the main source of truth when code has moved on.
+- The active docs structure must remain easy for a new AI to read and continue from.
+
+## 5. Read-order rule for every new AI session
+Every new AI session must begin by reading, in order:
+1. `docs/ai-working-rules.md`
+2. `docs/00-project-structure-and-architecture.md`
+3. `docs/01-current-state-and-handoff.md`
+4. the phase/function document relevant to the current task
+
+If a task belongs to a specific area, read that phase/function doc before making changes.
+
+## 6. Runtime verification rule
+- Always verify important fixes against the live running behavior when practical.
+- For SIP/WebRTC issues, verify using real runtime evidence such as:
+  - browser console logs
+  - SIP traces
+  - tcpdump / sngrep
+  - Kamailio logs
+  - FreeSWITCH logs
+  - push-server logs
+  - actual media behavior
+- Do not claim a fix is complete until the runtime result matches expectations.
+
+## 7. Docker / deployment rules
+- The project must remain container-based and deployment-friendly.
+- Configuration should flow cleanly from `.env` into templates/generated files.
+- Do not hardcode new domains, IPs, usernames, passwords, ports, or environment-specific values into source code unless explicitly required.
+- Prefer template-driven or env-driven config over manual edits.
+- Do not edit generated files if the real source is a template.
+
+## 8. Code size and modularity
+- Keep files reasonably small and focused.
+- If a file becomes too large, refactor into smaller focused modules.
+- Avoid monolithic files.
+- Prefer reusable helpers, service modules, and isolated UI/control modules.
+- Keep runtime-specific logic separate where appropriate:
+  - desktop
+  - iOS
+  - Android
+  - shared runtime
+  - SIP/call logic
+  - UI logic
+  - push logic
+  - conference/experimental logic
+
+## 9. Architecture rules
+- Maintain clear separation between:
+  - frontend app
+  - registration/auth flow
+  - SIP call control
+  - media handling
+  - incoming call logic
+  - outgoing call logic
+  - hold/unhold
+  - dual-session / conference logic
+  - push-server backend
+  - Kamailio / RTPEngine / Nginx / Coturn infrastructure
+  - docs
+- Future work must attach cleanly without rewriting stable foundations.
+
+## 10. Safety for existing work
+- Do not refactor unrelated working code.
+- Do not rewrite stable sections unless required for the current task.
+- When improving an existing section, do it incrementally and safely.
+- If a change is risky, isolate it behind a feature flag, a new module, or a disabled-by-default path.
+- If an area is known fragile, document that clearly before editing it.
+
+## 11. Implementation style
+- Prefer clean, maintainable, professional code.
+- Use clear naming and consistent module boundaries.
+- Keep frontend, push-server, and infrastructure concerns clearly separated.
+- Prefer explicit flows over hidden side effects.
+- Keep logs practical and useful for runtime debugging.
+
+## 12. Feature-flag rule
+- Any incomplete or rollout-sensitive feature should be controlled by configuration when practical.
+- Prefer env-driven enable/disable behavior for unfinished or client-specific features.
+- When a feature is disabled, its UI, validation, and handlers should be fully hidden or inactive.
+
+## 13. Historical docs rule
+- Older markdown files may contain valuable history, but they are not automatically authoritative.
+- Prefer actual code and the active docs over historical notes.
+- If old docs still contain useful implementation details, merge those details into the proper active phase/function doc rather than scattering knowledge.
+
+## 14. Handoff rule for new AI sessions
+For every new task, the minimum handoff should be:
+1. current task scope
+2. current known status
+3. relevant warnings / fragile areas
+4. next expected safe change
+5. the required docs to read first
+
+A new AI should be able to continue without scanning the whole repository blindly.
+
+## 15. Do-not-break reminder
+When working on any task, explicitly protect already working behavior. In this project, common protected areas include:
+- SIP registration stability
+- incoming call handling
+- outgoing call flow
+- audio/media negotiation
+- hold/unhold recovery
+- push notification delivery
+- mobile-specific runtime behavior
+- domain/environment-based routing
+- production UI behavior already used by clients
+
+## 16. Documentation update rule after code changes
+After meaningful work, update at minimum:
+- `docs/01-current-state-and-handoff.md`
+- the relevant phase/function doc
+- `docs/00-project-structure-and-architecture.md` if architecture or file structure changed
+
+Do not finish a task with code updated but docs stale.
