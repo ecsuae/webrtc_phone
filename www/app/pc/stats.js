@@ -229,11 +229,11 @@ function emitAnomaliesFromSnapshot(snapshot, base) {
   }
 
   if (base?.icePolicy === 'relay') {
-    if ((localCandidateType && localCandidateType !== 'relay') || (remoteCandidateType && remoteCandidateType !== 'relay')) {
+    if (localCandidateType && localCandidateType !== 'relay') {
       sendCallMediaEvent({
         type: 'selected-pair-relay-mismatch',
         ...base,
-        msg: `ICE policy relay but selected pair is local=${localCandidateType || '?'} remote=${remoteCandidateType || '?'}`,
+        msg: `ICE policy relay but selected local candidate type is ${localCandidateType || '?'}`,
       });
     }
   }

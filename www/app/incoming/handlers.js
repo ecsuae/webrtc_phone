@@ -14,6 +14,24 @@ import { ICE_SERVERS } from "../config.js";
 let _stats = null;
 let _statsImport = null;
 
+function getHeaderValue(request, headerName) {
+  try {
+    const headers = request?.getHeaders?.() || request?.headers || [];
+    if (Array.isArray(headers)) {
+      const want = String(headerName || '').toLowerCase();
+      for (const h of headers) {
+        if (typeof h !== 'string') continue;
+        const idx = h.indexOf(':');
+        if (idx <= 0) continue;
+        const name = h.slice(0, idx).trim().toLowerCase();
+        if (name !== want) continue;
+        return h.slice(idx + 1).trim();
+      }
+    }
+  } catch {}
+  return undefined;
+}
+
 function getRuntimeCb() {
   try {
     const fromGlobal = (typeof window !== 'undefined' && window.__BUILD_CB) ? String(window.__BUILD_CB) : '';
@@ -63,6 +81,23 @@ function scheduleMediaStatsSnapshots(pc, label, diagCtx) {
     .catch(() => {});
 }
 
+function getInboundCorrId(invitation) {
+  try {
+    const req = invitation?.request;
+    if (req && typeof req.getHeader === 'function') {
+      const v = req.getHeader('X-WebRTC-CorrId');
+      if (v && String(v).trim()) return String(v).trim().slice(0, 128);
+    }
+  } catch {}
+  try {
+    const h = invitation?.request?.headers?.['X-WebRTC-CorrId'] || invitation?.request?.headers?.['x-webrtc-corrid'];
+    const first = Array.isArray(h) ? h[0] : h;
+    const raw = first?.raw || first?.value || first;
+    if (raw && String(raw).trim()) return String(raw).trim().slice(0, 128);
+  } catch {}
+  return undefined;
+}
+
 function getInboundDiagContext(st, invitation) {
   const username = st.account?.rawUsername || st.account?.username || invitation?.localIdentity?.uri?.user || undefined;
   const domain = st.account?.domain || invitation?.localIdentity?.uri?.host || undefined;
@@ -71,6 +106,7 @@ function getInboundDiagContext(st, invitation) {
   const peerDomain = invitation?.remoteIdentity?.uri?.host || undefined;
   const peerAor = peerUser ? (peerDomain ? `${peerUser}@${peerDomain}` : peerUser) : undefined;
   const callId = invitation?.request?.callId || undefined;
+  const corrId = getInboundCorrId(invitation);
   const sessionId = invitation?.id || invitation?._id || undefined;
   const lteMode = isMobileCompatModeEnabled();
   const mode = lteMode ? 'lte' : 'wifi';
@@ -84,6 +120,7 @@ function getInboundDiagContext(st, invitation) {
     peerDomain,
     peerAor,
     callId,
+    corrId,
     sessionId,
     lteMode,
     mode,
@@ -192,14 +229,17 @@ export function setRegistrationComplete() {
   logLine(`[${nowISO()}] [incoming] Registration completed at ${lastRegistrationCompleteTime}`);
 }
 
-export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
+export async function handleIncomingCall(SIP, st, ui, invitation) {
   const callerUser = invitation.remoteIdentity?.uri?.user || "Unknown";
   const callerDisplay = invitation.remoteIdentity?.displayName || callerUser;
   let wasAnswered = false;
 
+  const ctx = getInboundDiagContext(st, invitation);
+  invitation.__callMediaDiag = ctx;
+
   sendCallMediaEvent({
     type: 'media-offer-incoming',
-    ...getInboundDiagContext(st, invitation),
+    ...ctx,
     t_incomingReceived: new Date().toISOString(),
     msg: 'Incoming call offer (INVITE) received',
   });
@@ -359,6 +399,10 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   }
 }
 
+export async function handleIncomingCallIsolated(SIP, st, ui, invitation) {
+  return handleIncomingCall(SIP, st, ui, invitation);
+}
+
 export async function answerIncomingCallIsolated(SIP, st, ui) {
   const invitation = st.incomingInvitation;
   if (!invitation) return;
@@ -474,11 +518,28 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
       msg: 'Starting invitation.accept() for inbound answer',
     });
 
+    const remoteProfile = getHeaderValue(invitation?.request, 'X-WebRTC-Profile');
+    const forceRelayForThisCall = String(remoteProfile || '').toLowerCase() === 'lte';
+
+    try {
+      sendCallMediaEvent({
+        type: 'inbound-remote-profile',
+        ...getInboundDiagContext(st, invitation),
+        remoteProfile: remoteProfile || undefined,
+        forceRelayForThisCall,
+        msg: `Remote caller profile header: ${remoteProfile || 'none'}`,
+      });
+    } catch {}
+
     const inviteOptions = {
       sessionDescriptionHandlerModifiers: [g711OnlyModifier],
       sessionDescriptionHandlerOptions: {
         constraints: { audio: true, video: false },
         localMediaStream: getLocalStream() || undefined,
+        peerConnectionConfiguration: forceRelayForThisCall ? {
+          iceServers: ICE_SERVERS,
+          iceTransportPolicy: 'relay',
+        } : undefined,
       },
     };
 

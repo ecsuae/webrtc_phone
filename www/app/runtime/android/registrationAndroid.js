@@ -1,6 +1,39 @@
 import { startAndRegister, stopAndUnregister } from "../../sipRegister.js";
-import { createRegisterFlow } from "../registerFlow.js";
 import { createWakeLockManager } from "../wakeLockManager.js";
+
+let _registerFlow = null;
+let _registerFlowImport = null;
+
+function getRuntimeCb() {
+  try {
+    const fromGlobal = (typeof window !== 'undefined' && window.__BUILD_CB) ? String(window.__BUILD_CB) : '';
+    if (fromGlobal) return fromGlobal;
+  } catch {}
+  try {
+    const u = new URL(import.meta.url);
+    return (u.searchParams.get('cb') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function loadRegisterFlow() {
+  if (_registerFlow) return Promise.resolve(_registerFlow);
+  if (_registerFlowImport) return _registerFlowImport;
+
+  const cb = getRuntimeCb();
+  const url = cb ? `../registerFlow.js?cb=${encodeURIComponent(cb)}` : '../registerFlow.js';
+  _registerFlowImport = import(url)
+    .then((m) => {
+      _registerFlow = m;
+      return m;
+    })
+    .catch((err) => {
+      _registerFlowImport = null;
+      throw err;
+    });
+  return _registerFlowImport;
+}
 
 function isAndroidClient() {
   return /Android/i.test(navigator.userAgent || "");
@@ -116,16 +149,20 @@ export function createAndroidRegistration({ SIP, st, ui, logLine, nowISO }) {
     return result;
   }
 
-  const { runOneTapEnableFlow } = createRegisterFlow({
-    SIP,
-    st,
-    ui,
-    startAndRegister: async (SIPArg, stateArg, uiArg) => {
-      return guardedStartAndRegister(SIPArg, stateArg, uiArg, 'direct-call-1');
-    },
-    acquireWakeLock,
-    logLine,
-  });
+  async function runOneTapEnableFlow() {
+    const { createRegisterFlow } = await loadRegisterFlow();
+    const flow = createRegisterFlow({
+      SIP,
+      st,
+      ui,
+      startAndRegister: async (SIPArg, stateArg, uiArg) => {
+        return guardedStartAndRegister(SIPArg, stateArg, uiArg, 'direct-call-1');
+      },
+      acquireWakeLock,
+      logLine,
+    });
+    return flow.runOneTapEnableFlow();
+  }
 
   async function start() {
     try {

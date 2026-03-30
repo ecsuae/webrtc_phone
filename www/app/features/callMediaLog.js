@@ -27,6 +27,7 @@ let _loaded = false;
 let _lastCtx = {};
 let _lastBufferedDiagAt = 0;
 let _postAttemptSeq = 0;
+let _lastFlushOk = null;
 
 function _sourceBuildId() {
   try {
@@ -258,19 +259,8 @@ async function _flushQueue() {
     // Success: remove the batch we actually attempted (not the failureEv)
     _queue = _queue.slice(batch.length);
     try {
-      const ctx = { ..._lastCtx };
-      _queue.unshift({
+      _lastFlushOk = {
         ts: _safeNowIso() || new Date().toISOString(),
-        type: 'call-log-post-flush-ok',
-        probeBuildId: ctx.probeBuildId,
-        sourceBuildId: ctx.sourceBuildId || _sourceBuildId(),
-        username: ctx.username,
-        domain: ctx.domain,
-        aor: ctx.aor,
-        dir: ctx.dir,
-        selectedProfile: ctx.selectedProfile,
-        peer: ctx.peer,
-        callId: ctx.callId,
         postOk: true,
         postStatus: resp?.status,
         postStatusText: resp?.statusText,
@@ -278,10 +268,10 @@ async function _flushQueue() {
         postBatchSize: outgoing.length,
         postUrl,
         flushedCount: batch.length,
-        queuedCount: _queue.length,
-        msg: 'Call log POST ok',
-      });
-    } catch {}
+      };
+    } catch {
+      _lastFlushOk = null;
+    }
     _persistQueue();
   } catch {
     // Silently discard — call flow must never be affected

@@ -28,6 +28,348 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-03-30T22:30:00Z — TASK-022: Slow/stuck Android registration — keep WS alive long enough to relay PBX REGISTER replies
+- **AI**: Cascade
+- **Scope**: Kamailio WebSocket signaling stability only (no media/export/PDF work)
+- **Proven symptom**:
+  - Android sends REGISTER; Kamailio receives it over WS and forwards to PBX.
+  - PBX replies with 401 challenge.
+  - Kamailio receives 401 but does not relay it promptly to the WS client; logs show `REG-RELAY-FAILED` / `relay_reply ... relay=0`.
+  - Client UI stays on login for a long time; dialer appears minutes later.
+- **Root cause (most likely, consistent with evidence)**:
+  - WS/TCP connection is being closed/invalidated before delayed PBX REGISTER replies can be relayed back to the browser, causing challenge/OK responses to be delayed/lost.
+- **Fix**:
+  - `kamailio/kamailio.cfg`: increased `modparam("websocket", "keepalive_timeout", ...)` from `20` to `90` seconds.
+- **Files changed**:
+  - `kamailio/kamailio.cfg`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - kamailio: `docker compose restart kamailio`
+- **Verified result**:
+  - Not yet runtime-verified after restart.
+- **Next safe step**:
+  - Restart kamailio, run one fresh Android registration attempt, then confirm in logs:
+    - 401 is relayed promptly
+    - no `REG-RELAY-FAILED` for the new REGISTER Call-ID
+
+### 2026-03-30T22:20:00Z — TASK-022: Android Enable Calls regression — prevent stale registerFlow module so explicit enable flag is applied
+- **AI**: Cascade
+- **Scope**: Android registration boot path only (no media/export/PDF changes; preserve stale-module-chain protections; no pinned `?v=` imports)
+- **Proven symptom**:
+  - Android click triggers `runOneTapEnableFlow`.
+  - Android wrapper logs show: `enabled_session=false enabled_prev=false hasUA=false`.
+  - Then wrapper blocks: “no UA, not explicitly enabled”.
+- **Root cause (most likely, consistent with evidence)**:
+  - Android wrapper was loading a stale/cached `registerFlow.js` module graph where `runOneTapEnableFlow()` did not set `st._callsEnabled` before invoking `startAndRegister`, so the Android guard rejected first registration.
+- **Fix**:
+  - `www/app/runtime/android/registrationAndroid.js`:
+    - removed static import of `../registerFlow.js`
+    - load `registerFlow.js` via dynamic import using the current runtime `cb` token (from `window.__BUILD_CB` or `import.meta.url`) to ensure Android runs the same build graph
+    - `runOneTapEnableFlow()` now constructs the flow from the loaded module and executes it
+- **Files changed**:
+  - `www/app/runtime/android/registrationAndroid.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No container restart required if `www/` is bind-mounted into nginx.
+  - Clients must hard refresh; Android/PWA may require clear site data to drop cached module graphs.
+- **Verified result**:
+  - Not yet verified in Android runtime logs in this session.
+- **Next safe step**:
+  - On Android, hard refresh/clear site data, click **Enable Calls**, then confirm wrapper log shows `enabled_session=true` and registration proceeds.
+
+### 2026-03-30T07:15:00Z — TASK-021: One-way audio LTE↔Wi-Fi — tighten ext-to-ext (WebRTC↔WebRTC) RTPEngine bridge negotiation
+- **AI**: Cascade
+- **Scope**: Kamailio RTPEngine flags for ext-to-ext WebRTC bridging only (no Android/runtime changes; no PBX conversion changes)
+- **Proven symptom**:
+  - LTE outbound leg shows ICE connected while DTLS remains `connecting`, and inbound RTP stays 0 (recv=0).
+  - Wi‑Fi inbound leg shows outbound RTP sent > 0 while inbound RTP stays 0.
+  - Both legs establish the call successfully.
+- **Root cause (most likely, constrained to evidence)**:
+  - ext-to-ext bridge path did not explicitly specify `RTP/SAVPF`/`rtcp-mux`/codec constraints, risking unstable DTLS/SRTP negotiation and payload-type mismatches through the anchored bridge.
+- **Fix**:
+  - `kamailio/routes/60-media.cfg`:
+    - ext-to-ext `rtpengine_offer(...)` and `rtpengine_answer(...)` now explicitly use:
+      - `RTP/SAVPF`
+      - `rtcp-mux=offer`
+      - `codec-mask=PCMA codec-mask=PCMU`
+      - existing `ICE=force DTLS=passive asymmetric media-address=$env(KAM_PUBLIC_IP)` preserved
+- **Files changed**:
+  - `kamailio/routes/60-media.cfg`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - kamailio: `docker compose restart kamailio`
+- **Verified result**:
+  - Not yet runtime-verified post-restart (must place a fresh LTE→Wi‑Fi call and confirm DTLS + inbound RTP).
+- **Next safe step**:
+  - Restart kamailio, place fresh `900900` (LTE) → `600600` (Wi‑Fi) call, then confirm:
+    - LTE `outbound-dtls-state` reaches `connected`
+    - LTE inbound RTP becomes non-zero
+    - Wi‑Fi inbound RTP becomes non-zero
+
+### 2026-03-30T06:55:00Z — TASK-020: Fix frontend bootstrap import/export mismatch (handleIncomingCallIsolated)
+- **AI**: Cascade
+- **Scope**: Frontend incoming-call compatibility export only (restore boot/login; no Android runtime import-chain changes)
+- **Root cause / limitation**:
+  - `www/app/sipCallIncoming.js` re-exported a named export `handleIncomingCallIsolated` from `./incoming/handlers.js`.
+  - `www/app/incoming/handlers.js` did not export `handleIncomingCallIsolated` (it exported `handleIncomingCall`), causing a hard ESM load failure:
+    - `SyntaxError: ... does not provide an export named 'handleIncomingCallIsolated'`
+  - This breaks the module graph, so desktop + Android cannot load bootstrap and cannot log in.
+- **Fix**:
+  - Added `export async function handleIncomingCallIsolated(...) { return handleIncomingCall(...); }` as a compatibility alias.
+- **Files changed**:
+  - `www/app/incoming/handlers.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No container restart required if `www/` is volume-mounted into `phone-nginx` (as in `docker-compose.yml`).
+  - Clients must hard refresh (Android may require site data clear) to drop cached module graphs.
+- **Verified result**:
+  - In-container check: nginx-served `/app/incoming/handlers.js` now includes `export async function handleIncomingCallIsolated`.
+- **Next safe step**:
+  - Hard refresh desktop + Android and confirm login works and no bootstrap `SyntaxError` is present.
+
+### 2026-03-30T07:05:00Z — TASK-019: Reduce false LTE relay mismatch diagnostics (selected pair + profile policy source)
+- **AI**: Cascade
+- **Scope**: Observability/diagnostics only (no SIP/Kamailio/RTPEngine/TURN behavior changes)
+- **Root cause / limitation**:
+  - `selected-pair-relay-mismatch` was too strict by treating the **remote** candidate type as needing to be `relay` under `icePolicy=relay`. In practice, relay-only policy constrains the **local** candidate; the remote candidate can legitimately be `host`/`srflx`.
+  - Outbound diagnostic context (`icePolicy`, `selectedProfile`) was derived from the current LTE toggle (`localStorage`) instead of the active UA profile (`st.selectedProfile`), so toggling after login could mislabel active calls and produce misleading "relay mismatch" rows.
+- **Fix**:
+  - `www/app/pc/stats.js`: only emit `selected-pair-relay-mismatch` when `icePolicy=relay` AND `localCandidateType !== relay`.
+  - `www/app/outgoing/call.js`: base outbound diag context on `st.selectedProfile` (UA build-time profile) with a safe fallback; derive `lteMode`/`icePolicy` from that.
+- **Files changed**:
+  - `www/app/pc/stats.js`
+  - `www/app/outgoing/call.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - Static asset redeploy required (frontend `www/` must be re-served). If served via container, reload/recreate the web server (e.g. `phone-nginx`).
+  - No push-server restart required for the diagnostic logic change itself.
+- **Verified result**:
+  - Code inspection only (no fresh LTE call verification in this session).
+- **Next safe step**:
+  - Redeploy frontend assets, then place one LTE outbound call and confirm `outbound-selected-pair-details.localCandidateType=relay` and that `selected-pair-relay-mismatch` only appears when local candidate is not relay.
+
+### 2026-03-30T10:45:00Z — TASK-018: Fix latest exports identity matching + include both legs under corrId + repair PDF table layout
+- **AI**: Cascade
+- **Scope**: latest export selection + PDF layout only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - Latest-caller/latest-receiver/latest-pair selection matched identities using only a simplistic local-part extraction and substring compare; in real events identities often appear as `sip:900900@...`, `tel:900900`, or wrapped in `<...>` and may appear on the opposite side as `peer`/`peerAor`.
+  - Pair export selected a single `corrKey` (= `corrId || callId`) then filtered `callEvents` by that exact key. When a call has a shared `corrId` but two SIP `callId` legs, filtering by a single `callId` key can collapse the dataset to one leg.
+  - PDF “table” rendering used one long monospaced padded line; when wrapping occurs, it wraps mid-row and destroys column alignment (mangled layout/cut text).
+- **Fix**:
+  - `adminCallLogExportRoutes.js`:
+    - normalize identity tokens (strip `sip:`/`sips:`/`tel:`, `<...>`, `;` params)
+    - match identities across local+peer fields
+    - after selecting the latest key, expand the exported dataset by `corrId` when present so both SIP Call-ID legs are included (corrId-first; callId-only fallback).
+  - `callLogPdf.js`:
+    - replaced monospaced padded-line output with a fixed-width wrapped table (per-cell wrapping + row-height pagination + header repeat).
+- **Files changed**:
+  - `push-server/src/routes/adminCallLogExportRoutes.js`
+  - `push-server/src/services/callLogPdf.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Container rebuild/restart succeeded.
+  - Not yet verified against a fresh `900900`↔`600600` call export (store was empty at check time).
+- **Next safe step**:
+  - Place a fresh `900900`↔`600600` call after restart, then verify caller-only, receiver-only, and pair exports in JSON/CSV/PDF all return a correlated bundle containing both legs.
+
+### 2026-03-30T08:35:00Z — TASK-018: Make PDF export match on-screen summary view (human-useful rows/fields) and reduce lost-leg risk
+- **AI**: Cascade
+- **Scope**: PDF export content + call log store capacity (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - PDF export previously rendered the raw event stream, so it could be dominated by noisy rows like `call-log-post-flush-ok` and omit the on-screen “summary” semantics (stage labels, derived PROBLEM rows, milestone dedupe).
+  - Exports scan only a slice of the in-memory buffer; with a small buffer and/or heavy flush-ok noise, one call leg’s events could be pushed out, causing PDF to show mostly one side.
+- **Fix**:
+  - Updated `callLogPdf.js` to generate a human-readable, summary-style dataset:
+    - suppress `call-log-post-flush-ok`
+    - include milestone filtering similar to `/admin/calllogs` summary view
+    - include derived PROBLEM rows (one-way audio, missing leg, LTE no receive)
+    - include columns: timestamp, stage, username, AOR, direction, peer, event, profile, call-id, candidate summary, message
+    - keep wrapping-aware pagination + header repeat
+  - Increased call log ring buffer capacity to reduce losing one leg in exports under noisy conditions.
+- **Files changed**:
+  - `push-server/src/services/callLogPdf.js`
+  - `push-server/src/services/callLogStore.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - In-container module load check: `callLogPdf` loads without runtime errors.
+  - Full PDF correctness (both legs + expected rows) still pending until verified against a fresh `900900`↔`600600` call export.
+- **Next safe step**:
+  - Place a fresh `900900`↔`600600` call, open `/admin/calllogs` (summary view), then export latest-pair PDF and confirm it contains both legs and the key rows (ICE/DTLS/media-stats/problem rows) in a human-useful order.
+
+### 2026-03-30T08:05:00Z — TASK-018: Fix PDF export truncation (pagination/wrapping) so full call timeline renders
+- **AI**: Cascade
+- **Scope**: PDF export rendering only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - PDF generation wrote each event row using `pdfkit` `doc.text(...)` without checking how much vertical space the **wrapped** row would consume.
+  - Long `msg` fields wrapped to multiple lines, overflowed the page, and subsequent rows were effectively cut off, making the PDF appear to contain only a few lines.
+- **Fix**:
+  - Implemented page-break logic using `doc.heightOfString(...)` to measure each rendered row height before writing it.
+  - Re-prints the table header after each `addPage()`.
+  - Sorts events chronologically (ts/_serverTs ascending) so PDF timeline matches JSON export order.
+  - Adds `eventCount:` to the PDF header to make it easy to compare against JSON `calls[0].events.length`.
+- **Files changed**:
+  - `push-server/src/services/callLogPdf.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Code inspection confirms wrapping-aware pagination is now in place.
+  - Container check shows the in-memory call log store currently has `0` events, so PDF content correctness could not yet be verified against a real call timeline.
+- **Next safe step**:
+  - Place a fresh `900900`↔`600600` call, then export latest-pair as JSON and PDF and confirm:
+    - PDF header `eventCount` matches JSON `calls[0].events.length`
+    - PDF includes both legs and all expected rows (problems/ICE/DTLS/media-stats) across multiple pages if needed.
+
+### 2026-03-30T07:35:00Z — TASK-018: Add visible caller/receiver filtering + simplify latest export UI + add PDF exports
+- **AI**: Cascade
+- **Scope**: Admin call log filtering + export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - Caller/receiver visible filtering was either missing from the UI or implemented in a way that could yield empty lists due to not matching peer identity; users could confuse export-only fields with list filtering.
+  - Latest export UI was cluttered with separate JSON/CSV buttons.
+  - No human-friendly PDF export existed.
+- **Fix**:
+  - Added visible-list `caller` / `receiver` filtering that matches on corrId-first correlation groups and considers both local and peer identity fields.
+  - Simplified latest exports UI to one Export action per scope (caller / receiver / caller+receiver) with a format selector (JSON/CSV/PDF).
+  - Added PDF export endpoints for latest-caller/latest-receiver/latest-pair using `pdfkit`.
+- **Files changed**:
+  - `push-server/src/services/callLogStore.js`
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/services/callLogPdf.js` (new)
+  - `push-server/src/routes/adminCallLogExportRoutes.js`
+  - `push-server/package.json`
+  - `push-server/package-lock.json`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - `/admin/calllogs` loads with new caller/receiver list filter inputs.
+  - PDF endpoints are registered and respond (404 when no matching correlated call exists in the in-memory buffer).
+  - Full export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer.
+- **Next safe step**:
+  - Place a fresh `900900`↔`600600` call after restart, then:
+    - verify visible list filters `caller`, `receiver`, and `caller+receiver`
+    - export latest caller/receiver/pair in JSON/CSV/PDF
+    - compare exported JSON/CSV/PDF against the visible trace to confirm both legs are included in the single correlated bundle.
+
+### 2026-03-30T05:05:00Z — TASK-018: Fix Export panel so Update export fields does not hide logs
+- **AI**: Cascade
+- **Scope**: Admin call log UI only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - The Export panel used a GET submit to `/admin/calllogs` to “update” export fields; this navigated/reloaded the page and could drop the user’s current visible list state, making it look like logs vanished.
+- **Fix**:
+  - Converted Export panel “Update export fields” into a JS-only action that updates export button URLs in-place and syncs hidden `exportCaller`/`exportReceiver` fields without navigation.
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - HTML now renders `Update export fields` as a `type=button` and export links are updated by client-side JS (no navigation).
+  - End-to-end export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer.
+- **Next safe step**:
+  - With logs visible on `/admin/calllogs`, click `Update export fields` and confirm the table does not change; then place a fresh 900900↔600600 call and verify latest exports.
+
+### 2026-03-30T04:45:00Z — TASK-018: Fix export-only caller/receiver controls + add latest-caller/latest-receiver exports
+- **AI**: Cascade
+- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - The caller/receiver fields were previously implemented as part of the normal Call Logs filter form (`caller`/`receiver`), which made the export workflow depend on the Filter submission and could make the UI confusing/unusable.
+  - Pair export matching was too strict/incorrect because it only considered local identity fields (`username`/`aor`) and not peer identity (`peer`/`peerAor`), so a 900900↔600600 call could fail to match even when present.
+- **Fix**:
+  - Separated export-only controls from list filters using `exportCaller` / `exportReceiver` and added a dedicated Export section with three export actions:
+    - latest for caller only
+    - latest for receiver only
+    - latest for caller+receiver together
+  - Added dedicated routes:
+    - `/admin/calllogs/latest-caller/export.(json|csv)?caller=...`
+    - `/admin/calllogs/latest-receiver/export.(json|csv)?receiver=...`
+  - Improved identity matching for latest exports to include both local and peer identity fields (`username`/`aor` + `peer`/`peerAor`).
+- **Files changed**:
+  - `push-server/src/routes/adminCallLogExportRoutes.js`
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - UI renders the new Export section and links point to the new routes.
+  - End-to-end export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer (exports return 404 when no matching correlated call exists).
+- **Next safe step**:
+  - Place a fresh call between `900900` and `600600`, then verify the three latest exports return a single correlated bundle with both legs.
+
+**Correction note (2026-03-30T04:45:00Z):** Previous entry at 2026-03-30T04:30:00Z states the export-only inputs were `caller`/`receiver` in the filter form; they were replaced with `exportCaller`/`exportReceiver` in a separate Export section to avoid coupling to list filtering.
+
+### 2026-03-30T04:30:00Z — TASK-018: Export latest correlated call for caller+receiver pair
+- **AI**: Cascade
+- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - Call Logs UI still surfaces per-leg rows/trace links; there was no single action to export the **most recent correlated call** that includes **both** a chosen caller and receiver together.
+- **Fix**:
+  - Added dedicated latest-pair export routes that locate the newest correlation group containing both caller and receiver usernames (corrId-first, callId fallback) and export the full correlated bundle.
+  - Added two filter inputs on `/admin/calllogs` for export-only use: `caller` and `receiver`, plus two export buttons when both are set.
+- **Files changed**:
+  - `push-server/src/routes/adminCallLogExportRoutes.js`
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/session-log.md`
+  - `docs/now.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Route responds with expected status codes:
+    - missing params => `400`
+    - no matching correlated call => `404`
+  - Full end-to-end export with a real 900900↔600600 call not yet verified in this session (in-memory buffer must contain that call)
+- **Next safe step**:
+  - Place one real call between `900900` and `600600`, then verify:
+    - UI: `/admin/calllogs?caller=900900&receiver=600600` → click export buttons
+    - Direct: `/admin/calllogs/latest-pair/export.json?caller=900900&receiver=600600`
+
+### 2026-03-30T04:10:00Z — TASK-018: Export latest correlated call for caller (username/ext)
+- **AI**: Cascade
+- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
+- **Root cause / limitation**:
+  - Existing export flow required manually finding a row/trace or exporting the current filtered list; it did not provide a single-click "latest correlated call for caller" export.
+  - Additionally, `username` filtering could return zero events when clients only provided `aor` (UI could still display a username derived from `aor`, but backend filter only matched `ev.username`).
+- **Fix**:
+  - Added dedicated export routes to export the most recent correlated call for a given caller (corrId-first, fallback to SIP Call-ID).
+  - Fixed `queryEvents()` username/domain filtering to match either explicit fields or values derived from `aor`.
+- **Files changed**:
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/routes/adminCallLogExportRoutes.js` (new)
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/services/callLogStore.js`
+  - `docs/session-log.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Code + container rebuild completed; routes are registered under `/admin/calllogs/latest/export.json` and `/admin/calllogs/latest/export.csv`.
+  - Runtime export for a real caller trace not yet verified in this session (buffer currently contained only `call-log-post-flush-ok` events with no identity/corrId).
+- **Next safe step**:
+  - Place one real call from caller `900900`, then verify:
+    - `/admin/calllogs?username=900900`
+    - click "Export latest for caller (JSON/CSV)" and confirm the export includes both legs in one correlated bundle.
+
 ### 2026-03-30T02:30:00Z — Android auto-login after hard refresh: remove pinned `?v=` module chain, enforce runtime `cb` graph
 - **AI**: Cascade (Windsurf)
 - **Scope**: Frontend module graph/versioning only (Android boot path); no SIP/media behavior changes

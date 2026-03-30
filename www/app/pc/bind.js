@@ -128,6 +128,7 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
       username: typeof d.username === 'string' ? d.username : undefined,
       domain: typeof d.domain === 'string' ? d.domain : undefined,
       aor: typeof d.aor === 'string' ? d.aor : aor,
+      corrId: typeof d.corrId === 'string' ? d.corrId : undefined,
       peer: typeof d.peer === 'string' ? d.peer : undefined,
       peerDomain: typeof d.peerDomain === 'string' ? d.peerDomain : undefined,
       peerAor: typeof d.peerAor === 'string' ? d.peerAor : undefined,
@@ -136,6 +137,9 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
       icePolicy: typeof d.icePolicy === 'string' ? d.icePolicy : _icePolicy,
     };
   })();
+
+  const _corrId = _diag.corrId;
+  const _callId = callId;
 
   // If ICE gathering was already complete when we bound (SIP.js gathers before sending
   // INVITE, so gathering is done by the time state-change fires), read the candidate
@@ -151,7 +155,8 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
       type: 'ice-complete',
       dir,
       aor: _diag.aor || aor,
-      callId,
+      callId: _callId,
+      corrId: _corrId,
       username: _diag.username,
       domain: _diag.domain,
       peer: _diag.peer,
@@ -182,7 +187,8 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
           type: 'remote-audio-track-added',
           dir,
           aor: _diag.aor || aor,
-          callId,
+          callId: _callId,
+          corrId: _corrId,
           username: _diag.username,
           domain: _diag.domain,
           peer: _diag.peer,
@@ -205,7 +211,8 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
                 type: 'receiver-track-muted',
                 dir,
                 aor: _diag.aor || aor,
-                callId,
+                callId: _callId,
+                corrId: _corrId,
                 username: _diag.username,
                 domain: _diag.domain,
                 peer: _diag.peer,

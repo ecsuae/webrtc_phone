@@ -249,7 +249,9 @@ function getOutboundDiagContext(st, target, inviter) {
   const aor = (username && domain) ? `${username}@${domain}` : undefined;
   const callId = inviter?.outgoingRequestMessage?.callId || undefined;
   const sessionId = inviter?.id || inviter?._id || undefined;
-  const lteMode = isMobileCompatModeEnabled();
+  const corrId = inviter?.__webrtcCorrId || inviter?.__callMediaDiag?.corrId || st?.__webrtcCorrId || undefined;
+  const selectedProfile = st.selectedProfile || (isMobileCompatModeEnabled() ? 'lte' : 'wifi');
+  const lteMode = selectedProfile === 'lte';
   const mode = lteMode ? 'lte' : 'wifi';
   const icePolicy = lteMode ? 'relay' : 'all';
   return {
@@ -259,10 +261,11 @@ function getOutboundDiagContext(st, target, inviter) {
     dir: 'outbound',
     peer: target || undefined,
     callId,
+    corrId,
     sessionId,
     lteMode,
     mode,
-    selectedProfile: st.selectedProfile || mode,
+    selectedProfile,
     icePolicy,
     probeBuildId: (() => { try { return window?.OUTBOUND_CALLER_PROBE_BUILD_ID || localStorage.getItem('OUTBOUND_CALLER_PROBE_BUILD_ID') || undefined; } catch { return undefined; } })(),
   };
@@ -453,6 +456,16 @@ export async function startCall(SIP, st, ui) {
   if (st.session) return ui.setStatus("Call already active");
 
   const t_callStart = new Date().toISOString();
+  const corrId = (() => {
+    try {
+      return `c-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+    } catch {
+      return `c-${Date.now()}`;
+    }
+  })();
+  try {
+    st.__webrtcCorrId = corrId;
+  } catch {}
 
   // Prime audio output while still in direct user gesture path.
   primeOutboundRingbackContext();
@@ -479,7 +492,7 @@ export async function startCall(SIP, st, ui) {
   // Guaranteed chain: must exist for every outbound call attempt.
   sendCallMediaEvent({
     type: 'outbound-call-start',
-    ...getOutboundDiagContext(st, target, null),
+    ...getOutboundDiagContext(st, target, { __webrtcCorrId: corrId }),
     t_callStart,
     msg: 'Outbound call start (guaranteed chain)',
   });
@@ -500,27 +513,11 @@ export async function startCall(SIP, st, ui) {
 
   sendCallMediaEvent({
     type: 'outbound-invite-start',
-    ...getOutboundDiagContext(st, target, null),
+    ...getOutboundDiagContext(st, target, { __webrtcCorrId: corrId }),
     t_callStart,
     msg: 'Outbound call start (before INVITE)',
   });
 
-  sendCallMediaEvent({
-    type: 'call-start',
-    username: st.account?.rawUsername || st.account?.username || undefined,
-    domain: st.account?.domain || undefined,
-    aor: st.account ? `${st.account.rawUsername}@${st.account.domain}` : undefined,
-    dir: 'outbound',
-    peer: target,
-    mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
-    icePolicy: isMobileCompatModeEnabled() ? 'relay' : 'all',
-    t_callStart,
-    msg: 'Outbound call initiated',
-  });
-
-  // LTE pre-flight check — runs BEFORE invite() so a bad INVITE is never sent.
-  // If TURN is unreachable in relay-only mode, abort here with MEDIA-E001.
-  // Wi-Fi path (isMobileCompatModeEnabled() == false) is completely unaffected.
   if (isMobileCompatModeEnabled()) {
     const aorForCheck = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
     logLine(`[${nowISO()}] [call] LTE mode: running pre-flight TURN relay check...`);
@@ -531,6 +528,7 @@ export async function startCall(SIP, st, ui) {
       username: st.account?.rawUsername || st.account?.username || undefined,
       domain: st.account?.domain || undefined,
       aor: aorForCheck || undefined,
+      corrId,
       dir: 'outbound',
       peer: target,
       lteMode: true,
@@ -549,6 +547,7 @@ export async function startCall(SIP, st, ui) {
         domain: st.account?.domain || undefined,
         aor: aorForCheck,
         callId: undefined,
+        corrId,
         dir: 'outbound',
         peer: target,
         lteMode: true,
@@ -565,6 +564,7 @@ export async function startCall(SIP, st, ui) {
       username: st.account?.rawUsername || st.account?.username || undefined,
       domain: st.account?.domain || undefined,
       aor: aorForCheck || undefined,
+      corrId,
       dir: 'outbound',
       peer: target,
       lteMode: true,
@@ -584,6 +584,7 @@ export async function startCall(SIP, st, ui) {
       username: st.account?.rawUsername || st.account?.username || undefined,
       domain: st.account?.domain || undefined,
       aor: aorForCheck || undefined,
+      corrId,
       dir: 'outbound',
       peer: target,
       lteMode: true,
@@ -601,11 +602,15 @@ export async function startCall(SIP, st, ui) {
       code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
       username: st.account?.rawUsername || st.account?.username || undefined,
       domain: st.account?.domain || undefined,
-      aor: aorForCheck, lteMode: true,
+      aor: aorForCheck,
+      corrId,
+      lteMode: true,
       mode: 'lte',
       dir: 'outbound',
       peer: target,
-      relay: preCheck.relay, total: preCheck.total, timedOut: preCheck.timedOut,
+      relay: preCheck.relay,
+      total: preCheck.total,
+      timedOut: preCheck.timedOut,
       msg: preCheck.relay > 0 ? 'TURN relay reachable' : (preCheck.timedOut ? 'ICE gathering timed out' : 'Zero relay candidates — TURN unreachable'),
     });
     if (preCheck.relay === 0) {
@@ -623,16 +628,22 @@ export async function startCall(SIP, st, ui) {
 
   configureRemoteAudio(ui);
 
+  const selectedProfile = st.selectedProfile || (isMobileCompatModeEnabled() ? 'lte' : 'wifi');
+
   const inviter = new SIP.Inviter(st.ua, targetUri, {
     earlyMedia: true,
     // Do not force 100rel with Require; this PBX rejects it with 420 Bad Extension.
-    extraHeaders: ["P-Early-Media: supported"],
+    extraHeaders: ["P-Early-Media: supported", `X-WebRTC-CorrId: ${corrId}`, `X-WebRTC-Profile: ${selectedProfile}`],
     sessionDescriptionHandlerModifiers: [g711OnlyModifier],
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false },
       localMediaStream: getLocalStream() || undefined,
     },
   });
+
+  try {
+    inviter.__webrtcCorrId = corrId;
+  } catch {}
 
   try {
     inviter.__callMediaDiag = getOutboundDiagContext(st, target, inviter);

@@ -18,7 +18,7 @@
  * - Store survives container restarts only if the process is long-running
  */
 
-const MAX_EVENTS = 500;
+const MAX_EVENTS = 5000;
 
 // Ring buffer: array of event objects, newest appended.
 // Trimmed to MAX_EVENTS when pushing.
@@ -101,6 +101,7 @@ function ingestEvents(rawEvents, sourceIp) {
       domain: typeof ev.domain === 'string' ? ev.domain.slice(0, 128) : undefined,
       aor: typeof ev.aor === 'string' ? ev.aor.slice(0, 128) : undefined,
       callId: typeof ev.callId === 'string' ? ev.callId.slice(0, 128) : undefined,
+      corrId: typeof ev.corrId === 'string' ? ev.corrId.slice(0, 128) : undefined,
       sessionId: typeof ev.sessionId === 'string' ? ev.sessionId.slice(0, 128) : undefined,
       dir: typeof ev.dir === 'string' ? ev.dir.slice(0, 16) : undefined,
       lteMode: typeof ev.lteMode === 'boolean' ? ev.lteMode : undefined,
@@ -247,17 +248,87 @@ function queryEvents(filter = {}) {
   const aorLower = filter.aor ? String(filter.aor).toLowerCase() : null;
   const usernameLower = filter.username ? String(filter.username).toLowerCase() : null;
   const domainLower = filter.domain ? String(filter.domain).toLowerCase() : null;
+  const callerLower = filter.caller ? String(filter.caller).toLowerCase() : null;
+  const receiverLower = filter.receiver ? String(filter.receiver).toLowerCase() : null;
   const callIdLower = filter.callId ? String(filter.callId).toLowerCase() : null;
+  const corrIdLower = filter.corrId ? String(filter.corrId).toLowerCase() : null;
   const typeLower = filter.type ? String(filter.type).toLowerCase() : null;
   const dirLower = filter.dir ? String(filter.dir).toLowerCase() : null;
   const modeLower = filter.mode ? String(filter.mode).toLowerCase() : null;
   const profileLower = filter.profile ? String(filter.profile).toLowerCase() : null;
 
+  const corrKey = (ev) => (ev && (ev.corrId || ev.callId)) || '';
+  const normUserKey = (s) => {
+    const v = String(s || '').trim().toLowerCase();
+    return v;
+  };
+  const localUserKeyFromEvent = (ev) => {
+    const u = normUserKey(ev && ev.username);
+    if (u) return u;
+    const aor = normUserKey(ev && ev.aor);
+    if (!aor) return '';
+    return String(aor).split('@')[0] || '';
+  };
+  const peerUserKeyFromEvent = (ev) => {
+    const p = normUserKey(ev && ev.peer);
+    if (p) return String(p).split('@')[0] || '';
+    const pa = normUserKey(ev && ev.peerAor);
+    if (!pa) return '';
+    return String(pa).split('@')[0] || '';
+  };
+  const identityKeysFromEvent = (ev) => {
+    const out = [];
+    const a = localUserKeyFromEvent(ev);
+    const b = peerUserKeyFromEvent(ev);
+    if (a) out.push(a);
+    if (b) out.push(b);
+    return out;
+  };
+
+  const allowedCorrKeys = (() => {
+    if (!callerLower && !receiverLower) return null;
+    const byKey = new Map();
+    for (const ev of _events) {
+      const k = corrKey(ev);
+      if (!k) continue;
+      let g = byKey.get(k);
+      if (!g) {
+        g = new Set();
+        byKey.set(k, g);
+      }
+      for (const u of identityKeysFromEvent(ev)) {
+        const ul = normUserKey(u);
+        if (ul) g.add(ul);
+      }
+    }
+
+    const allowed = new Set();
+    for (const [k, users] of byKey.entries()) {
+      const hasCaller = callerLower ? Array.from(users).some((u) => u.includes(callerLower)) : true;
+      const hasReceiver = receiverLower ? Array.from(users).some((u) => u.includes(receiverLower)) : true;
+      if (hasCaller && hasReceiver) allowed.add(k);
+    }
+    return allowed;
+  })();
+
   const matches = _events.filter((ev) => {
+    if (allowedCorrKeys) {
+      const k = corrKey(ev);
+      if (!k || !allowedCorrKeys.has(k)) return false;
+    }
     if (aorLower && !(ev.aor || '').toLowerCase().includes(aorLower)) return false;
-    if (usernameLower && !(ev.username || '').toLowerCase().includes(usernameLower)) return false;
-    if (domainLower && !(ev.domain || '').toLowerCase().includes(domainLower)) return false;
+    if (usernameLower) {
+      const u = (ev.username || '').toLowerCase();
+      const ua = ev.aor ? String(ev.aor).split('@')[0].toLowerCase() : '';
+      if (!(u.includes(usernameLower) || (ua && ua.includes(usernameLower)))) return false;
+    }
+    if (domainLower) {
+      const d = (ev.domain || '').toLowerCase();
+      const da = ev.aor ? String(ev.aor).split('@').slice(1).join('@').toLowerCase() : '';
+      if (!(d.includes(domainLower) || (da && da.includes(domainLower)))) return false;
+    }
     if (callIdLower && !(ev.callId || '').toLowerCase().includes(callIdLower)) return false;
+    if (corrIdLower && !(ev.corrId || '').toLowerCase().includes(corrIdLower)) return false;
     if (typeLower && !(ev.type || '').toLowerCase().includes(typeLower)) return false;
     if (dirLower && !(ev.dir || '').toLowerCase().includes(dirLower)) return false;
     if (modeLower && !((ev.mode || (ev.lteMode === true ? 'lte' : (ev.lteMode === false ? 'wifi' : ''))).toLowerCase().includes(modeLower))) return false;

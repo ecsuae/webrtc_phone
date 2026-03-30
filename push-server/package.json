@@ -8,7 +8,12 @@
     "dev": "nodemon server.js",
     "generate-keys": "node generate-keys.js"
   },
-  "keywords": ["webrtc", "push", "notifications", "webpush"],
+  "keywords": [
+    "webrtc",
+    "push",
+    "notifications",
+    "webpush"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -16,7 +21,8 @@
     "web-push": "^3.6.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "body-parser": "^1.20.2"
+    "body-parser": "^1.20.2",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
