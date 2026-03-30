@@ -18,6 +18,41 @@ body {
   margin: 0 auto;
 }
 
+.top-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.top-nav .nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  background: white;
+  color: #2d3748;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.top-nav .nav-item:hover {
+  border-color: #cbd5e0;
+}
+
+.top-nav .nav-item.active {
+  border-color: #4299e1;
+}
+
+.top-nav .nav-item i {
+  color: #4299e1;
+}
+
 .header {
   background: white;
   padding: 24px;

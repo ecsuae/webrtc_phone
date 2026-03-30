@@ -1,6 +1,13 @@
 import { state } from "./state.js";
 import { getDeviceInfo } from "./identity.js";
 
+function probe(tag, detail = "") {
+  try {
+    const suffix = detail ? ` ${detail}` : "";
+    console.log(`[${tag}]${suffix}`);
+  } catch {}
+}
+
 export function pageIsVisible() {
   return typeof document !== "undefined" && document.visibilityState === "visible";
 }
@@ -21,6 +28,10 @@ export function trySendMetadataBeacon() {
 export async function sendMetadataToServer() {
   // iOS/Safari often cancels fetch while page is backgrounded; skip noisy attempts.
   if (!pageIsVisible()) {
+    try {
+      const info = getDeviceInfo();
+      console.log(`[META_TIMER_TICK] deviceId=${info.deviceId} user=${info.currentUsername} debugMode=${info.debugMode} vis=hidden action=beacon src=remoteLogs/transport.js:sendMetadataToServer`);
+    } catch {}
     const sent = trySendMetadataBeacon();
     if (!sent) {
       console.log("[RemoteLogs] Skipping metadata fetch while app is hidden");
@@ -30,6 +41,9 @@ export async function sendMetadataToServer() {
 
   try {
     const deviceInfo = getDeviceInfo();
+    try {
+      console.log(`[META_TIMER_TICK] deviceId=${deviceInfo.deviceId} user=${deviceInfo.currentUsername} debugMode=${deviceInfo.debugMode} vis=visible action=fetch src=remoteLogs/transport.js:sendMetadataToServer`);
+    } catch {}
     console.log("[RemoteLogs] Sending metadata with:", {
       deviceModel: deviceInfo.deviceModel,
       browserName: deviceInfo.browserName,
@@ -79,6 +93,9 @@ export async function sendLogsToServer() {
   state.logBuffer = []; // Clear buffer
 
   try {
+    probe("DEBUG_LOG_UPLOAD_ATTEMPT", `count=${logsToSend.length}`);
+    probe("DEBUG_LOG_UPLOAD_URL", "/api/logs/mobile");
+    probe("DEBUG_SENDLOGS_FETCH_START", `count=${logsToSend.length}`);
     const response = await fetch("/api/logs/mobile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,11 +107,15 @@ export async function sendLogsToServer() {
     });
 
     if (!response.ok) {
+      probe("DEBUG_SENDLOGS_FETCH_FAILED", `status=${response.status}`);
       console.warn(`[RemoteLogs] Server returned ${response.status}`);
       // Re-add logs if send failed.
       state.logBuffer = logsToSend.concat(state.logBuffer);
+    } else {
+      probe("DEBUG_SENDLOGS_FETCH_OK", `status=${response.status}`);
     }
   } catch (err) {
+    probe("DEBUG_SENDLOGS_FETCH_FAILED", `err=${err?.message || err}`);
     console.warn("[RemoteLogs] Failed to send logs:", err);
     // Re-add logs if send failed.
     state.logBuffer = logsToSend.concat(state.logBuffer);

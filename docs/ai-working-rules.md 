@@ -37,11 +37,16 @@ This file is the standing instruction set for any AI working on this WebRTC SIP 
 ## 5. Read-order rule for every new AI session
 Every new AI session must begin by reading, in order:
 1. `docs/ai-working-rules.md`
-2. `docs/00-project-structure-and-architecture.md`
-3. `docs/01-current-state-and-handoff.md`
-4. the phase/function document relevant to the current task
+2. `docs/current-task-status.md`
+3. `docs/change-ledger.md`
+4. `docs/current-ai-handoff.md`
+5. `docs/known-good-baseline.md`
 
-If a task belongs to a specific area, read that phase/function doc before making changes.
+Then read only the phase/function document relevant to the current task.
+
+Read `docs/00-project-structure-and-architecture.md` and `docs/01-current-state-and-handoff.md` only if the current task truly needs broader architecture/history context.
+
+Do not read all docs by default.
 
 ## 6. Runtime verification rule
 - Always verify important fixes against the live running behavior when practical.
@@ -140,8 +145,93 @@ When working on any task, explicitly protect already working behavior. In this p
 
 ## 16. Documentation update rule after code changes
 After meaningful work, update at minimum:
-- `docs/01-current-state-and-handoff.md`
-- the relevant phase/function doc
-- `docs/00-project-structure-and-architecture.md` if architecture or file structure changed
+- `docs/current-task-status.md`
+- `docs/change-ledger.md`
+- `docs/current-ai-handoff.md`
 
-Do not finish a task with code updated but docs stale.
+Update `docs/known-good-baseline.md` only if the verified working baseline changed.
+Update phase/function docs only when that area’s behavior, structure, or instructions changed.
+Update `docs/00-project-structure-and-architecture.md` only if architecture or file structure changed.
+
+Do not finish a task with code updated but workflow docs stale.
+
+## 17. Workflow continuity and cross-AI handoff rule
+To keep work consistent across Claude, Windsurf, ChatGPT, and any future AI, every session must maintain the workflow docs below.
+
+### Required live workflow files
+Every AI session must read and maintain these files:
+1. `docs/current-task-status.md`
+2. `docs/change-ledger.md`
+3. `docs/current-ai-handoff.md`
+4. `docs/known-good-baseline.md`
+
+### Strict file update rule
+- **Do not overwrite these workflow files with a brand new file body.**
+- **Do not replace prior entries.**
+- **Only append new timestamped entries/sections to the existing file contents.**
+- Preserve previous history unless a planned rotation/archive is being performed.
+- If a file needs cleanup, rotate/archive it first, then continue in the new live file.
+- Never destroy earlier AI notes, earlier timestamps, or earlier signatures.
+
+### Mandatory update before ending any session
+Before finishing a session, the AI must append updates to:
+- `docs/current-task-status.md`
+- `docs/change-ledger.md`
+- `docs/current-ai-handoff.md`
+
+Append to `docs/known-good-baseline.md` only if the verified baseline changed.
+
+Each appended update must include:
+- timestamp
+- AI name/signature
+- task scope
+- exact files changed
+- exact restart required or not required
+- exact verified result
+- next safe step
+
+### Read-order rule for continuation sessions
+For routine continuation work, every AI must begin by reading, in order:
+1. `docs/ai-working-rules.md`
+2. `docs/current-task-status.md`
+3. `docs/change-ledger.md`
+4. `docs/current-ai-handoff.md`
+5. `docs/known-good-baseline.md`
+
+Read other docs only if required by the current task.
+
+### Workflow archive structure
+Historical workflow files must be stored under:
+- `Work_Flow/YYYY/MM-Mon/`
+
+Example:
+- `Work_Flow/2026/03-Mar/2026-03-23_to_2026-03-29_current-task-status.md`
+- `Work_Flow/2026/03-Mar/2026-03-23_to_2026-03-29_change-ledger.md`
+- `Work_Flow/2026/03-Mar/2026-03-23_to_2026-03-29_current-ai-handoff.md`
+- `Work_Flow/2026/03-Mar/2026-03-23_to_2026-03-29_known-good-baseline.md`
+
+### Rotation / archive rule
+To prevent workflow files from becoming too large:
+- When a live workflow file reaches about **400 lines**, rotate/archive it.
+- Keep only the active trimmed version in `docs/`.
+- Move the rotated file into the correct `Work_Flow/YYYY/MM-Mon/` folder.
+- Create a fresh live file in `docs/` for continued updates.
+- Do not delete historical workflow archives.
+
+### Rotation behavior
+When rotating:
+1. move the old long file into the correct `Work_Flow/YYYY/MM-Mon/` folder
+2. create a fresh shorter live file in `docs/`
+3. preserve only the current essential state in the new live file
+4. continue future updates by appending only
+5. never delete historical workflow archives
+
+### AI signature rule
+Every appended workflow entry must end with a clear signature, for example:
+- `AI: Claude - 2026-03-29 02:40 PKT`
+- `AI: Windsurf - 2026-03-29 03:10 PKT`
+- `AI: ChatGPT - 2026-03-29 03:25 PKT`
+
+### Scope protection
+Workflow-file maintenance must never be skipped, even if the code task is small.
+A session is not complete until the required workflow docs are updated.

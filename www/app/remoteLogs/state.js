@@ -12,4 +12,9 @@ export const state = {
   deviceId: null,
   browserId: null,
   lifecycleEventsBound: false,
+  _probe: {
+    lastBufferProbeTs: 0,
+    lastTimerProbeTs: 0,
+    lastSendProbeTs: 0,
+  },
 };

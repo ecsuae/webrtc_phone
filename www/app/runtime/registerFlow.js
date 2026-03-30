@@ -21,6 +21,13 @@ export function createRegisterFlow({ SIP, st, ui, startAndRegister, acquireWakeL
     // Permission is handled from the initial page-level flow.
     logLine("[Push] Login flow: skip notification prompt");
 
+    try {
+      st._callsEnabled = true;
+      try {
+        localStorage.setItem('webrtc_calls_enabled', '1');
+      } catch {}
+    } catch {}
+
     await startAndRegister(SIP, st, ui);
     if (!st.registered) {
       const ok = await waitForRegistration(st);

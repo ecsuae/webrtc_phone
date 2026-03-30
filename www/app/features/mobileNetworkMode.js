@@ -12,6 +12,8 @@
  * (i.e. on next login or reconnect).
  */
 
+import { sendCallMediaEvent } from './callMediaLog.js';
+
 const STORAGE_KEY = "webrtc_mobile_compat_mode";
 
 export function isMobileCompatModeEnabled() {
@@ -42,6 +44,32 @@ export function initMobileCompatToggle() {
   const btn = document.getElementById("btnMobileCompat");
   if (!btn) return;
 
+  function renderProfileBadgeBeforeLogin(selectedProfile) {
+    const badge = document.getElementById('activeProfileBadge');
+    if (!badge) return;
+    const renderedIcon = selectedProfile === 'lte' ? '5g' : 'wifi';
+    const renderedIconClass = selectedProfile === 'lte' ? 'fa-solid fa-signal' : 'fa-solid fa-wifi';
+    const renderedLabel = selectedProfile === 'lte' ? 'LTE' : 'Wi-Fi';
+    badge.innerHTML = `<i class="${renderedIconClass}"></i>`;
+    badge.classList.toggle('profile-lte', selectedProfile === 'lte');
+    badge.classList.toggle('profile-wifi', selectedProfile !== 'lte');
+    badge.setAttribute('title', selectedProfile === 'lte' ? 'LTE/5G compatibility profile selected' : 'Normal (Wi-Fi) profile selected');
+
+    try {
+      sendCallMediaEvent({
+        type: 'profile-badge-rendered',
+        selectedProfile,
+        renderedIcon,
+        renderedIconClass,
+        renderedLabel,
+        beforeLogin: true,
+        msg: 'Profile badge rendered (toggle)',
+      });
+    } catch {
+      // no-op
+    }
+  }
+
   function refresh() {
     const on = isMobileCompatModeEnabled();
     btn.classList.toggle("mobile-compat-active", on);
@@ -51,10 +79,24 @@ export function initMobileCompatToggle() {
     btn.querySelector(".compat-label").textContent = on
       ? "LTE/5G Mode: ON"
       : "LTE/5G Mode";
+
+    renderProfileBadgeBeforeLogin(on ? 'lte' : 'wifi');
   }
 
   btn.addEventListener("click", () => {
-    setMobileCompatMode(!isMobileCompatModeEnabled());
+    const nextOn = !isMobileCompatModeEnabled();
+    setMobileCompatMode(nextOn);
+    try {
+      sendCallMediaEvent({
+        type: 'profile-toggle-changed',
+        selectedProfile: nextOn ? 'lte' : 'wifi',
+        lteMode: nextOn,
+        beforeLogin: true,
+        msg: 'User toggled LTE/5G compatibility mode',
+      });
+    } catch {
+      // no-op
+    }
     refresh();
   });
 

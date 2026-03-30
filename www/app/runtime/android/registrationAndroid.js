@@ -45,21 +45,92 @@ function startPeriodicReregistration({ st, ext, logLine, nowISO }) {
 export function createAndroidRegistration({ SIP, st, ui, logLine, nowISO }) {
   const { acquireWakeLock, releaseWakeLock } = createWakeLockManager({ st, logLine, nowISO });
 
+  function callsEnabledInThisSession() {
+    try {
+      return !!st?._callsEnabled;
+    } catch {
+      return false;
+    }
+  }
+
+  function callsEnabledPreviously() {
+    try {
+      return localStorage.getItem('webrtc_calls_enabled') === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function allowFirstRegistration() {
+    // Strict: first-ever registration must only be started by explicit Enable Calls click
+    // which sets st._callsEnabled in registerFlow.
+    return callsEnabledInThisSession();
+  }
+
+  function allowRecoveryRegistration() {
+    // If UA already exists in memory, we can allow recovery/re-register based on prior enablement.
+    // (Prevents background/random input from starting a brand-new UA.)
+    try {
+      return !!st?.ua && callsEnabledPreviously();
+    } catch {
+      return false;
+    }
+  }
+
+  async function guardedStartAndRegister(SIPArg, stateArg, uiArg, marker) {
+    const _st = stateArg ?? st;
+    const _ui = uiArg ?? ui;
+    const _SIP = SIPArg ?? SIP;
+
+    try {
+      console.log(`AUTOLOGIN_ANDROID ${marker} enter enabled_session=${!!_st?._callsEnabled} enabled_prev=${callsEnabledPreviously()} hasUA=${!!_st?.ua}`);
+    } catch {}
+
+    // If there is no UA yet, only allow if user explicitly enabled calls in this tab.
+    if (!_st?.ua && !allowFirstRegistration()) {
+      try {
+        console.log(`AUTOLOGIN_ANDROID ${marker} wrapper-skip noUA_noExplicitEnable`);
+        console.trace(`AUTOLOGIN_ANDROID ${marker} stack`);
+      } catch {}
+      try {
+        logLine?.(`[${nowISO()}] [androidReg] Blocked startAndRegister (no UA, not explicitly enabled)`);
+      } catch {}
+      return null;
+    }
+
+    // If UA exists, allow only if calls were enabled previously (recovery behavior).
+    if (_st?.ua && !allowRecoveryRegistration() && !allowFirstRegistration()) {
+      try {
+        console.log(`AUTOLOGIN_ANDROID ${marker} wrapper-skip hasUA_noEnable`);
+        console.trace(`AUTOLOGIN_ANDROID ${marker} stack`);
+      } catch {}
+      try {
+        logLine?.(`[${nowISO()}] [androidReg] Blocked startAndRegister (UA exists but calls not enabled)`);
+      } catch {}
+      return null;
+    }
+
+    const result = await startAndRegister(_SIP, _st, _ui);
+    const ext = _st?.account?.username || _ui?.ext?.();
+    if (ext) startPeriodicReregistration({ st: _st, ext, logLine, nowISO });
+    return result;
+  }
+
   const { runOneTapEnableFlow } = createRegisterFlow({
     SIP,
     st,
     ui,
     startAndRegister: async (SIPArg, stateArg, uiArg) => {
-      const result = await startAndRegister(SIPArg ?? SIP, stateArg ?? st, uiArg ?? ui);
-      const ext = (stateArg ?? st)?.account?.username || (uiArg ?? ui)?.ext?.();
-      if (ext) startPeriodicReregistration({ st: stateArg ?? st, ext, logLine, nowISO });
-      return result;
+      return guardedStartAndRegister(SIPArg, stateArg, uiArg, 'direct-call-1');
     },
     acquireWakeLock,
     logLine,
   });
 
   async function start() {
+    try {
+      console.log('AUTOLOGIN_ANDROID wrapper-enter start()');
+    } catch {}
     await runOneTapEnableFlow();
   }
 
@@ -74,10 +145,7 @@ export function createAndroidRegistration({ SIP, st, ui, logLine, nowISO }) {
     releaseWakeLock,
     runOneTapEnableFlow,
     startAndRegister: async (SIPArg, stateArg, uiArg) => {
-      const result = await startAndRegister(SIPArg ?? SIP, stateArg ?? st, uiArg ?? ui);
-      const ext = (stateArg ?? st)?.account?.username || (uiArg ?? ui)?.ext?.();
-      if (ext) startPeriodicReregistration({ st: stateArg ?? st, ext, logLine, nowISO });
-      return result;
+      return guardedStartAndRegister(SIPArg, stateArg, uiArg, 'direct-call-2');
     },
     stopAndUnregister: (stateArg, uiArg, silentArg = false) =>
       stopAndUnregister(stateArg ?? st, uiArg ?? ui, silentArg),

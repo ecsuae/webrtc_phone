@@ -4,6 +4,7 @@ export function statusBarSection() {
       <div class="status-item">
         <span class="status-indicator" id="statusIndicator"></span>
         <span id="status">Idle</span>
+        <span id="activeProfileBadge" class="active-profile-badge" title="Active call profile (selected by the app)"><i class="fa-solid fa-wifi"></i></span>
       </div>
       <button class="refresh-btn" id="debugToggle" title="Toggle Debug Mode" onclick="toggleDebugModeUI()">
         <i class="fas fa-bug"></i>

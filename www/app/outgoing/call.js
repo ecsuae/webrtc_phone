@@ -1,7 +1,7 @@
 import { nowISO } from "../config.js";
 import { formatSipResponse, getSipRejectDetails, mapSipFailureToMessage, logLine } from "../log.js";
 import { g711OnlyModifier } from "../sdp.js";
-import { bindPeerConnection } from "../pcDebug.js";
+import { bindPeerConnection } from "../pcDebug.js?v=1773033002";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
 import { attachRemoteAudio, startEarlyMediaAttachLoop, clearEarlyMediaAttachLoop } from "./media.js?v=1773032001";
 import {
@@ -15,6 +15,145 @@ import { sendCallMediaEvent } from "../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
 import { ICE_SERVERS } from "../config.js";
 
+let _stats = null;
+let _statsImport = null;
+
+function getRuntimeCb() {
+  try {
+    const fromGlobal = (typeof window !== 'undefined' && window.__BUILD_CB) ? String(window.__BUILD_CB) : '';
+    if (fromGlobal) return fromGlobal;
+  } catch {}
+  try {
+    const u = new URL(import.meta.url);
+    return (u.searchParams.get('cb') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function loadPcStats() {
+  if (_stats) return Promise.resolve(_stats);
+  if (_statsImport) return _statsImport;
+
+  const cb = getRuntimeCb();
+  const url = cb ? `../pc/stats.js?cb=${encodeURIComponent(cb)}` : '../pc/stats.js';
+  _statsImport = import(url)
+    .then((m) => {
+      _stats = m;
+      return m;
+    })
+    .catch((err) => {
+      try {
+        console.error('[outgoing/call] Failed to import pc/stats.js', err);
+      } catch {}
+      throw err;
+    });
+
+  return _statsImport;
+}
+
+function scheduleMediaStatsSnapshots(pc, label, diagCtx) {
+  loadPcStats()
+    .then((m) => {
+      const fn = m?.scheduleMediaStatsSnapshots;
+      if (typeof fn !== 'function') {
+        try {
+          console.error('[outgoing/call] Missing stats export scheduleMediaStatsSnapshots');
+        } catch {}
+        return;
+      }
+      fn(pc, label, diagCtx);
+    })
+    .catch(() => {});
+}
+
+async function readPostEstablishReceiveHealth(pc, audioEl) {
+  try {
+    const out = {
+      packetsReceived: undefined,
+      bytesReceived: undefined,
+      packetsSent: undefined,
+      bytesSent: undefined,
+      selectedPair: undefined,
+      localCandidateType: undefined,
+      remoteCandidateType: undefined,
+      dtlsState: undefined,
+    };
+
+    if (pc) {
+      try {
+        out.iceConnectionState = pc.iceConnectionState;
+        out.connectionState = pc.connectionState;
+      } catch {}
+
+      try {
+        const stats = await pc.getStats();
+        let selectedPair = null;
+        let localCand = null;
+        let remoteCand = null;
+
+        stats.forEach((r) => {
+          if (r.type === 'inbound-rtp' && r.kind === 'audio') {
+            if (typeof r.packetsReceived === 'number') out.packetsReceived = (out.packetsReceived || 0) + r.packetsReceived;
+            if (typeof r.bytesReceived === 'number') out.bytesReceived = (out.bytesReceived || 0) + r.bytesReceived;
+          }
+          if (r.type === 'outbound-rtp' && r.kind === 'audio') {
+            if (typeof r.packetsSent === 'number') out.packetsSent = (out.packetsSent || 0) + r.packetsSent;
+            if (typeof r.bytesSent === 'number') out.bytesSent = (out.bytesSent || 0) + r.bytesSent;
+          }
+          if (r.type === 'transport') {
+            if (r.dtlsState) out.dtlsState = r.dtlsState;
+            if (r.selectedCandidatePairId) selectedPair = stats.get(r.selectedCandidatePairId);
+          }
+        });
+
+        if (!selectedPair) {
+          stats.forEach((r) => {
+            if (r.type === 'candidate-pair' && (r.selected === true || r.nominated === true)) selectedPair = r;
+          });
+        }
+
+        if (selectedPair) {
+          localCand = selectedPair.localCandidateId ? stats.get(selectedPair.localCandidateId) : null;
+          remoteCand = selectedPair.remoteCandidateId ? stats.get(selectedPair.remoteCandidateId) : null;
+        }
+
+        if (selectedPair) {
+          const lp = localCand
+            ? `${localCand.candidateType || '?'} ${localCand.address || localCand.ip || '?'}:${localCand.port || '?'}`
+            : 'unknown';
+          const rp = remoteCand
+            ? `${remoteCand.candidateType || '?'} ${remoteCand.address || remoteCand.ip || '?'}:${remoteCand.port || '?'}`
+            : 'unknown';
+          out.selectedPair = `local=${lp} remote=${rp}`;
+          out.localCandidateType = localCand?.candidateType;
+          out.remoteCandidateType = remoteCand?.candidateType;
+        }
+      } catch {}
+    }
+
+    // Audio element state
+    try {
+      out.remoteAudioElementPaused = typeof audioEl?.paused === 'boolean' ? audioEl.paused : undefined;
+      out.remoteAudioElementMuted = typeof audioEl?.muted === 'boolean' ? audioEl.muted : undefined;
+      out.remoteAudioElementVolume = typeof audioEl?.volume === 'number' ? audioEl.volume : undefined;
+      out.remoteAudioTracks = (() => {
+        try {
+          const receivers = typeof pc?.getReceivers === 'function' ? pc.getReceivers() : [];
+          const tracks = (receivers || []).map((r) => r && r.track).filter((t) => t && t.kind === 'audio');
+          return tracks.length;
+        } catch {
+          return undefined;
+        }
+      })();
+    } catch {}
+
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 function configureRemoteAudio(ui) {
   const audioEl = ui?.remoteAudio?.();
   if (!audioEl) return;
@@ -22,25 +161,114 @@ function configureRemoteAudio(ui) {
   audioEl.playsInline = true;
   audioEl.muted = false;
   audioEl.volume = 0.7;
-  const prePlayPromise = audioEl.play?.();
-  if (prePlayPromise && typeof prePlayPromise.catch === "function") {
-    prePlayPromise.catch(() => {
-      try {
-        audioEl.muted = true;
-        const p2 = audioEl.play?.();
-        if (p2 && typeof p2.finally === "function") {
-          p2.finally(() => {
-            audioEl.muted = false;
-          });
-        } else {
-          audioEl.muted = false;
-        }
-      } catch {}
-    });
-  }
+
+  // Observability only: do not call play() here (avoid changing gesture/autoplay behavior).
+  // Instead, emit events when the element actually starts playing or errors.
+  try {
+    if (!audioEl.__callMediaPlayObserved) {
+      audioEl.__callMediaPlayObserved = true;
+      const emitAudioState = (type, msg) => {
+        const ctx = audioEl.__callMediaDiagContext || {};
+        sendCallMediaEvent({
+          type,
+          ...ctx,
+          dir: 'outbound',
+          audioElMuted: typeof audioEl.muted === 'boolean' ? audioEl.muted : undefined,
+          audioElVolume: typeof audioEl.volume === 'number' ? audioEl.volume : undefined,
+          audioElReadyState: typeof audioEl.readyState === 'number' ? audioEl.readyState : undefined,
+          audioElPaused: typeof audioEl.paused === 'boolean' ? audioEl.paused : undefined,
+          audioElCurrentTime: typeof audioEl.currentTime === 'number' ? audioEl.currentTime : undefined,
+          msg,
+        });
+      };
+
+      emitAudioState('remote-audio-ready-state', 'remoteAudio initial state');
+      emitAudioState('remote-audio-muted-state', 'remoteAudio muted state');
+      emitAudioState('remote-audio-volume-state', 'remoteAudio volume state');
+
+      audioEl.addEventListener('volumechange', () => {
+        emitAudioState('remote-audio-volume-state', 'remoteAudio volumechange');
+        emitAudioState('remote-audio-muted-state', 'remoteAudio muted state change');
+      });
+      audioEl.addEventListener('loadedmetadata', () => emitAudioState('remote-audio-ready-state', 'remoteAudio loadedmetadata'));
+      audioEl.addEventListener('canplay', () => emitAudioState('remote-audio-ready-state', 'remoteAudio canplay'));
+      audioEl.addEventListener('waiting', () => emitAudioState('remote-audio-ready-state', 'remoteAudio waiting'));
+
+      audioEl.addEventListener('playing', () => {
+        try {
+          audioEl.__callMediaPlayed = true;
+          if (audioEl.__callMediaNoPlayTimer) {
+            clearTimeout(audioEl.__callMediaNoPlayTimer);
+            audioEl.__callMediaNoPlayTimer = null;
+          }
+        } catch {}
+        const ctx = audioEl.__callMediaDiagContext || {};
+        sendCallMediaEvent({
+          type: 'outbound-remote-audio-play-ok',
+          ...ctx,
+          dir: 'outbound',
+          audioPlayOk: true,
+          msg: 'remoteAudio is playing',
+        });
+
+        sendCallMediaEvent({
+          type: 'remote-audio-play-ok',
+          ...ctx,
+          dir: 'outbound',
+          audioPlayOk: true,
+          msg: 'remoteAudio is playing',
+        });
+      }, { once: true });
+      audioEl.addEventListener('error', () => {
+        const ctx = audioEl.__callMediaDiagContext || {};
+        sendCallMediaEvent({
+          type: 'outbound-remote-audio-play-failed',
+          ...ctx,
+          dir: 'outbound',
+          audioPlayOk: false,
+          audioPlayError: 'audio-element-error',
+          msg: 'remoteAudio element error',
+        });
+
+        sendCallMediaEvent({
+          type: 'remote-audio-play-failed',
+          ...ctx,
+          dir: 'outbound',
+          audioPlayOk: false,
+          audioPlayError: 'audio-element-error',
+          msg: 'remoteAudio element error',
+        });
+      }, { once: true });
+    }
+  } catch {}
 }
 
-function onOutboundStateChange(SIP, inviter, st, ui) {
+function getOutboundDiagContext(st, target, inviter) {
+  const username = st.account?.rawUsername || st.account?.username || undefined;
+  const domain = st.account?.domain || undefined;
+  const aor = (username && domain) ? `${username}@${domain}` : undefined;
+  const callId = inviter?.outgoingRequestMessage?.callId || undefined;
+  const sessionId = inviter?.id || inviter?._id || undefined;
+  const lteMode = isMobileCompatModeEnabled();
+  const mode = lteMode ? 'lte' : 'wifi';
+  const icePolicy = lteMode ? 'relay' : 'all';
+  return {
+    username,
+    domain,
+    aor,
+    dir: 'outbound',
+    peer: target || undefined,
+    callId,
+    sessionId,
+    lteMode,
+    mode,
+    selectedProfile: st.selectedProfile || mode,
+    icePolicy,
+    probeBuildId: (() => { try { return window?.OUTBOUND_CALLER_PROBE_BUILD_ID || localStorage.getItem('OUTBOUND_CALLER_PROBE_BUILD_ID') || undefined; } catch { return undefined; } })(),
+  };
+}
+
+function onOutboundStateChange(SIP, inviter, st, ui, { t_callStart, peer } = {}) {
   return (s) => {
     logLine(`[${nowISO()}] [session:outbound] ${s}`);
     const _aor = st.account ? `${st.account.rawUsername}@${st.account.domain}` : undefined;
@@ -51,6 +279,132 @@ function onOutboundStateChange(SIP, inviter, st, ui) {
     if (s === SIP.SessionState.Established) {
       stopRingbackTone();
       if (window.callTimer) window.callTimer.start();
+
+      try {
+        const audioEl = ui?.remoteAudio?.();
+        if (audioEl && !audioEl.__callMediaNoPlayTimer) {
+          audioEl.__callMediaNoPlayTimer = setTimeout(() => {
+            try {
+              if (audioEl.__callMediaPlayed) return;
+              const ctx = audioEl.__callMediaDiagContext || getOutboundDiagContext(st, peer, inviter);
+              sendCallMediaEvent({
+                type: 'no-remote-audio-play',
+                ...ctx,
+                dir: 'outbound',
+                msg: 'Remote audio did not start playing within 10s after establish',
+              });
+            } catch {}
+          }, 10000);
+        }
+      } catch {}
+
+      try {
+        const pc = inviter?.sessionDescriptionHandler?.peerConnection;
+        if (pc) {
+          scheduleMediaStatsSnapshots(pc, 'outbound', getOutboundDiagContext(st, peer, inviter));
+        }
+      } catch {}
+
+      // Guaranteed LTE receive-leg probe + periodic receive health snapshots
+      try {
+        const ctx = getOutboundDiagContext(st, peer, inviter);
+        const audioEl = ui?.remoteAudio?.();
+        const pc = inviter?.sessionDescriptionHandler?.peerConnection;
+
+        sendCallMediaEvent({
+          type: 'outbound-post-establish-probe',
+          ...ctx,
+          t_callStart,
+          t_established: new Date().toISOString(),
+          msg: 'Outbound post-establish probe (guaranteed LTE receive-leg marker)',
+        });
+
+        const scheduleHealth = (ms, type) => {
+          setTimeout(async () => {
+            try {
+              const snap = await readPostEstablishReceiveHealth(pc, audioEl);
+              sendCallMediaEvent({
+                type,
+                ...ctx,
+                t_callStart,
+                packetsReceived: snap.packetsReceived,
+                bytesReceived: snap.bytesReceived,
+                packetsSent: snap.packetsSent,
+                bytesSent: snap.bytesSent,
+                remoteAudioTracks: snap.remoteAudioTracks,
+                remoteAudioElementPaused: snap.remoteAudioElementPaused,
+                remoteAudioElementMuted: snap.remoteAudioElementMuted,
+                remoteAudioElementVolume: snap.remoteAudioElementVolume,
+                selectedPair: snap.selectedPair,
+                localCandidateType: snap.localCandidateType,
+                remoteCandidateType: snap.remoteCandidateType,
+                dtlsState: snap.dtlsState,
+                iceConnectionState: snap.iceConnectionState,
+                connectionState: snap.connectionState,
+                msg: 'Outbound receive health snapshot',
+              });
+            } catch {}
+          }, ms);
+        };
+
+        scheduleHealth(2000, 'outbound-receive-health-2s');
+        scheduleHealth(5000, 'outbound-receive-health-5s');
+        scheduleHealth(10000, 'outbound-receive-health-10s');
+      } catch {}
+
+      // Guaranteed chain marker: even if PC hooks fail, this should still post.
+      try {
+        sendCallMediaEvent({
+          type: 'outbound-stats-scheduled',
+          ...getOutboundDiagContext(st, peer, inviter),
+          t_callStart,
+          t_established: new Date().toISOString(),
+          msg: 'Outbound stats scheduled (guaranteed chain)',
+        });
+      } catch {}
+
+      // Mandatory stats: detect hook failures vs true media failure.
+      try {
+        const callId = inviter?.outgoingRequestMessage?.callId;
+        if (callId) {
+          setTimeout(() => {
+            try {
+              const seen = !!(window.__callMediaOutboundStats2sByCallId && window.__callMediaOutboundStats2sByCallId[callId]);
+              if (seen) return;
+              sendCallMediaEvent({
+                type: 'missing-outbound-stats',
+                ...getOutboundDiagContext(st, peer, inviter),
+                t_callStart,
+                msg: 'Outbound established but outbound-stats-2s missing (hook/posting failure detector)',
+              });
+            } catch {}
+          }, 5000);
+        }
+      } catch {}
+
+      sendCallMediaEvent({
+        type: 'outbound-call-established',
+        ...getOutboundDiagContext(st, peer, inviter),
+        t_callStart,
+        t_established: new Date().toISOString(),
+        msg: 'Call established (outbound)',
+      });
+
+      sendCallMediaEvent({
+        type: 'media-answer-outgoing',
+        ...getOutboundDiagContext(st, peer, inviter),
+        t_callStart,
+        t_established: new Date().toISOString(),
+        msg: 'Call established (answer received)',
+      });
+
+      sendCallMediaEvent({
+        type: 'call-established',
+        ...getOutboundDiagContext(st, peer, inviter),
+        t_callStart,
+        t_established: new Date().toISOString(),
+        msg: 'Call established',
+      });
       
       // Register as primary session with dual session manager
       if (!dualSessionManager.primary) {
@@ -63,6 +417,22 @@ function onOutboundStateChange(SIP, inviter, st, ui) {
     if (s === SIP.SessionState.Terminated) {
       stopRingbackTone();
       clearEarlyMediaAttachLoop(inviter);
+
+      sendCallMediaEvent({
+        type: 'call-ended',
+        ...getOutboundDiagContext(st, peer, inviter),
+        t_callStart,
+        t_ended: new Date().toISOString(),
+        msg: 'Call terminated',
+      });
+
+      sendCallMediaEvent({
+        type: 'outbound-call-end',
+        ...getOutboundDiagContext(st, peer, inviter),
+        t_callStart,
+        t_ended: new Date().toISOString(),
+        msg: 'Outbound call end (guaranteed chain)',
+      });
       
       // Remove from dual session manager
       dualSessionManager.removeSession(st);
@@ -81,6 +451,8 @@ export async function startCall(SIP, st, ui) {
   if (!st.registered || !st.ua) return ui.setStatus("Not registered");
   if (!target) return ui.setStatus("Missing destination");
   if (st.session) return ui.setStatus("Call already active");
+
+  const t_callStart = new Date().toISOString();
 
   // Prime audio output while still in direct user gesture path.
   primeOutboundRingbackContext();
@@ -104,6 +476,48 @@ export async function startCall(SIP, st, ui) {
 
   logLine(`[${nowISO()}] [call] dialing ${target} (encoded: ${encodedTarget})`);
 
+  // Guaranteed chain: must exist for every outbound call attempt.
+  sendCallMediaEvent({
+    type: 'outbound-call-start',
+    ...getOutboundDiagContext(st, target, null),
+    t_callStart,
+    msg: 'Outbound call start (guaranteed chain)',
+  });
+
+  // Minimal LTE caller probe: proves client emitted *and* sendCallMediaEvent path executed.
+  try {
+    const ctx = getOutboundDiagContext(st, target, null);
+    if (String(ctx.username || '') === '900900' && ctx.lteMode === true) {
+      sendCallMediaEvent({
+        type: 'lte-caller-probe-callstart',
+        ...ctx,
+        sourceBuildId: (() => { try { return window.CALL_MEDIA_SOURCE_BUILD_ID; } catch { return undefined; } })(),
+        t_callStart,
+        msg: 'LTE caller probe on outbound call start',
+      });
+    }
+  } catch {}
+
+  sendCallMediaEvent({
+    type: 'outbound-invite-start',
+    ...getOutboundDiagContext(st, target, null),
+    t_callStart,
+    msg: 'Outbound call start (before INVITE)',
+  });
+
+  sendCallMediaEvent({
+    type: 'call-start',
+    username: st.account?.rawUsername || st.account?.username || undefined,
+    domain: st.account?.domain || undefined,
+    aor: st.account ? `${st.account.rawUsername}@${st.account.domain}` : undefined,
+    dir: 'outbound',
+    peer: target,
+    mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+    icePolicy: isMobileCompatModeEnabled() ? 'relay' : 'all',
+    t_callStart,
+    msg: 'Outbound call initiated',
+  });
+
   // LTE pre-flight check — runs BEFORE invite() so a bad INVITE is never sent.
   // If TURN is unreachable in relay-only mode, abort here with MEDIA-E001.
   // Wi-Fi path (isMobileCompatModeEnabled() == false) is completely unaffected.
@@ -111,17 +525,86 @@ export async function startCall(SIP, st, ui) {
     const aorForCheck = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
     logLine(`[${nowISO()}] [call] LTE mode: running pre-flight TURN relay check...`);
     ui.setStatus("Checking media relay...");
+
+    sendCallMediaEvent({
+      type: 'outbound-preflight-start',
+      username: st.account?.rawUsername || st.account?.username || undefined,
+      domain: st.account?.domain || undefined,
+      aor: aorForCheck || undefined,
+      dir: 'outbound',
+      peer: target,
+      lteMode: true,
+      mode: 'lte',
+      selectedProfile: st.selectedProfile || 'lte',
+      icePolicy: 'relay',
+      t_callStart,
+      msg: 'LTE outbound preflight started',
+    });
+
     let preCheck;
     try {
-      preCheck = await checkLteRelayAvailable(ICE_SERVERS);
+      preCheck = await checkLteRelayAvailable(ICE_SERVERS, 8000, {
+        preflightEventPrefix: 'outbound-',
+        username: st.account?.rawUsername || st.account?.username || undefined,
+        domain: st.account?.domain || undefined,
+        aor: aorForCheck,
+        callId: undefined,
+        dir: 'outbound',
+        peer: target,
+        lteMode: true,
+        mode: 'lte',
+        selectedProfile: st.selectedProfile || 'lte',
+      });
     } catch {
       preCheck = { relay: 0, total: 0, timedOut: true };
     }
     logLine(`[${nowISO()}] [call] pre-flight result: relay=${preCheck.relay} total=${preCheck.total} timedOut=${preCheck.timedOut}`);
+
+    sendCallMediaEvent({
+      type: preCheck.timedOut ? 'outbound-preflight-timeout' : 'outbound-preflight-complete',
+      username: st.account?.rawUsername || st.account?.username || undefined,
+      domain: st.account?.domain || undefined,
+      aor: aorForCheck || undefined,
+      dir: 'outbound',
+      peer: target,
+      lteMode: true,
+      mode: 'lte',
+      selectedProfile: st.selectedProfile || 'lte',
+      icePolicy: 'relay',
+      relay: preCheck.relay,
+      total: preCheck.total,
+      timedOut: preCheck.timedOut,
+      t_callStart,
+      msg: preCheck.timedOut ? 'LTE outbound preflight timed out' : 'LTE outbound preflight complete',
+    });
+
+    sendCallMediaEvent({
+      type: 'outbound-preflight-result',
+      code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
+      username: st.account?.rawUsername || st.account?.username || undefined,
+      domain: st.account?.domain || undefined,
+      aor: aorForCheck || undefined,
+      dir: 'outbound',
+      peer: target,
+      lteMode: true,
+      mode: 'lte',
+      selectedProfile: st.selectedProfile || 'lte',
+      icePolicy: 'relay',
+      relay: preCheck.relay,
+      total: preCheck.total,
+      timedOut: preCheck.timedOut,
+      t_callStart,
+      msg: preCheck.relay > 0 ? 'LTE outbound preflight OK' : (preCheck.timedOut ? 'LTE outbound preflight failed (timeout)' : 'LTE outbound preflight failed (no relay)'),
+    });
     sendCallMediaEvent({
       type: preCheck.relay > 0 ? 'preflight-ok' : 'preflight-fail',
       code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
+      username: st.account?.rawUsername || st.account?.username || undefined,
+      domain: st.account?.domain || undefined,
       aor: aorForCheck, lteMode: true,
+      mode: 'lte',
+      dir: 'outbound',
+      peer: target,
       relay: preCheck.relay, total: preCheck.total, timedOut: preCheck.timedOut,
       msg: preCheck.relay > 0 ? 'TURN relay reachable' : (preCheck.timedOut ? 'ICE gathering timed out' : 'Zero relay candidates — TURN unreachable'),
     });
@@ -150,6 +633,10 @@ export async function startCall(SIP, st, ui) {
       localMediaStream: getLocalStream() || undefined,
     },
   });
+
+  try {
+    inviter.__callMediaDiag = getOutboundDiagContext(st, target, inviter);
+  } catch {}
 
   const requestDelegate = {
     onTrying: async (resp) => {
@@ -223,14 +710,49 @@ export async function startCall(SIP, st, ui) {
 
   const aor = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
 
+  try {
+    const audioEl = ui?.remoteAudio?.();
+    if (audioEl) audioEl.__callMediaDiagContext = getOutboundDiagContext(st, target, inviter);
+  } catch {}
+
   st.session = inviter;
   bindPeerConnection(inviter, "outbound", { aor });
-  inviter.stateChange.addListener(onOutboundStateChange(SIP, inviter, st, ui));
+  inviter.stateChange.addListener(onOutboundStateChange(SIP, inviter, st, ui, { t_callStart, peer: target }));
   ui.setButtons();
+
+  sendCallMediaEvent({
+    type: 'media-offer-outgoing',
+    ...getOutboundDiagContext(st, target, inviter),
+    t_callStart,
+    msg: 'About to send INVITE (offer)',
+  });
+
+  sendCallMediaEvent({
+    type: 'outbound-invite-sent',
+    ...getOutboundDiagContext(st, target, inviter),
+    t_callStart,
+    msg: 'Outbound INVITE will be sent',
+  });
 
   try {
     await inviter.invite({ requestDelegate });
     ui.setStatus("Calling...");
+
+    sendCallMediaEvent({
+      type: 'invite-sent',
+      ...getOutboundDiagContext(st, target, inviter),
+      t_callStart,
+      t_inviteSent: new Date().toISOString(),
+      msg: 'INVITE sent',
+    });
+
+    sendCallMediaEvent({
+      type: 'outbound-invite-sent',
+      ...getOutboundDiagContext(st, target, inviter),
+      t_callStart,
+      t_inviteSent: new Date().toISOString(),
+      msg: 'Outbound INVITE sent',
+    });
 
     // LTE relay guard — monitors ICE gathering in relay-only mode.
     // If zero relay candidates are gathered, cancels and surfaces MEDIA-E001.
@@ -254,7 +776,13 @@ export async function startCall(SIP, st, ui) {
       },
     });
 
-    sendCallMediaEvent({ type: 'call-start', aor, callId, dir: 'outbound', lteMode: null });
+    // Keep legacy event (used by existing docs), but enrich for new admin filters.
+    sendCallMediaEvent({
+      type: 'call-start',
+      ...getOutboundDiagContext(st, target, inviter),
+      t_callStart,
+      msg: 'Outbound call active (invite initiated)',
+    });
   } catch (e) {
     stopRingbackTone();
     logLine(`[${nowISO()}] [error] invite failed`, e?.message || e);

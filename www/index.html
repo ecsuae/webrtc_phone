@@ -13,17 +13,107 @@
 </head>
 <body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc" data-skin="modern-ops" data-max-dial-digits="15" data-conference-enabled="false" data-turn-host="phone.srve.cc" data-turn-user="turnuser" data-turn-pass="turnpass">
   <div id="appRoot"></div>
+  <div id="buildIndicator" style="position:fixed;right:6px;bottom:6px;font:10px/1.2 monospace;opacity:.35;z-index:2147483647;pointer-events:none;"></div>
 
   <script src="/vendor/sip.min.js?v=20260306"></script>
+  <script src="/config.js?v=1774837742"></script>
   <script type="module">
-    import { bootstrapPage } from "/app/page/bootstrapPage.js?v=1773032002";
+    const url = new URL(window.location.href);
+
+    window.__APP_BUILD__ = "1774837742";
+
+    async function hardResetAndReload({ cb, latestBuild }) {
+      try {
+        const username = localStorage.getItem("sipUsername");
+        const password = localStorage.getItem("sipPassword");
+        const hideShortcut = localStorage.getItem("hideInstallShortcut");
+        const selectedSkin = localStorage.getItem("webrtc_skin");
+        const callHistoryV2 = localStorage.getItem("callHistoryV2");
+        const callHistoryLegacy = localStorage.getItem("callHistory");
+
+        try {
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) {
+              try { await reg.unregister(); } catch {}
+            }
+          }
+        } catch {}
+
+        try {
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            for (const cacheName of cacheNames) {
+              try { await caches.delete(cacheName); } catch {}
+            }
+          }
+        } catch {}
+
+        try {
+          const dbs = (await indexedDB.databases?.()) || [];
+          for (const db of dbs) {
+            if (db.name) {
+              try { indexedDB.deleteDatabase(db.name); } catch {}
+            }
+          }
+        } catch {}
+
+        try { sessionStorage.clear(); } catch {}
+        try {
+          localStorage.clear();
+          if (username) localStorage.setItem("sipUsername", username);
+          if (password) localStorage.setItem("sipPassword", password);
+          if (hideShortcut) localStorage.setItem("hideInstallShortcut", hideShortcut);
+          if (selectedSkin) localStorage.setItem("webrtc_skin", selectedSkin);
+          if (callHistoryV2) localStorage.setItem("callHistoryV2", callHistoryV2);
+          if (callHistoryLegacy) localStorage.setItem("callHistory", callHistoryLegacy);
+        } catch {}
+      } catch {}
+
+      url.searchParams.set("cb", cb);
+      url.searchParams.set("build", latestBuild);
+      location.replace(url.toString());
+    }
+
+    async function getLatestBuildFromServer() {
+      const checkUrl = "/index.html?__build_check=" + Date.now() + "-" + Math.random().toString(16).slice(2);
+      const res = await fetch(checkUrl, { cache: 'no-store' });
+      const text = await res.text();
+      const m = text.match(/window\.__APP_BUILD__\s*=\s*"([^\"]+)"/);
+      return (m && m[1]) ? String(m[1]).trim() : "";
+    }
+
+    const runningBuild = String(window.__APP_BUILD__ || "");
+    let latestBuild = "";
+    try {
+      latestBuild = await getLatestBuildFromServer();
+    } catch {}
+
+    try {
+      const el = document.getElementById('buildIndicator');
+      if (el) el.textContent = "build running=" + (runningBuild || 'unknown') + " latest=" + (latestBuild || 'unknown');
+    } catch {}
+
+    if (latestBuild && runningBuild && latestBuild !== runningBuild) {
+      await hardResetAndReload({ cb: latestBuild, latestBuild });
+    }
+
+    let cb = (url.searchParams.get("cb") || "").trim();
+    if (!cb) {
+      cb = latestBuild || (String(Date.now()) + "-" + Math.random().toString(16).slice(2));
+      url.searchParams.set("cb", cb);
+      history.replaceState(null, "", url.toString());
+    }
+    window.__BUILD_CB = cb;
+
+    const bootstrapUrl = "/app/page/bootstrapPage.js?cb=" + encodeURIComponent(cb);
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => {
-        bootstrapPage();
+        import(bootstrapUrl).then((m) => m.bootstrapPage());
       });
     } else {
-      bootstrapPage();
+      import(bootstrapUrl).then((m) => m.bootstrapPage());
     }
   </script>
 </body>

@@ -4,7 +4,7 @@
 import { nowISO } from "../config.js";
 import { formatSipResponse, getSipRejectDetails, mapSipFailureToMessage, logLine } from "../log.js";
 import { g711OnlyModifier } from "../sdp.js";
-import { bindPeerConnection } from "../pcDebug.js";
+import { bindPeerConnection } from "../pcDebug.js?v=1773033002";
 import { ensureMicAccess, getLocalStream } from "../media.js";
 import { attachRemoteAudio } from "../outgoing/media.js?v=1773032001";
 import { dualSessionManager } from "../features/dualSessionManager.js";

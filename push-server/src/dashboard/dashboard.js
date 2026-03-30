@@ -56,12 +56,17 @@ function renderDevices(devices) {
 
   const uniqueDevices = Object.values(deduped);
   const sortedDevices = uniqueDevices.sort((a, b) => {
-    const aDebug = Boolean(a?.metadata?.debugMode);
-    const bDebug = Boolean(b?.metadata?.debugMode);
-    if (aDebug !== bDebug) return bDebug - aDebug;
-
     const aTs = a?.metadata?.lastSeen ? Date.parse(a.metadata.lastSeen) : 0;
     const bTs = b?.metadata?.lastSeen ? Date.parse(b.metadata.lastSeen) : 0;
+    const aOnline = (Date.now() - aTs) <= (30 * 60 * 1000);
+    const bOnline = (Date.now() - bTs) <= (30 * 60 * 1000);
+
+    // Required ordering:
+    // 1) online first
+    // 2) within online: most recently seen first
+    // 3) offline after
+    // 4) within offline: most recently seen first
+    if (aOnline !== bOnline) return aOnline ? -1 : 1;
     return bTs - aTs;
   });
 
@@ -97,6 +102,10 @@ function renderDevice(device) {
   const deviceFpShort = meta.deviceFingerprint ? String(meta.deviceFingerprint).slice(-12) : 'n/a';
   const browserFpShort = meta.browserFingerprint ? String(meta.browserFingerprint).slice(-12) : 'n/a';
   const hasLogs = device.logFileCount > 0;
+  const hasTail = Boolean(device.hasLatestTail);
+  const latestLogTsRaw = device.latestLogTimestamp || null;
+  const latestLogTs = latestLogTsRaw ? new Date(latestLogTsRaw).toLocaleString() : 'n/a';
+  const logsStatus = !hasLogs ? 'empty' : (hasTail ? 'available (tail)' : 'available');
 
   return `
     <div class="device-item">
@@ -161,6 +170,10 @@ function renderDevice(device) {
         <div class="info-item">
           <div class="label">Log Files</div>
           <div class="value">${device.logFileCount} files</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Logs</div>
+          <div class="value">${logsStatus} — Last log: ${latestLogTs}</div>
         </div>
         <div class="info-item">
           <div class="label">Update Count</div>

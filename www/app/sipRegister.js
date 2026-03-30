@@ -30,6 +30,7 @@ export async function stopAndUnregister(st, ui, silent = false) {
   if (!silent) {
     try {
       localStorage.removeItem('webrtc_last_registration');
+      localStorage.removeItem('webrtc_calls_enabled');
       clearSessionPassword();
       logLine(`[${nowISO()}] [boot] Cleared saved registration credentials`);
     } catch (err) {

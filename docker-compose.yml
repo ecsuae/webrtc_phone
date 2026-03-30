@@ -4,6 +4,8 @@ services:
     container_name: coturn
     restart: unless-stopped
     network_mode: host
+    environment:
+      - TZ=Asia/Karachi
     volumes:
       - ./certs:/certs:ro
     command: >
@@ -31,6 +33,8 @@ services:
     container_name: rtpengine
     restart: "no"
     network_mode: host
+    environment:
+      - TZ=Asia/Karachi
     cap_add:
       - NET_ADMIN
       - SYS_NICE
@@ -52,6 +56,7 @@ services:
     network_mode: host
     env_file: .env
     environment:
+      - TZ=Asia/Karachi
       - PBX_IP=${PBX_IP}
       - PBX_PORT=${PBX_PORT}
       - PBX_TRANSPORT=udp
@@ -92,6 +97,7 @@ services:
     depends_on:
       - rtpengine
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
       - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
       - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
@@ -105,6 +111,7 @@ services:
     network_mode: host
     env_file: .env
     environment:
+      - TZ=Asia/Karachi
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
@@ -112,6 +119,7 @@ services:
       - ADMIN_BIND_HOST=${ADMIN_BIND_HOST}
       - ADMIN_BIND_PORT=${ADMIN_BIND_PORT}
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./backups/mobile-logs:/app/../backups/mobile-logs
       - ./routing-config.json:/app/routing-config.json
 
@@ -120,6 +128,8 @@ services:
     container_name: phone-nginx
     restart: unless-stopped
     network_mode: host
+    environment:
+      - TZ=Asia/Karachi
     depends_on:
       - kamailio
       - push-server

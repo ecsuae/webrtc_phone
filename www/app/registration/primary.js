@@ -19,6 +19,9 @@ import {
   diagCancelResponseTimer,
 } from "./regDiag.js";
 
+const OUTBOUND_CALLER_PROBE_BUILD_ID = 'probe-900900-2026-03-29T02:45Z';
+const LTE_CALLER_SOURCE_BUILD_ID = 'lte-caller-obs-2026-03-29T09:35+05';
+
 function attachTransportListener(st, ui) {
   st.ua.transport?.stateChange?.addListener?.((state) => {
     logLine(`[${nowISO()}] [transport] ${state}`);
@@ -59,6 +62,21 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
   const uri = SIP.UserAgent.makeURI(`sip:${ext}@${domain}`);
   if (!uri) return null;
 
+  const _iceMode = isMobileCompatModeEnabled() ? "relay" : ICE_TRANSPORT_POLICY;
+  st.selectedProfile = _iceMode === 'relay' ? 'lte' : 'wifi';
+
+  sendCallMediaEvent({
+    type: 'profile-selected',
+    username: account.username,
+    domain: account.domain,
+    aor: `${account.username}@${account.domain}`,
+    lteMode: _iceMode === 'relay',
+    selectedProfile: st.selectedProfile,
+    msg: 'Selected call profile applied at UA build time',
+  });
+
+  ui.setButtons();
+
   st.ua = new SIP.UserAgent({
     uri,
     authorizationUsername: ext,
@@ -81,13 +99,35 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
     delegate: {
       onInvite: (invitation) => {
         const callerUser = invitation.remoteIdentity?.uri?.user || "unknown";
+        const callerDomain = invitation.remoteIdentity?.uri?.host || null;
+        const callId = invitation.request?.callId || null;
+        const sessionId = invitation.id || invitation._id || null;
+        const aor = `${account.username}@${account.domain}`;
         logLine(`[${nowISO()}] [incoming] INCOMING CALL RECEIVED from ${callerUser}`);
+
+        sendCallMediaEvent({
+          type: 'incoming-received',
+          username: account.username,
+          domain: account.domain,
+          aor,
+          dir: 'inbound',
+          peer: callerUser,
+          peerDomain: callerDomain || undefined,
+          peerAor: callerDomain ? `${callerUser}@${callerDomain}` : callerUser,
+          callId: callId || undefined,
+          sessionId: sessionId || undefined,
+          mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+          selectedProfile: st.selectedProfile,
+          icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+          t_incomingReceived: new Date().toISOString(),
+          msg: 'Incoming INVITE received',
+        });
+
         handleIncomingCallIsolated(SIP, st, ui, invitation);
       },
     },
   });
 
-  const _iceMode = isMobileCompatModeEnabled() ? "relay" : ICE_TRANSPORT_POLICY;
   if (_iceMode === "relay") {
     logLine(`[${nowISO()}] [UA] ICE transport policy = relay — LTE/5G media relay mode ACTIVE (all media via TURN)`);
   } else {
@@ -95,8 +135,12 @@ function buildUserAgent(SIP, st, ui, account, pass, wss) {
   }
   sendCallMediaEvent({
     type: 'ua-ice-policy',
+    username: account.username,
+    domain: account.domain,
     aor: `${account.username}@${account.domain}`,
     lteMode: _iceMode === "relay",
+    mode: _iceMode === 'relay' ? 'lte' : 'wifi',
+    selectedProfile: st.selectedProfile,
     icePolicy: _iceMode,
   });
 
@@ -234,6 +278,111 @@ export async function startPrimaryRegistration(SIP, st, ui) {
         setRegistrationComplete();  // Notify incoming handler that registration is complete
         const subscribedExt = st.account?.username || ext;
         if (subscribedExt) Push.subscribeAfterRegister(subscribedExt).catch(() => {});
+
+        try {
+          if (String(ext) === '900900') {
+            try {
+              window.CALL_MEDIA_SOURCE_BUILD_ID = LTE_CALLER_SOURCE_BUILD_ID;
+            } catch {}
+
+            sendCallMediaEvent({
+              type: 'outbound-probe-900900',
+              probeBuildId: OUTBOUND_CALLER_PROBE_BUILD_ID,
+              sourceBuildId: LTE_CALLER_SOURCE_BUILD_ID,
+              username: ext,
+              domain,
+              aor: `${ext}@${domain}`,
+              dir: 'outbound',
+              lteMode: isMobileCompatModeEnabled(),
+              mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+              selectedProfile: st.selectedProfile,
+              icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+              msg: 'Caller probe emitted on registration accept (900900)',
+            });
+
+            sendCallMediaEvent({
+              type: 'lte-caller-probe-login',
+              probeBuildId: OUTBOUND_CALLER_PROBE_BUILD_ID,
+              sourceBuildId: LTE_CALLER_SOURCE_BUILD_ID,
+              username: ext,
+              domain,
+              aor: `${ext}@${domain}`,
+              dir: 'outbound',
+              lteMode: isMobileCompatModeEnabled(),
+              mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+              selectedProfile: st.selectedProfile,
+              icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+              msg: 'LTE caller probe on registration accept',
+            });
+
+            try {
+              fetch('/api/logs/ping', {
+                method: 'GET',
+                signal: AbortSignal.timeout ? AbortSignal.timeout(3500) : undefined,
+              }).then((resp) => {
+                if (resp && resp.ok) {
+                  sendCallMediaEvent({
+                    type: 'lte-caller-ping-ok',
+                    probeBuildId: OUTBOUND_CALLER_PROBE_BUILD_ID,
+                    sourceBuildId: LTE_CALLER_SOURCE_BUILD_ID,
+                    username: ext,
+                    domain,
+                    aor: `${ext}@${domain}`,
+                    dir: 'outbound',
+                    lteMode: isMobileCompatModeEnabled(),
+                    mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+                    selectedProfile: st.selectedProfile,
+                    icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+                    postOk: true,
+                    postStatus: resp.status,
+                    postStatusText: resp.statusText,
+                    postUrl: '/api/logs/ping',
+                    msg: 'LTE caller ping ok',
+                  });
+                } else {
+                  sendCallMediaEvent({
+                    type: 'lte-caller-ping-failed',
+                    probeBuildId: OUTBOUND_CALLER_PROBE_BUILD_ID,
+                    sourceBuildId: LTE_CALLER_SOURCE_BUILD_ID,
+                    username: ext,
+                    domain,
+                    aor: `${ext}@${domain}`,
+                    dir: 'outbound',
+                    lteMode: isMobileCompatModeEnabled(),
+                    mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+                    selectedProfile: st.selectedProfile,
+                    icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+                    postOk: false,
+                    postStatus: resp?.status,
+                    postStatusText: resp?.statusText,
+                    postUrl: '/api/logs/ping',
+                    msg: 'LTE caller ping failed',
+                  });
+                }
+              }).catch((e) => {
+                sendCallMediaEvent({
+                  type: 'lte-caller-ping-failed',
+                  probeBuildId: OUTBOUND_CALLER_PROBE_BUILD_ID,
+                  sourceBuildId: LTE_CALLER_SOURCE_BUILD_ID,
+                  username: ext,
+                  domain,
+                  aor: `${ext}@${domain}`,
+                  dir: 'outbound',
+                  lteMode: isMobileCompatModeEnabled(),
+                  mode: isMobileCompatModeEnabled() ? 'lte' : 'wifi',
+                  selectedProfile: st.selectedProfile,
+                  icePolicy: isMobileCompatModeEnabled() ? 'relay' : ICE_TRANSPORT_POLICY,
+                  postOk: false,
+                  postUrl: '/api/logs/ping',
+                  postError: String(e?.message || e || 'ping-failed').slice(0, 160),
+                  msg: 'LTE caller ping failed (fetch)',
+                });
+              });
+            } catch {}
+          }
+        } catch {
+          // no-op
+        }
       },
       onReject: (r) => {
         diagCancelResponseTimer();

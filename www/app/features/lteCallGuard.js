@@ -145,19 +145,93 @@ export function countCandidatesFromSdp(sdp) {
  *
  * @param {object[]} iceServers - Same ICE server config used for the call
  * @param {number}   timeoutMs  - Gathering timeout (default 8s)
+ * @param {object}   diagContext - Optional context to emit structured events (aor, callId, dir, peer, username, domain, mode, selectedProfile)
  * @returns {Promise<{ relay, host, srflx, prflx, total, timedOut }>}
  */
-export function checkLteRelayAvailable(iceServers, timeoutMs = 8000) {
+export function checkLteRelayAvailable(iceServers, timeoutMs = 8000, diagContext = null) {
   return new Promise((resolve) => {
     let pc = null;
     let settled = false;
     const counts = { relay: 0, host: 0, srflx: 0, prflx: 0 };
+
+    const preflightEventPrefix = (diagContext && typeof diagContext.preflightEventPrefix === 'string')
+      ? diagContext.preflightEventPrefix
+      : '';
+
+    const safeIceServers = Array.isArray(iceServers)
+      ? iceServers.map((s) => ({
+          urls: s?.urls,
+          hasUsername: Boolean(s?.username),
+          hasCredential: Boolean(s?.credential),
+          credentialType: s?.credentialType,
+        }))
+      : [];
+
+    const hasTurnServer = safeIceServers.some((s) => {
+      const urls = s?.urls;
+      const list = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+      return list.some((u) => String(u || '').startsWith('turn:') || String(u || '').startsWith('turns:'));
+    });
+
+    const turnServer = safeIceServers.find((s) => {
+      const urls = s?.urls;
+      const list = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+      return list.some((u) => String(u || '').startsWith('turn:') || String(u || '').startsWith('turns:'));
+    }) || null;
+
+    const turnUrls = (() => {
+      const urls = turnServer?.urls;
+      if (!urls) return [];
+      return Array.isArray(urls) ? urls : [urls];
+    })();
+
+    try {
+      if (diagContext) {
+        sendCallMediaEvent({
+          type: `${preflightEventPrefix}preflight-config`,
+          ...diagContext,
+          iceTransportPolicy: 'relay',
+          timeoutMs,
+          iceServerCount: safeIceServers.length,
+          hasTurnServer,
+          urls: turnUrls,
+          hasUsername: Boolean(turnServer?.hasUsername),
+          hasCredential: Boolean(turnServer?.hasCredential),
+          credentialType: turnServer?.credentialType,
+          iceServers: safeIceServers,
+          msg: 'LTE preflight RTCPeerConnection config',
+        });
+      }
+    } catch {
+      // no-op
+    }
 
     function settle(extra) {
       if (settled) return;
       settled = true;
       try { if (pc && pc.signalingState !== 'closed') pc.close(); } catch {}
       const total = counts.relay + counts.host + counts.srflx + counts.prflx;
+
+      try {
+        if (diagContext) {
+          sendCallMediaEvent({
+            type: extra?.timedOut ? `${preflightEventPrefix}preflight-timeout` : `${preflightEventPrefix}preflight-complete`,
+            ...diagContext,
+            iceTransportPolicy: 'relay',
+            timeoutMs,
+            relay: counts.relay,
+            host: counts.host,
+            srflx: counts.srflx,
+            prflx: counts.prflx,
+            total,
+            timedOut: Boolean(extra?.timedOut),
+            msg: extra?.timedOut ? 'LTE preflight ICE gathering timed out' : 'LTE preflight ICE gathering complete',
+          });
+        }
+      } catch {
+        // no-op
+      }
+
       resolve({ ...counts, total, ...extra });
     }
 
@@ -185,6 +259,26 @@ export function checkLteRelayAvailable(iceServers, timeoutMs = 8000) {
         if (pc.iceGatheringState === 'complete') {
           clearTimeout(timeout);
           settle({ timedOut: false });
+        }
+      });
+
+      pc.addEventListener('icecandidateerror', (ev) => {
+        try {
+          if (!diagContext) return;
+          sendCallMediaEvent({
+            type: `${preflightEventPrefix}preflight-icecandidateerror`,
+            ...diagContext,
+            iceTransportPolicy: 'relay',
+            errorCode: ev?.errorCode,
+            errorText: ev?.errorText,
+            url: ev?.url,
+            address: ev?.address,
+            port: ev?.port,
+            hostCandidate: ev?.hostCandidate,
+            msg: 'LTE preflight icecandidateerror',
+          });
+        } catch {
+          // no-op
         }
       });
 

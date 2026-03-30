@@ -94,6 +94,8 @@ function renderRoutingPage(currentEnv, savedConfig) {
   <nav>
     <a href="/dashboard">← Dashboard</a>
     <a href="/diagnostics/errors">Diagnostics</a>
+    <a href="/admin/routing">Routing</a>
+    <a href="/admin/calllogs">Call Logs</a>
     <a href="/admin/routing/config">Config JSON</a>
   </nav>
 

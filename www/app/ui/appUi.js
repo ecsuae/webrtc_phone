@@ -1,5 +1,7 @@
 import { defaultsFromBody, el, parseSipAccount, setText } from "../dom.js";
 import { updateUsernameDisplay, updateDomainDisplay } from "../features/accountDisplay.js";
+import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
+import { sendCallMediaEvent } from "../features/callMediaLog.js";
 
 let callNavigationLockActive = false;
 let callNavigationGuardInstalled = false;
@@ -72,6 +74,36 @@ function updateControlVisibility(st, ui) {
   const hasIncoming = !!st.incomingInvitation;
   const inCall = !!st.session;
   const showDialpad = registered || inCall || hasIncoming;
+
+  const selectedProfile = st.selectedProfile;
+  const profileBadge = document.getElementById('activeProfileBadge');
+  if (profileBadge) {
+    const beforeLogin = !registered;
+    const resolved = (selectedProfile === 'lte' || selectedProfile === 'wifi')
+      ? selectedProfile
+      : (beforeLogin && isMobileCompatModeEnabled() ? 'lte' : 'wifi');
+    const renderedIcon = resolved === 'lte' ? '5g' : 'wifi';
+    const renderedIconClass = resolved === 'lte' ? 'fa-solid fa-signal' : 'fa-solid fa-wifi';
+    const renderedLabel = resolved === 'lte' ? 'LTE' : 'Wi-Fi';
+    profileBadge.innerHTML = `<i class="${renderedIconClass}"></i>`;
+    profileBadge.classList.toggle('profile-lte', resolved === 'lte');
+    profileBadge.classList.toggle('profile-wifi', resolved !== 'lte');
+    profileBadge.setAttribute('title', resolved === 'lte' ? 'LTE/5G compatibility profile selected' : 'Normal (Wi-Fi) profile selected');
+
+    try {
+      sendCallMediaEvent({
+        type: 'profile-badge-rendered',
+        selectedProfile: resolved,
+        renderedIcon,
+        renderedIconClass,
+        renderedLabel,
+        beforeLogin,
+        msg: 'Profile badge rendered',
+      });
+    } catch {
+      // no-op
+    }
+  }
 
   const setButtonLabel = (button, iconClass, text) => {
     if (!button) return;

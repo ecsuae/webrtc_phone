@@ -367,12 +367,22 @@ export function getUsernameHistory() {
 
 function resolveCurrentUsername() {
   if (state.currentUsername && state.currentUsername !== "not-logged-in") {
+    try {
+      const deviceId = getDeviceIdSyncFallback();
+      console.log(`[META_BOOT_USERNAME] deviceId=${deviceId} user=${state.currentUsername} src=state`);
+    } catch {}
     return state.currentUsername;
   }
 
   try {
     const storedCurrent = (localStorage.getItem("webrtc_current_username") || "").trim();
-    if (storedCurrent) return storedCurrent;
+    if (storedCurrent) {
+      try {
+        const deviceId = getDeviceIdSyncFallback();
+        console.log(`[META_BOOT_USERNAME] deviceId=${deviceId} user=${storedCurrent} src=localStorage`);
+      } catch {}
+      return storedCurrent;
+    }
   } catch {
     // Ignore localStorage read failures.
   }
@@ -383,7 +393,13 @@ function resolveCurrentUsername() {
     const raw = (extEl?.value || "").trim();
     if (raw) {
       const parsed = raw.includes("@") ? raw.split("@")[0].trim() : raw;
-      if (parsed) return parsed;
+      if (parsed) {
+        try {
+          const deviceId = getDeviceIdSyncFallback();
+          console.log(`[META_BOOT_USERNAME] deviceId=${deviceId} user=${parsed} src=ext_input`);
+        } catch {}
+        return parsed;
+      }
     }
   } catch {
     // Ignore DOM lookup failures.
@@ -392,9 +408,18 @@ function resolveCurrentUsername() {
   // Final fallback: use last known username from history.
   const history = getUsernameHistory();
   if (history.length > 0) {
-    return history[history.length - 1] || "not-logged-in";
+    const picked = history[history.length - 1] || "not-logged-in";
+    try {
+      const deviceId = getDeviceIdSyncFallback();
+      console.log(`[META_BOOT_USERNAME] deviceId=${deviceId} user=${picked} src=history`);
+    } catch {}
+    return picked;
   }
 
+  try {
+    const deviceId = getDeviceIdSyncFallback();
+    console.log(`[META_RESET_USERNAME] deviceId=${deviceId} user=not-logged-in src=resolveCurrentUsername`);
+  } catch {}
   return "not-logged-in";
 }
 
@@ -415,6 +440,10 @@ export function getDeviceInfo() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown";
   const screenInfo = `${screen.width}x${screen.height}@${window.devicePixelRatio || 1}`;
   const deviceId = getDeviceIdSyncFallback();
+
+  try {
+    console.log(`[META_SEND_USERNAME] deviceId=${deviceId} user=${currentUsername} debugMode=${state.debugMode} src=remoteLogs/identity.js:getDeviceInfo`);
+  } catch {}
 
   // Warm persistent storage asynchronously, but never leak a Promise into payloads.
   getOrCreateDeviceId().catch(() => {

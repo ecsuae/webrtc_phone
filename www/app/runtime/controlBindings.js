@@ -71,13 +71,6 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
     el.btnCall?.click();
   });
 
-  el.pass?.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    primeIncomingRingtone();
-    if (!st.registered) await runOneTapEnableFlow();
-  });
-
   passToggleBtn?.addEventListener("click", () => {
     const input = el.pass;
     if (!input) return;

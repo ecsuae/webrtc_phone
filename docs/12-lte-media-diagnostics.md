@@ -112,14 +112,19 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 | Stage | File | Event type |
 |---|---|---|
 | UA build | `registration/primary.js` | `ua-ice-policy` (aor, lteMode, icePolicy) |
+| Incoming INVITE received | `registration/primary.js` | `incoming-received` (peer, callId, sessionId) |
 | Pre-flight TURN check OK | `outgoing/call.js`, `incoming/handlers.js` | `preflight-ok` (relay/total) |
 | Pre-flight TURN check fail | `outgoing/call.js`, `incoming/handlers.js` | `preflight-fail` (relay=0, timedOut) |
 | ICE gathering complete | `pc/bind.js` | `ice-complete` (relay/host/srflx/total counts; `from-sdp` when late-bound) |
 | ICE connection failed | `pc/bind.js` | `ice-failed` (code=MEDIA-E002) |
+| Selected candidate pair | `pc/bind.js` | `selected-pair` (selectedPair summary) |
 | LTE relay guard pass | `features/lteCallGuard.js` | `ice-relay-ok` |
 | LTE relay guard fail | `features/lteCallGuard.js` | `MEDIA-E001` or `MEDIA-E002` |
 | Outgoing call started | `outgoing/call.js` | `call-start` |
 | Incoming call answered | `incoming/handlers.js` | `call-answer` |
+| Offer/answer markers | `outgoing/call.js`, `incoming/handlers.js` | `media-offer-outgoing`, `media-answer-outgoing`, `media-offer-incoming`, `media-answer-incoming` |
+| Timeline markers | `outgoing/call.js`, `incoming/handlers.js` | `invite-sent`, `answer-clicked`, `call-established`, `call-ended` |
+| Remote audio signals | `pc/bind.js`, `outgoing/call.js`, `incoming/handlers.js` | `remote-audio-attached`, `remote-audio-play-ok`, `remote-audio-play-failed` |
 
 ---
 
@@ -132,7 +137,14 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 
 **Request body:** `{ "events": [ { "ts": "...", "type": "...", ... } ] }`
 
-**Accepted event fields:** `ts`, `type`, `code`, `aor`, `callId`, `dir`, `lteMode`, `relay`, `host`, `srflx`, `total`, `timedOut`, `icePolicy`, `msg`
+**Accepted event fields (selected):**
+- Identity: `username`, `domain`, `aor`
+- Call correlation: `callId`, `sessionId`, `dir`, `mode`, `lteMode`
+- Peer: `peer`, `peerDomain`, `peerAor`
+- ICE: `icePolicy`, `relay`, `host`, `srflx`, `total`, `candSummary`, `selectedPair`
+- Media: `hasLocalStream`, `hasRemoteStream`, `remoteAudioTrackCount`, `remoteAudioAttached`, `audioPlayOk`, `audioPlayError`
+- Timeline markers: `t_callStart`, `t_inviteSent`, `t_incomingReceived`, `t_answerClicked`, `t_established`, `t_ended`
+- Message: `msg`
 
 **Scan noise protection:**
 - Empty or missing `events` array → 400
@@ -148,11 +160,16 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 **JSON API:** `http://10.252.253.15:8081/admin/calllogs/json`
 
 **Filter controls:**
+- Username / Extension — substring match (shows inbound + outbound in one timeline)
+- Domain — substring match
 - AOR / Account — substring match (e.g. `900900@fusn01.srve.cc`)
+- Direction — inbound / outbound
+- Mode — Wi-Fi / LTE
 - Call-ID — substring match
 - Event type — substring match (e.g. `MEDIA-E001`)
-- LTE mode only — show only events from LTE mode sessions
 - Errors only — show only events with `MEDIA-E*` codes
+
+**Per-call trace:** Each row provides a `trace` link which filters the view to that exact `Call-ID`.
 
 **Auto-refresh:** 15s when no filter is active (default view)
 

@@ -10,15 +10,27 @@ import {
   getUsernameHistory,
 } from "./identity.js";
 import {
-  sendLogsToServer,
+  sendLogsToServer as sendLogsToServerImpl,
   sendMetadataToServer,
   trySendMetadataBeacon,
 } from "./transport.js";
 
-export { sendLogsToServer, sendMetadataToServer };
+export { sendMetadataToServer };
+
+try {
+  console.log(`[REMOTELOGS_BUILD_ID] url=${import.meta.url} src=app/remoteLogs/service.js`);
+} catch {}
 
 export function isDebugMode() {
   return state.debugMode;
+}
+
+function probe(tag, detail = "") {
+  try {
+    const suffix = detail ? ` ${detail}` : "";
+    // Keep probes concise and machine-greppable.
+    console.log(`[${tag}]${suffix}`);
+  } catch {}
 }
 
 function initializeDebugMode() {
@@ -29,6 +41,7 @@ function initializeDebugMode() {
     state.debugMode = false;
   }
   console.log(`[RemoteLogs] Debug mode initialized: ${state.debugMode}`);
+  probe(state.debugMode ? "DEBUG_MODE_RUNTIME_ON" : "DEBUG_MODE_RUNTIME_OFF", "init");
 
   // If debug mode is already enabled (e.g., persisted across reloads), ensure we have
   // a stable batchId so the server can aggregate uploads into a single file.
@@ -57,6 +70,7 @@ export function toggleDebugMode() {
     // Ignore localStorage errors.
   }
   console.log(`[RemoteLogs] Debug mode ${state.debugMode ? "ENABLED" : "DISABLED"}`);
+  probe(state.debugMode ? "DEBUG_MODE_RUNTIME_ON" : "DEBUG_MODE_RUNTIME_OFF", "toggle");
 
   if (state.debugMode) {
     try {
@@ -85,7 +99,16 @@ export function toggleDebugMode() {
 
   if (state.debugMode) {
     if (!state.sendTimer) {
-      state.sendTimer = setInterval(sendLogsToServer, SEND_INTERVAL);
+      state.sendTimer = setInterval(() => {
+        try {
+          const now = Date.now();
+          if (now - (state._probe?.lastTimerProbeTs || 0) >= 10000) {
+            state._probe.lastTimerProbeTs = now;
+            probe("DEBUG_FLUSH_TIMER_TICK", `buffer=${state.logBuffer.length}`);
+          }
+        } catch {}
+        sendLogsToServer();
+      }, SEND_INTERVAL);
       console.log("[RemoteLogs] Started log sending timer");
     }
   } else if (state.sendTimer) {
@@ -106,6 +129,10 @@ export function setUsername(username) {
   const prevUsername = state.currentUsername;
   state.currentUsername = username;
   console.log(`[RemoteLogs] Username set to: ${username}, previous: ${prevUsername || 'none'}, state now:`, state.currentUsername);
+
+  try {
+    console.log(`[META_SET_USERNAME] user=${username} prev=${prevUsername || 'none'} src=remoteLogs/service.js:setUsername`);
+  } catch {}
 
   try {
     localStorage.setItem("webrtc_current_username", username);
@@ -144,6 +171,14 @@ export function captureLog(level, message) {
 
   state.logBuffer.push(entry);
 
+  try {
+    const now = Date.now();
+    if (now - (state._probe?.lastBufferProbeTs || 0) >= 5000) {
+      state._probe.lastBufferProbeTs = now;
+      probe("DEBUG_BUFFER_APPEND", `buffer=${state.logBuffer.length}`);
+    }
+  } catch {}
+
   // Keep only last 500 logs in memory.
   if (state.logBuffer.length > 500) {
     state.logBuffer = state.logBuffer.slice(-500);
@@ -152,6 +187,27 @@ export function captureLog(level, message) {
   if (state.logBuffer.length >= MAX_LOGS_PER_BATCH) {
     sendLogsToServer();
   }
+}
+
+export function sendLogsToServer() {
+  try {
+    const now = Date.now();
+    if (now - (state._probe?.lastSendProbeTs || 0) >= 5000) {
+      state._probe.lastSendProbeTs = now;
+      probe("DEBUG_SENDLOGS_CALLED", `debugMode=${state.debugMode} buffer=${state.logBuffer.length}`);
+    }
+  } catch {}
+
+  if (!state.debugMode) {
+    probe("DEBUG_SENDLOGS_SKIPPED", "debugMode_off");
+    return;
+  }
+  if (state.logBuffer.length === 0) {
+    probe("DEBUG_SENDLOGS_EMPTY_BATCH");
+    return;
+  }
+
+  return sendLogsToServerImpl();
 }
 
 function bindLifecycleEvents() {
@@ -194,10 +250,16 @@ function bindLifecycleEvents() {
 
     window.__consoleIntercepted = true;
     originalLog("[RemoteLogs] Console interception enabled");
+    try {
+      originalLog("[DEBUG_CONSOLE_INTERCEPT_ON]");
+    } catch {}
   }
 
   // When app returns to foreground, send metadata once immediately.
   document.addEventListener("visibilitychange", () => {
+    try {
+      console.log(`[META_ANDROID_RESUME] vis=${document.visibilityState} user=${state.currentUsername || 'n/a'} src=remoteLogs/service.js:visibilitychange`);
+    } catch {}
     if (document.visibilityState === "visible") {
       setTimeout(() => {
         sendMetadataToServer();
@@ -207,10 +269,16 @@ function bindLifecycleEvents() {
 
   // Use beacon on unload/pagehide to avoid fetch cancellation errors.
   window.addEventListener("pagehide", () => {
+    try {
+      console.log(`[META_PAGEHIDE] user=${state.currentUsername || 'n/a'} src=remoteLogs/service.js:pagehide`);
+    } catch {}
     trySendMetadataBeacon();
   });
 
   window.addEventListener("beforeunload", () => {
+    try {
+      console.log(`[META_PAGE_RELOAD] user=${state.currentUsername || 'n/a'} src=remoteLogs/service.js:beforeunload`);
+    } catch {}
     trySendMetadataBeacon();
   });
 
@@ -219,6 +287,7 @@ function bindLifecycleEvents() {
 
 export function startRemoteLogging() {
   initializeDebugMode();
+  probe("DEBUG_PIPELINE_LOCAL_OK", `debugMode=${state.debugMode}`);
 
   // Prime persistent device ID asynchronously to keep startup non-blocking.
   getOrCreateDeviceId().catch(() => {
@@ -239,6 +308,13 @@ export function startRemoteLogging() {
 
   if (state.debugMode && !state.sendTimer) {
     state.sendTimer = setInterval(() => {
+      try {
+        const now = Date.now();
+        if (now - (state._probe?.lastTimerProbeTs || 0) >= 10000) {
+          state._probe.lastTimerProbeTs = now;
+          probe("DEBUG_FLUSH_TIMER_TICK", `buffer=${state.logBuffer.length}`);
+        }
+      } catch {}
       sendLogsToServer();
     }, SEND_INTERVAL);
     console.log("[RemoteLogs] Started log sending timer (debug mode)");

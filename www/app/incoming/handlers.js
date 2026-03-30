@@ -1,7 +1,7 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
 import { g711OnlyModifier } from "../sdp.js";
-import { bindPeerConnection } from "../pcDebug.js";
+import { bindPeerConnection } from "../pcDebug.js?v=1773033002";
 import { ensureMicAccess, getLocalStream, stopLocalAudioStream } from "../media.js";
 import { focusDialTabForIncoming, startIncomingAlert, stopIncomingAlert } from "./alert.js";
 import { attachIncomingRemoteAudio, startIncomingEarlyMediaLoop, stopIncomingEarlyMediaLoop } from "./media.js?v=1773032001";
@@ -10,6 +10,152 @@ import { guardLteRelayReadiness, checkLteRelayAvailable, MEDIA_ERRORS } from "..
 import { sendCallMediaEvent } from "../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
 import { ICE_SERVERS } from "../config.js";
+
+let _stats = null;
+let _statsImport = null;
+
+function getRuntimeCb() {
+  try {
+    const fromGlobal = (typeof window !== 'undefined' && window.__BUILD_CB) ? String(window.__BUILD_CB) : '';
+    if (fromGlobal) return fromGlobal;
+  } catch {}
+  try {
+    const u = new URL(import.meta.url);
+    return (u.searchParams.get('cb') || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function loadPcStats() {
+  if (_stats) return Promise.resolve(_stats);
+  if (_statsImport) return _statsImport;
+
+  const cb = getRuntimeCb();
+  const url = cb ? `../pc/stats.js?cb=${encodeURIComponent(cb)}` : '../pc/stats.js';
+  _statsImport = import(url)
+    .then((m) => {
+      _stats = m;
+      return m;
+    })
+    .catch((err) => {
+      try {
+        console.error('[incoming/handlers] Failed to import pc/stats.js', err);
+      } catch {}
+      throw err;
+    });
+
+  return _statsImport;
+}
+
+function scheduleMediaStatsSnapshots(pc, label, diagCtx) {
+  loadPcStats()
+    .then((m) => {
+      const fn = m?.scheduleMediaStatsSnapshots;
+      if (typeof fn !== 'function') {
+        try {
+          console.error('[incoming/handlers] Missing stats export scheduleMediaStatsSnapshots');
+        } catch {}
+        return;
+      }
+      fn(pc, label, diagCtx);
+    })
+    .catch(() => {});
+}
+
+function getInboundDiagContext(st, invitation) {
+  const username = st.account?.rawUsername || st.account?.username || invitation?.localIdentity?.uri?.user || undefined;
+  const domain = st.account?.domain || invitation?.localIdentity?.uri?.host || undefined;
+  const aor = (username && domain) ? `${username}@${domain}` : undefined;
+  const peerUser = invitation?.remoteIdentity?.uri?.user || undefined;
+  const peerDomain = invitation?.remoteIdentity?.uri?.host || undefined;
+  const peerAor = peerUser ? (peerDomain ? `${peerUser}@${peerDomain}` : peerUser) : undefined;
+  const callId = invitation?.request?.callId || undefined;
+  const sessionId = invitation?.id || invitation?._id || undefined;
+  const lteMode = isMobileCompatModeEnabled();
+  const mode = lteMode ? 'lte' : 'wifi';
+  const icePolicy = lteMode ? 'relay' : 'all';
+  return {
+    username,
+    domain,
+    aor,
+    dir: 'inbound',
+    peer: peerUser,
+    peerDomain,
+    peerAor,
+    callId,
+    sessionId,
+    lteMode,
+    mode,
+    selectedProfile: st.selectedProfile || mode,
+    icePolicy,
+  };
+}
+
+function observeRemoteAudioPlay(ui, ctx, { t_answerClicked } = {}) {
+  try {
+    const audioEl = ui?.remoteAudio?.();
+    if (!audioEl) return;
+    if (audioEl.__callMediaPlayObserved) return;
+    audioEl.__callMediaPlayObserved = true;
+
+    const emitAudioState = (type, msg) => {
+      sendCallMediaEvent({
+        type,
+        ...ctx,
+        t_answerClicked,
+        audioElMuted: typeof audioEl.muted === 'boolean' ? audioEl.muted : undefined,
+        audioElVolume: typeof audioEl.volume === 'number' ? audioEl.volume : undefined,
+        audioElReadyState: typeof audioEl.readyState === 'number' ? audioEl.readyState : undefined,
+        audioElPaused: typeof audioEl.paused === 'boolean' ? audioEl.paused : undefined,
+        audioElCurrentTime: typeof audioEl.currentTime === 'number' ? audioEl.currentTime : undefined,
+        msg,
+      });
+    };
+
+    emitAudioState('remote-audio-ready-state', 'remoteAudio initial state');
+    emitAudioState('remote-audio-muted-state', 'remoteAudio muted state');
+    emitAudioState('remote-audio-volume-state', 'remoteAudio volume state');
+
+    audioEl.addEventListener('volumechange', () => {
+      emitAudioState('remote-audio-volume-state', 'remoteAudio volumechange');
+      emitAudioState('remote-audio-muted-state', 'remoteAudio muted state change');
+    });
+    audioEl.addEventListener('loadedmetadata', () => emitAudioState('remote-audio-ready-state', 'remoteAudio loadedmetadata'));
+    audioEl.addEventListener('canplay', () => emitAudioState('remote-audio-ready-state', 'remoteAudio canplay'));
+    audioEl.addEventListener('waiting', () => emitAudioState('remote-audio-ready-state', 'remoteAudio waiting'));
+
+    audioEl.addEventListener('playing', () => {
+      try {
+        audioEl.__callMediaPlayed = true;
+        if (audioEl.__callMediaNoPlayTimer) {
+          clearTimeout(audioEl.__callMediaNoPlayTimer);
+          audioEl.__callMediaNoPlayTimer = null;
+        }
+      } catch {}
+      sendCallMediaEvent({
+        type: 'remote-audio-play-ok',
+        ...ctx,
+        t_answerClicked,
+        audioPlayOk: true,
+        msg: 'remoteAudio is playing',
+      });
+    }, { once: true });
+
+    audioEl.addEventListener('error', () => {
+      sendCallMediaEvent({
+        type: 'remote-audio-play-failed',
+        ...ctx,
+        t_answerClicked,
+        audioPlayOk: false,
+        audioPlayError: 'audio-element-error',
+        msg: 'remoteAudio element error',
+      });
+    }, { once: true });
+  } catch {
+    // no-op
+  }
+}
 
 // Track page load time for ghost call prevention
 const pageLoadTimeForIncoming = Date.now();
@@ -22,6 +168,13 @@ function cleanupIncomingState(st, ui) {
   ui.setButtons();
   ui.setStatus("Idle");
   if (window.callTimer) window.callTimer.stop();
+  try {
+    const audioEl = ui?.remoteAudio?.();
+    if (audioEl?.__callMediaNoPlayTimer) {
+      clearTimeout(audioEl.__callMediaNoPlayTimer);
+      audioEl.__callMediaNoPlayTimer = null;
+    }
+  } catch {}
 }
 
 function endIncomingAlert(st, ui, reason = "unknown") {
@@ -43,6 +196,13 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
   const callerUser = invitation.remoteIdentity?.uri?.user || "Unknown";
   const callerDisplay = invitation.remoteIdentity?.displayName || callerUser;
   let wasAnswered = false;
+
+  sendCallMediaEvent({
+    type: 'media-offer-incoming',
+    ...getInboundDiagContext(st, invitation),
+    t_incomingReceived: new Date().toISOString(),
+    msg: 'Incoming call offer (INVITE) received',
+  });
 
   // CRITICAL: Reject all incoming calls if not registered yet (prevents phantom calls during login)
   if (!st.registered) {
@@ -119,7 +279,36 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
       ui.setButtons();
       if (window.callTimer) window.callTimer.start();
       attachIncomingRemoteAudio(invitation, ui);
-      bindPeerConnection(invitation, "inbound");
+      const _ctx = getInboundDiagContext(st, invitation);
+      bindPeerConnection(invitation, "inbound", { aor: _ctx.aor, callId: _ctx.callId });
+
+      try {
+        const audioEl = ui?.remoteAudio?.();
+        if (audioEl && !audioEl.__callMediaNoPlayTimer) {
+          audioEl.__callMediaNoPlayTimer = setTimeout(() => {
+            try {
+              if (audioEl.__callMediaPlayed) return;
+              sendCallMediaEvent({
+                type: 'no-remote-audio-play',
+                ..._ctx,
+                msg: 'Remote audio did not start playing within 10s after establish',
+              });
+            } catch {}
+          }, 10000);
+        }
+      } catch {}
+
+      try {
+        const pc = invitation?.sessionDescriptionHandler?.peerConnection;
+        if (pc) scheduleMediaStatsSnapshots(pc, 'inbound', _ctx);
+      } catch {}
+
+      sendCallMediaEvent({
+        type: 'call-established',
+        ..._ctx,
+        t_established: new Date().toISOString(),
+        msg: 'Inbound call established',
+      });
       
       // Register as primary session with dual session manager
       if (!dualSessionManager.primary) {
@@ -138,6 +327,13 @@ export function handleIncomingCallIsolated(SIP, st, ui, invitation) {
       }
       endIncomingAlert(st, ui, "state-terminated");
       stopIncomingEarlyMediaLoop(invitation);
+
+      sendCallMediaEvent({
+        type: 'call-ended',
+        ...getInboundDiagContext(st, invitation),
+        t_ended: new Date().toISOString(),
+        msg: 'Inbound call terminated',
+      });
       
       // Remove from dual session manager
       dualSessionManager.removeSession(st);
@@ -171,6 +367,7 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
   const callerDisplay = invitation.remoteIdentity?.displayName || caller;
 
   stopIncomingAlert();
+  const t_answerClicked = new Date().toISOString();
   const micOk = await ensureMicAccess(ui.setStatus);
   if (!micOk) {
     try {
@@ -189,22 +386,69 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
     : null;
   const callId = invitation.request?.callId || null;
 
+  sendCallMediaEvent({
+    type: 'answer-clicked',
+    ...getInboundDiagContext(st, invitation),
+    t_answerClicked,
+    hasLocalStream: Boolean(getLocalStream()),
+    msg: 'User clicked answer',
+  });
+
+  observeRemoteAudioPlay(ui, getInboundDiagContext(st, invitation), { t_answerClicked });
+
   // LTE pre-flight check for incoming answer — same as outbound path.
   // Must run BEFORE accept() to prevent answering with 0.0.0.0:9 SDP.
   if (isMobileCompatModeEnabled()) {
     logLine(`[${nowISO()}] [incoming:answer] LTE mode: running pre-flight TURN relay check...`);
     ui.setStatus("Checking media relay...");
+
+    sendCallMediaEvent({
+      type: 'answer-preflight-start',
+      ...getInboundDiagContext(st, invitation),
+      aor,
+      callId,
+      t_answerClicked,
+      msg: 'Starting LTE answer preflight (relay candidate check)',
+    });
+
     let preCheck;
     try {
-      preCheck = await checkLteRelayAvailable(ICE_SERVERS);
+      preCheck = await checkLteRelayAvailable(ICE_SERVERS, 8000, {
+        ...getInboundDiagContext(st, invitation),
+        aor,
+        callId,
+        dir: 'inbound',
+        peer: caller,
+        lteMode: true,
+        mode: 'lte',
+        selectedProfile: st.selectedProfile || 'lte',
+      });
     } catch {
       preCheck = { relay: 0, total: 0, timedOut: true };
     }
     logLine(`[${nowISO()}] [incoming:answer] pre-flight result: relay=${preCheck.relay} total=${preCheck.total} timedOut=${preCheck.timedOut}`);
+
+    sendCallMediaEvent({
+      type: 'answer-preflight-result',
+      ...getInboundDiagContext(st, invitation),
+      aor,
+      callId,
+      t_answerClicked,
+      relay: preCheck.relay,
+      total: preCheck.total,
+      timedOut: preCheck.timedOut,
+      msg: `LTE answer preflight result: relay=${preCheck.relay} total=${preCheck.total} timedOut=${preCheck.timedOut}`,
+    });
+
     sendCallMediaEvent({
       type: preCheck.relay > 0 ? 'preflight-ok' : 'preflight-fail',
       code: preCheck.relay === 0 ? (preCheck.timedOut ? 'MEDIA-E002' : 'MEDIA-E001') : undefined,
       aor, callId, lteMode: true, dir: 'inbound',
+      username: st.account?.rawUsername || st.account?.username || undefined,
+      domain: st.account?.domain || undefined,
+      mode: 'lte',
+      selectedProfile: st.selectedProfile || 'lte',
+      peer: caller,
       relay: preCheck.relay, total: preCheck.total, timedOut: preCheck.timedOut,
       msg: preCheck.relay > 0 ? 'TURN relay reachable' : (preCheck.timedOut ? 'ICE gathering timed out' : 'Zero relay candidates'),
     });
@@ -221,6 +465,15 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
   }
 
   try {
+    sendCallMediaEvent({
+      type: 'answer-accept-start',
+      ...getInboundDiagContext(st, invitation),
+      aor,
+      callId,
+      t_answerClicked,
+      msg: 'Starting invitation.accept() for inbound answer',
+    });
+
     const inviteOptions = {
       sessionDescriptionHandlerModifiers: [g711OnlyModifier],
       sessionDescriptionHandlerOptions: {
@@ -230,7 +483,24 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
     };
 
     await invitation.accept(inviteOptions);
+
+    sendCallMediaEvent({
+      type: 'answer-accept-success',
+      ...getInboundDiagContext(st, invitation),
+      aor,
+      callId,
+      t_answerClicked,
+      msg: 'invitation.accept() resolved',
+    });
+
     startIncomingEarlyMediaLoop(invitation, ui);
+
+    sendCallMediaEvent({
+      type: 'media-answer-incoming',
+      ...getInboundDiagContext(st, invitation),
+      t_answerClicked,
+      msg: 'Sent 200 OK (answer)',
+    });
 
     // LTE relay guard — monitors ICE gathering in relay-only mode after answer.
     guardLteRelayReadiness(invitation, {
@@ -245,9 +515,25 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
       },
     });
 
-    sendCallMediaEvent({ type: 'call-answer', aor, callId, dir: 'inbound', lteMode: null });
+    // Keep legacy event (used by existing docs), but enrich for new admin filters.
+    sendCallMediaEvent({
+      type: 'call-answer',
+      ...getInboundDiagContext(st, invitation),
+      t_answerClicked,
+      msg: 'Incoming call answered',
+    });
   } catch (err) {
     logLine(`[${nowISO()}] [incoming:answer] ERROR accepting call: ${err?.message || err}`);
+
+    sendCallMediaEvent({
+      type: 'answer-accept-failed',
+      ...getInboundDiagContext(st, invitation),
+      aor,
+      callId,
+      t_answerClicked,
+      msg: `invitation.accept() failed: ${err?.message || err}`,
+    });
+
     stopLocalAudioStream();
     st.session = null;
     ui.setButtons();
