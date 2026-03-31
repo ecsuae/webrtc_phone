@@ -2,6 +2,7 @@ import { primeIncomingRingtone } from "../incoming/alert.js";
 import { startCall, hangupCall } from "../sipCall.js";
 import { answerIncomingCallIsolated, rejectIncomingCallIsolated } from "../sipCallIncoming.js";
 import { joinConferenceFromPin } from "../conference/join.js";
+import { bindRegistrationUiHandlers } from "../registration/registrationUiBindings.js";
 import { setupTabNavigation } from "../ui/tabNavigation.js";
 import { setupCallControls } from "../ui/callControls.js";
 import { logLine } from "../log.js";
@@ -11,27 +12,15 @@ export function bindControlHandlers({ el, st, ui, SIP, callHistory, runOneTapEna
   const joinConferenceBtn = document.getElementById("btnJoinConference");
   const conferenceEnabled = String(document?.body?.dataset?.conferenceEnabled || "").toLowerCase() === "true";
 
-  if (el.btnStart && el.btnStop) {
-    el.btnStart.addEventListener("click", async () => {
-      primeIncomingRingtone();
-      await runOneTapEnableFlow();
-    });
-
-    el.btnStop.addEventListener("click", () => {
-      releaseWakeLock();
-      stopAndUnregister(st, ui, false);
-    });
-  } else if (el.btnStart) {
-    el.btnStart.addEventListener("click", async () => {
-      primeIncomingRingtone();
-      if (st.registered) {
-        releaseWakeLock();
-        stopAndUnregister(st, ui, false);
-      } else {
-        await runOneTapEnableFlow();
-      }
-    });
-  }
+  bindRegistrationUiHandlers({
+    el,
+    st,
+    ui,
+    runOneTapEnableFlow,
+    stopAndUnregister,
+    releaseWakeLock,
+    primeIncomingRingtone,
+  });
 
   el.btnCall?.addEventListener("click", () => {
     try {

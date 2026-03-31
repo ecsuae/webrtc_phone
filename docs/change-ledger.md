@@ -28,6 +28,207 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-03-31T01:06:00Z — TASK-022: Registration cleanup pass — remove dead secondary SBC registration entrypoint
+- **AI**: Cascade
+- **Scope**: Registration-only cleanup (no behavior change intended; no outgoing/incoming/media/export/PDF changes)
+- **Dead code removed (proven unused)**:
+  - `www/app/registration/secondary.js`: removed `registerWithSBC(...)` (no remaining references)
+  - `www/app/sipRegister.js`: removed import/export and commented callsite for `registerWithSBC`
+- **Still used (kept)**:
+  - `www/app/registration/secondary.js`: `stopSecondaryRegistration(st)` is still called from `stopAndUnregister` and remains.
+- **Files changed**:
+  - `www/app/sipRegister.js`
+  - `www/app/registration/secondary.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Verify Enable Calls + Stop/Logoff on desktop Wi-Fi and Android (Wi-Fi + LTE), ensuring no auto-registration before explicit enable.
+
+### 2026-03-31T00:36:00Z — TASK-022: Thin Android registration bridge cleanup — call shared registration actions directly
+- **AI**: Cascade
+- **Scope**: Android registration wrapper only (no behavior redesign; preserve stale-module-chain protections; no outgoing/incoming/media/export/PDF changes)
+- **Android-specific logic locations (before)**:
+  - `www/app/runtime/android/registrationAndroid.js`:
+    - explicit-enable guard using `st._callsEnabled` and persisted `webrtc_calls_enabled`
+    - cb-safe dynamic import of `../registerFlow.js?cb=...`
+    - constructed flow via `createRegisterFlow(...)` then called `flow.runOneTapEnableFlow()`
+- **Duplicate/shared logic removed from Android wrapper**:
+  - Android wrapper no longer depends on the `registerFlow.js` wrapper module to reach shared enable logic.
+  - Enable Calls action flow ownership remains in `www/app/registration/registrationActions.js`.
+- **Fix**:
+  - Updated `www/app/runtime/android/registrationAndroid.js` to dynamically import `../../registration/registrationActions.js?cb=...` and call `actions.enableCalls()`.
+  - Guard + diagnostics + cb token logic preserved.
+- **Files changed**:
+  - `www/app/runtime/android/registrationAndroid.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only; Android may require hard refresh/clear site data due to cached module graphs)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - On Android and desktop, click **Enable Calls** and confirm registration completes and UI shows registered.
+
+### 2026-03-31T00:21:00Z — TASK-022: Registration isolation (step 6) — extract registration UI bindings
+- **AI**: Cascade
+- **Scope**: Registration UI bindings only (Enable Calls / Stop wiring). No UA/Registerer creation, no config building, no event bridge logic changes, no incoming/outgoing/media/export/PDF changes.
+- **Registration UI binding locations (before)**:
+  - `www/app/runtime/controlBindings.js`: directly wired Enable Calls click -> `runOneTapEnableFlow()` and Stop -> `releaseWakeLock()` + `stopAndUnregister()`.
+  - `www/app/ui/appUi.js`: registration form reads via `ui.account()/pass()/wss()` and button/status updates (kept unchanged in Step 6).
+- **Fix**:
+  - Added `www/app/registration/registrationUiBindings.js` exporting `bindRegistrationUiHandlers(...)`.
+  - Updated `www/app/runtime/controlBindings.js` to call `bindRegistrationUiHandlers(...)` and removed inline Enable/Stop wiring.
+- **Files changed**:
+  - `www/app/registration/registrationUiBindings.js` (new)
+  - `www/app/runtime/controlBindings.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
+### 2026-03-30T23:56:00Z — TASK-022: Registration isolation (step 5) — extract registration event bridge
+- **AI**: Cascade
+- **Scope**: Registration event normalization only (transport + registerer state/delegate normalization). No config building, no UA/Registerer creation changes, no Enable Calls logic changes, no incoming/outgoing/media/export/PDF changes.
+- **Scattered event/state update locations (before)**:
+  - `www/app/registration/primary.js`: transport `stateChange` handler with UI+diag behavior; registerer delegate `onAccept/onReject` directly mutating `st.registered/registering`; `st.reg.stateChange` listener toggling `st.registered` and updating buttons.
+- **Fix**:
+  - Added `www/app/registration/registrationEvents.js` owning:
+    - `attachTransportEvents(...)` (normalized transport state transitions)
+    - `createRegistererDelegate(...)` (normalized accept/reject bookkeeping)
+    - `attachRegistererStateEvents(...)` (normalized registerer state bookkeeping)
+  - Updated `www/app/registration/primary.js` to use these helpers while keeping UI updates and diagnostics in `primary.js` via callbacks.
+- **Files changed**:
+  - `www/app/registration/registrationEvents.js` (new)
+  - `www/app/registration/primary.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
+### 2026-03-30T23:41:00Z — TASK-022: Registration isolation (step 4) — extract Enable/Disable Calls actions
+- **AI**: Cascade
+- **Scope**: Enable/Disable Calls action flow only (no UA/Registerer creation; no config building; no incoming/outgoing/media/export/PDF changes)
+- **Enable Calls logic locations (before)**:
+  - `www/app/runtime/registerFlow.js`: set `st._callsEnabled`, persisted `webrtc_calls_enabled`, called `startAndRegister`, waited for `st.registered`, acquired wake lock.
+  - `www/app/runtime/controlBindings.js`: wired Enable Calls button to `runOneTapEnableFlow` and Stop to `stopAndUnregister`.
+  - `www/app/runtime/android/registrationAndroid.js`: Android wrapper loads `registerFlow.js` dynamically (cb token) and relies on `st._callsEnabled` for gating.
+- **Fix**:
+  - Added `www/app/registration/registrationActions.js` exporting `createRegistrationActions(...)` with:
+    - `enableCalls()` (explicit enable + persistence + start registration + wait + acquire wake lock)
+    - `disableCalls()` (explicit disable + persistence + optional stop)
+  - Updated `www/app/runtime/registerFlow.js` to delegate `runOneTapEnableFlow` to `actions.enableCalls` while keeping the same `createRegisterFlow` API.
+- **Files changed**:
+  - `www/app/registration/registrationActions.js` (new)
+  - `www/app/runtime/registerFlow.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
+### 2026-03-30T23:26:00Z — TASK-022: Registration isolation (step 3) — extract registration execution service
+- **AI**: Cascade
+- **Scope**: Registration execution only (UA/Registerer lifecycle); no config building changes; no outgoing/incoming/media/export/PDF changes
+- **Execution logic locations (before)**:
+  - `www/app/registration/primary.js`: created `SIP.UserAgent`, started UA (`ua.start()`), created `SIP.Registerer`, sent REGISTER.
+  - `www/app/sipRegister.js`: performed unregister/stop and cleared `st.ua`, `st.reg`, `st.account` during stop.
+- **Fix**:
+  - Added `www/app/registration/registrationService.js` owning:
+    - UA creation helper
+    - UA start
+    - Registerer creation helper
+    - sending REGISTER
+    - unregister + stop lifecycle
+    - normalized clearing of registration objects
+  - Wired `www/app/registration/primary.js` to call `createUserAgent()`, `startUserAgent()`, `createRegisterer()`, `sendRegister()`.
+  - Wired `www/app/sipRegister.js` stop path to call `stopRegistrationExecution({ st })` (timers/localStorage/UI/audio behavior unchanged).
+- **Files changed**:
+  - `www/app/registration/registrationService.js` (new)
+  - `www/app/registration/primary.js`
+  - `www/app/sipRegister.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
+### 2026-03-30T23:06:00Z — TASK-022: Registration isolation (step 2) — extract pure registration config builder
+- **AI**: Cascade
+- **Scope**: Registration config builder only (no UA/Registerer creation changes; no outgoing/incoming/media/export/PDF changes)
+- **Goal**: Make registration resilient by isolating pure SIP.js config building into a focused module without changing registration behavior.
+- **Config-building logic locations (before)**:
+  - `www/app/registration/primary.js`: built SIP URI, chose ICE policy/profile, assembled SIP.js `UserAgent` options and `Registerer` options inline.
+  - `www/app/config.js`: `ICE_SERVERS`, `ICE_TRANSPORT_POLICY`.
+- **Fix**:
+  - Added `www/app/registration/registrationConfig.js` exporting `buildRegistrationConfig({ SIP, account, pass, wss, mobileCompatMode })`.
+  - Updated `www/app/registration/primary.js` to call `buildRegistrationConfig()` and spread `config.userAgentOptions` into `new SIP.UserAgent(...)`.
+  - Updated `primary.js` registerer creation to spread `config.registererOptions` into `new SIP.Registerer(...)`.
+- **Files changed**:
+  - `www/app/registration/registrationConfig.js` (new)
+  - `www/app/registration/primary.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
+### 2026-03-30T22:51:00Z — TASK-022: Registration isolation (step 1) — centralize registration-owned state
+- **AI**: Cascade
+- **Scope**: Registration state only (no outgoing/incoming/media/export/PDF changes)
+- **Goal**: Make registration/login resilient by centralizing registration-owned state in a focused module without behavior redesign.
+- **Fix**:
+  - Added new `www/app/registration/registrationState.js` exporting `createRegistrationState()`.
+  - Updated `www/app/registration/state.js` (`createAppState`) to:
+    - add `st.registration`
+    - provide transparent accessors for `st.ua`, `st.reg`, `st.account`, `st.selectedProfile` so existing code continues to work.
+- **Registration-owned state items (now centralized defaults)**:
+  - `sipAccountRaw`, `username`, `domain`, `selectedProfile`, `iceTransportPolicy`
+  - `callsEnabled`, `callsEnabledPersisted`, `enableRequestedAt`
+  - `ua`, `registerer`
+  - `status`, `transportState`, `registrationState`
+  - `lastError`, `lastErrorAt`, `lastRegisterCallId`, `lastRegisterAttemptAt`, `lastRegisteredAt`, `lastUnregisteredAt`
+  - `platform`, `hasExplicitEnableForSession`, `hasEverRegisteredThisSession`, `isBootRecovered`
+- **Files changed**:
+  - `www/app/registration/registrationState.js` (new)
+  - `www/app/registration/state.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - None (frontend reload only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Do one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
+
 ### 2026-03-30T22:30:00Z — TASK-022: Slow/stuck Android registration — keep WS alive long enough to relay PBX REGISTER replies
 - **AI**: Cascade
 - **Scope**: Kamailio WebSocket signaling stability only (no media/export/PDF work)

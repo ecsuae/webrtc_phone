@@ -85,3 +85,24 @@ Examples:
 2026-03-31 03:25 PKT | NOTE   | TASK-022 | Proven: REGISTER reaches Kamailio over WS; PBX sends 401; Kamailio receives 401 but fails to relay promptly to WS client (REG-RELAY-FAILED / relay=0) | AI: Cascade
 2026-03-31 03:28 PKT | CHANGE | TASK-022 | Increased Kamailio websocket keepalive_timeout to reduce WS disconnect before delayed PBX REGISTER replies can be relayed | AI: Cascade
 2026-03-31 03:29 PKT | NOTE   | TASK-022 | Restart required: kamailio must reload kamailio.cfg | AI: Cascade
+2026-03-31 03:55 PKT | START  | TASK-022 | Registration isolation step 2: extract pure registration config builder (UA/Registerer options) | AI: Cascade
+2026-03-31 04:05 PKT | CHANGE | TASK-022 | Added www/app/registration/registrationConfig.js and wired primary.js to use buildRegistrationConfig() (pure config only; UA/Registerer creation remains in primary.js) | AI: Cascade
+2026-03-31 04:06 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 04:15 PKT | START  | TASK-022 | Registration isolation step 3: extract registration execution service (UA/Registerer lifecycle) | AI: Cascade
+2026-03-31 04:25 PKT | CHANGE | TASK-022 | Added www/app/registration/registrationService.js and wired primary.js + sipRegister.js to use it for UA start/register and unregister/stop lifecycle | AI: Cascade
+2026-03-31 04:26 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 04:30 PKT | START  | TASK-022 | Registration isolation step 4: extract Enable/Disable Calls actions | AI: Cascade
+2026-03-31 04:40 PKT | CHANGE | TASK-022 | Added www/app/registration/registrationActions.js and made runtime/registerFlow.js delegate runOneTapEnableFlow to actions.enableCalls (behavior preserved) | AI: Cascade
+2026-03-31 04:41 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 04:50 PKT | START  | TASK-022 | Registration isolation step 5: extract registration event bridge (transport/registerer normalization) | AI: Cascade
+2026-03-31 05:05 PKT | CHANGE | TASK-022 | Added www/app/registration/registrationEvents.js and wired primary.js to use attachTransportEvents/createRegistererDelegate/attachRegistererStateEvents | AI: Cascade
+2026-03-31 05:06 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 05:10 PKT | START  | TASK-022 | Registration isolation step 6: extract registration UI bindings (Enable/Stop button wiring) | AI: Cascade
+2026-03-31 05:20 PKT | CHANGE | TASK-022 | Added www/app/registration/registrationUiBindings.js and wired runtime/controlBindings.js to call bindRegistrationUiHandlers() for Enable/Stop wiring | AI: Cascade
+2026-03-31 05:21 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 05:30 PKT | START  | TASK-022 | Thin Android registration bridge cleanup: call shared registrationActions via cb-safe dynamic import (no duplicate enable flow ownership) | AI: Cascade
+2026-03-31 05:35 PKT | CHANGE | TASK-022 | Android wrapper now dynamically imports registrationActions.js (cb token) and calls actions.enableCalls(); guard + diagnostics preserved | AI: Cascade
+2026-03-31 05:36 PKT | NOTE   | TASK-022 | Verification pending: run one desktop + Android Enable Calls login to confirm no registration behavior change | AI: Cascade
+2026-03-31 05:55 PKT | START  | TASK-022 | Registration cleanup pass: remove dead old registration code paths proven unused | AI: Cascade
+2026-03-31 06:05 PKT | CHANGE | TASK-022 | Removed dead disabled secondary SBC registration entrypoint registerWithSBC (kept stopSecondaryRegistration used on logout) | AI: Cascade
+2026-03-31 06:06 PKT | NOTE   | TASK-022 | Verification pending: desktop+Android Enable Calls and Stop/Logoff to confirm behavior unchanged | AI: Cascade

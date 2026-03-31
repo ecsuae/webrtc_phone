@@ -1,8 +1,8 @@
 import { startAndRegister, stopAndUnregister } from "../../sipRegister.js";
 import { createWakeLockManager } from "../wakeLockManager.js";
 
-let _registerFlow = null;
-let _registerFlowImport = null;
+let _registrationActions = null;
+let _registrationActionsImport = null;
 
 function getRuntimeCb() {
   try {
@@ -18,21 +18,23 @@ function getRuntimeCb() {
 }
 
 function loadRegisterFlow() {
-  if (_registerFlow) return Promise.resolve(_registerFlow);
-  if (_registerFlowImport) return _registerFlowImport;
+  if (_registrationActions) return Promise.resolve(_registrationActions);
+  if (_registrationActionsImport) return _registrationActionsImport;
 
   const cb = getRuntimeCb();
-  const url = cb ? `../registerFlow.js?cb=${encodeURIComponent(cb)}` : '../registerFlow.js';
-  _registerFlowImport = import(url)
+  const url = cb
+    ? `../../registration/registrationActions.js?cb=${encodeURIComponent(cb)}`
+    : "../../registration/registrationActions.js";
+  _registrationActionsImport = import(url)
     .then((m) => {
-      _registerFlow = m;
+      _registrationActions = m;
       return m;
     })
     .catch((err) => {
-      _registerFlowImport = null;
+      _registrationActionsImport = null;
       throw err;
     });
-  return _registerFlowImport;
+  return _registrationActionsImport;
 }
 
 function isAndroidClient() {
@@ -150,8 +152,8 @@ export function createAndroidRegistration({ SIP, st, ui, logLine, nowISO }) {
   }
 
   async function runOneTapEnableFlow() {
-    const { createRegisterFlow } = await loadRegisterFlow();
-    const flow = createRegisterFlow({
+    const { createRegistrationActions } = await loadRegisterFlow();
+    const actions = createRegistrationActions({
       SIP,
       st,
       ui,
@@ -159,9 +161,11 @@ export function createAndroidRegistration({ SIP, st, ui, logLine, nowISO }) {
         return guardedStartAndRegister(SIPArg, stateArg, uiArg, 'direct-call-1');
       },
       acquireWakeLock,
+      releaseWakeLock,
       logLine,
+      stopAndUnregister,
     });
-    return flow.runOneTapEnableFlow();
+    return actions.enableCalls();
   }
 
   async function start() {
