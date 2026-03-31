@@ -1,5 +1,18 @@
 'use strict';
 
+const {
+  inferCallClass,
+  callClassAllowsMissingLeg,
+} = require('../services/callClassification');
+
+const {
+  canonicalType,
+  getLatestMediaStatsByDir,
+  buildCallDiagnosis,
+  computeMissingLeg,
+  computeProbableLteReceiveFailure,
+} = require('../services/callDiagnosis');
+
 /**
  * callLogPage.js
  *
@@ -111,6 +124,7 @@ function buildLegSummary(events, dir) {
 }
 
 function renderLegSummaryBlock(events) {
+  const callClass = inferCallClass(events).class;
   const caller = buildLegSummary(events, 'outbound');
   const callee = buildLegSummary(events, 'inbound');
 
@@ -120,14 +134,15 @@ function renderLegSummaryBlock(events) {
     return 'unknown';
   };
 
-  const warn = (!caller.any || !callee.any)
+  const shouldWarnMissingLeg = callClassAllowsMissingLeg(callClass);
+  const warn = shouldWarnMissingLeg && (!caller.any || !callee.any)
     ? `<div class="legend" style="margin-top: 0; margin-bottom: 12px; border-color: rgba(224,90,90,.45);">
   <h3 style="color: var(--red);">WARNING: ${!caller.any ? 'caller leg logs missing' : ''}${(!caller.any && !callee.any) ? ' and ' : ''}${!callee.any ? 'callee leg logs missing' : ''}</h3>
   <div style="margin-top: 6px;">PROBLEM: incomplete observability for ${!caller.any ? 'caller' : 'callee'} leg</div>
 </div>`
     : '';
 
-  const asym = deriveAsymmetricDirectionDiagnosis(events);
+  const asym = shouldWarnMissingLeg ? deriveAsymmetricDirectionDiagnosis(events) : null;
   const asymHtml = asym
     ? `<div class="legend" style="margin-top: 0; margin-bottom: 12px; border-color: rgba(224,90,90,.45);">
   <h3 style="color: var(--red);">${escHtml(asym.problem)}</h3>
@@ -268,32 +283,6 @@ function parseTsMs(ts) {
   return Number.isFinite(t) ? t : null;
 }
 
-function canonicalType(ev) {
-  const t = ev.type || '';
-  if (!t) return '';
-
-  if (t === 'outbound-invite-sent') return 'invite-sent';
-  if (t === 'outbound-remote-audio-attached') return 'remote-audio-attached';
-  if (t === 'outbound-call-established') return 'call-established';
-  if (t === 'call-established') return 'call-established';
-  if (t === 'media-answer-outgoing') return 'call-established';
-  if (t === 'outbound-preflight-complete') return 'outbound-preflight-result';
-  if (t === 'outbound-preflight-result') return 'outbound-preflight-result';
-  if (t === 'preflight-complete') return 'outbound-preflight-result';
-  if (t === 'outbound-preflight-start') return 'outbound-preflight-result';
-  if (t === 'preflight-ok') return 'outbound-preflight-result';
-  if (t === 'preflight-fail') return 'outbound-preflight-result';
-
-  if (t === 'outbound-preflight-icecandidateerror') return 'preflight-icecandidateerror';
-
-  if (t === 'outbound-remote-audio-play-ok') return 'remote-audio-play-ok';
-  if (t === 'outbound-remote-audio-play-failed') return 'remote-audio-play-failed';
-
-  if (t === 'outbound-remote-track-added') return 'remote-audio-track-added';
-
-  return t;
-}
-
 function stageLabel(ev) {
   if ((ev.code || '').startsWith('MEDIA-E')) return 'Error';
 
@@ -375,84 +364,9 @@ function isSuspiciousStatsEvent(ev) {
   return false;
 }
 
-function getLatestMediaStatsByDir(events) {
-  const byDir = { inbound: null, outbound: null };
-  const rank = (t) => {
-    if (t === 'media-stats-10s') return 3;
-    if (t === 'media-stats-5s') return 2;
-    if (t === 'media-stats-2s') return 1;
-    return 0;
-  };
-  for (const ev of events || []) {
-    const t = ev.type || '';
-    if (!t.startsWith('media-stats-')) continue;
-    const dir = ev.dir === 'inbound' ? 'inbound' : (ev.dir === 'outbound' ? 'outbound' : null);
-    if (!dir) continue;
-    const prev = byDir[dir];
-    if (!prev || rank(t) > rank(prev.type || '')) byDir[dir] = ev;
-  }
-  return byDir;
-}
-
-function buildCallDiagnosis(events) {
-  const evs = Array.isArray(events) ? events : [];
-  const hasEstablished = evs.some((e) => canonicalType(e) === 'call-established');
-  const hasIceComplete = evs.some((e) => canonicalType(e) === 'ice-complete');
-  const hasMediaError = evs.some((e) => (e.code || '').startsWith('MEDIA-E'));
-  const hasPlayOk = evs.some((e) => canonicalType(e) === 'remote-audio-play-ok');
-  const hasPlayFail = evs.some((e) => canonicalType(e) === 'remote-audio-play-failed');
-  const hasNoPlay = evs.some((e) => canonicalType(e) === 'no-remote-audio-play');
-  const hasRelayMismatch = evs.some((e) => canonicalType(e) === 'selected-pair-relay-mismatch');
-
-  const stats = getLatestMediaStatsByDir(evs);
-  const o = stats.outbound;
-  const i = stats.inbound;
-
-  const outboundOut = o?.outboundAudioPacketsSent;
-  const outboundIn = o?.inboundAudioPacketsReceived;
-  const inboundOut = i?.outboundAudioPacketsSent;
-  const inboundIn = i?.inboundAudioPacketsReceived;
-
-  const oneWaySuspected = Boolean(
-    hasEstablished
-    && (
-      (typeof outboundOut === 'number' && outboundOut > 0 && typeof outboundIn === 'number' && outboundIn === 0)
-      || (typeof inboundOut === 'number' && inboundOut > 0 && typeof inboundIn === 'number' && inboundIn === 0)
-      || (hasEstablished && !hasPlayOk)
-      || hasPlayFail
-      || hasNoPlay
-      || hasRelayMismatch
-    )
-  );
-
-  const suspectedMsg = (() => {
-    const parts = [];
-    if (typeof outboundOut === 'number' || typeof outboundIn === 'number') {
-      parts.push(`caller(outbound) sent=${outboundOut ?? '?'} recv=${outboundIn ?? '?'}`);
-    }
-    if (typeof inboundOut === 'number' || typeof inboundIn === 'number') {
-      parts.push(`callee(inbound) sent=${inboundOut ?? '?'} recv=${inboundIn ?? '?'}`);
-    }
-    if (!hasPlayOk) parts.push('missing remote-audio-play-ok');
-    if (hasPlayFail) parts.push('remote-audio-play-failed');
-    if (hasNoPlay) parts.push('no-remote-audio-play');
-    if (hasRelayMismatch) parts.push('selected-pair-relay-mismatch');
-    return parts.join(' | ');
-  })();
-
-  return {
-    hasEstablished,
-    hasIceComplete,
-    hasMediaError,
-    hasPlayOk,
-    oneWaySuspected,
-    suspectedMsg,
-    stats,
-  };
-}
-
 function renderMediaDiagnosisBlock(events) {
-  const diag = buildCallDiagnosis(events);
+  const callClass = inferCallClass(events).class;
+  const diag = buildCallDiagnosis(events, callClass);
   const setup = diag.hasEstablished ? 'OK' : 'UNKNOWN';
   const ice = diag.hasIceComplete ? 'OK' : 'UNKNOWN';
   const dtls = (diag.stats.outbound?.dtlsState || diag.stats.inbound?.dtlsState) ? 'OK' : 'UNKNOWN';
@@ -536,16 +450,23 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     if (!byCorr.has(k)) byCorr.set(k, []);
     byCorr.get(k).push(ev);
   }
+
+  const callClassByKey = new Map();
+  for (const [key, evs] of byCorr.entries()) {
+    callClassByKey.set(key, inferCallClass(evs).class);
+  }
+
   const callProblem = new Map();
   for (const [key, evs] of byCorr.entries()) {
-    const d = buildCallDiagnosis(evs);
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    const d = buildCallDiagnosis(evs, callClass);
     if (d.oneWaySuspected) callProblem.set(key, d);
   }
 
   const callMissingLeg = new Set();
   for (const [key, evs] of byCorr.entries()) {
-    const dirs = new Set(evs.map((e) => e.dir).filter(Boolean));
-    if (dirs.size === 1) callMissingLeg.add(key);
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    if (computeMissingLeg(evs, callClass)) callMissingLeg.add(key);
   }
 
   // 0) Build one canonical preflight row per callId+dir
@@ -648,7 +569,14 @@ function applySummaryTransforms(events, { includeSession } = {}) {
       msg: d.suspectedMsg || 'One-way audio suspected (derived from stats)',
     });
 
-    if (callMissingLeg.has(key)) {
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    const shouldEmitProbableLte = computeProbableLteReceiveFailure({
+      isMissingLeg: callMissingLeg.has(key),
+      callClass,
+      diagnosis: d,
+    });
+
+    if (shouldEmitProbableLte) {
       out.push({
         _seq: rep._seq,
         ts: rep.ts,
@@ -676,6 +604,8 @@ function applySummaryTransforms(events, { includeSession } = {}) {
   // (even when one-way audio is not yet diagnosed — the missing leg is itself a problem).
   for (const key of callMissingLeg) {
     if (callProblem.has(key)) continue; // already covered above
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    if (!callClassAllowsMissingLeg(callClass)) continue;
     const evs = byCorr.get(key) || [];
     const rep = evs[0] || {};
     const dirs = [...new Set(evs.map((e) => e.dir).filter(Boolean))];

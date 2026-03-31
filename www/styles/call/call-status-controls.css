@@ -11,6 +11,104 @@
   text-overflow: ellipsis;
 }
 
+ .rtpIndicators {
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: 6px;
+   margin: 6px 0 10px 0;
+   padding: 8px 10px;
+   border-radius: 12px;
+   border: 1px solid rgba(120, 120, 120, 0.25);
+   background: rgba(255, 255, 255, 0.85);
+ }
+
+ .rtpIndicatorRow {
+   display: grid;
+   grid-template-columns: 34px 1fr 74px;
+   align-items: center;
+   gap: 10px;
+ }
+
+ .rtpIndicatorLabel {
+   font: 800 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+ }
+
+ .rtpIndicatorValue {
+   font: 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+   text-align: right;
+ }
+
+ .rtpBar {
+   height: 8px;
+   border-radius: 999px;
+   overflow: hidden;
+   background: rgba(120, 120, 120, 0.25);
+ }
+
+ .rtpBarFill {
+   height: 100%;
+   width: 0%;
+   border-radius: 999px;
+   transition: width 150ms linear;
+ }
+
+ .rtpBarFillRx {
+   background: linear-gradient(90deg, rgba(34, 211, 238, 0.35), rgba(34, 211, 238, 0.85));
+ }
+
+ .rtpBarFillTx {
+   background: linear-gradient(90deg, rgba(34, 197, 94, 0.35), rgba(34, 197, 94, 0.85));
+ }
+
+ @media (max-width: 480px) {
+   #dial-tab {
+     position: relative;
+   }
+
+   .rtpIndicators.rtpIndicatorsMobile {
+     display: inline-flex;
+     flex-direction: column;
+     align-items: flex-start;
+     justify-content: flex-start;
+     gap: 1px;
+     padding: 0;
+     margin: 0;
+     border: 0;
+     background: transparent;
+     position: absolute;
+     left: 8px;
+     top: -20px;
+     z-index: 2;
+     pointer-events: none;
+   }
+
+   #dialpadCard.in-call #btnToggleKeyboard {
+     display: none !important;
+   }
+
+   .rtpIndicators.rtpIndicatorsMobile .rtpIndicatorRow {
+     display: flex;
+     align-items: baseline;
+     gap: 6px;
+   }
+
+   .rtpIndicators.rtpIndicatorsMobile .rtpIndicatorLabel {
+     font-size: 11px;
+     font-weight: 800;
+   }
+
+   .rtpIndicators.rtpIndicatorsMobile .rtpBar {
+     display: none;
+   }
+
+   .rtpIndicators.rtpIndicatorsMobile .rtpIndicatorValue {
+     font-size: 11px;
+     line-height: 1;
+     opacity: 0.9;
+     text-align: left;
+   }
+ }
+
 .CallTimer {
   float: right;
   margin-right: 10px;

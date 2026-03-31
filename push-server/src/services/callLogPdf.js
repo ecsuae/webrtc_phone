@@ -2,85 +2,20 @@
 
 const PDFDocument = require('pdfkit');
 
+const { inferCallClass } = require('./callClassification');
+
+const {
+  canonicalType,
+  getLatestMediaStatsByDir,
+  buildCallDiagnosis,
+  computeMissingLeg,
+  computeProbableLteReceiveFailure,
+} = require('./callDiagnosis');
+
 function pickTs(ev) {
   return (ev && (ev.ts || ev._serverTs)) || '';
 }
 
-function getLatestMediaStatsByDir(events) {
-  const byDir = { inbound: null, outbound: null };
-  const rank = (t) => {
-    if (t === 'media-stats-10s') return 3;
-    if (t === 'media-stats-5s') return 2;
-    if (t === 'media-stats-2s') return 1;
-    return 0;
-  };
-  for (const ev of events || []) {
-    const t = ev.type || '';
-    if (!t.startsWith('media-stats-')) continue;
-    const dir = ev.dir === 'inbound' ? 'inbound' : (ev.dir === 'outbound' ? 'outbound' : null);
-    if (!dir) continue;
-    const prev = byDir[dir];
-    if (!prev || rank(t) > rank(prev.type || '')) byDir[dir] = ev;
-  }
-  return byDir;
-}
-
-function buildCallDiagnosis(events) {
-  const evs = Array.isArray(events) ? events : [];
-  const hasEstablished = evs.some((e) => canonicalType(e) === 'call-established');
-  const hasIceComplete = evs.some((e) => canonicalType(e) === 'ice-complete');
-  const hasMediaError = evs.some((e) => (e.code || '').startsWith('MEDIA-E'));
-  const hasPlayOk = evs.some((e) => canonicalType(e) === 'remote-audio-play-ok');
-  const hasPlayFail = evs.some((e) => canonicalType(e) === 'remote-audio-play-failed');
-  const hasNoPlay = evs.some((e) => canonicalType(e) === 'no-remote-audio-play');
-  const hasRelayMismatch = evs.some((e) => canonicalType(e) === 'selected-pair-relay-mismatch');
-
-  const stats = getLatestMediaStatsByDir(evs);
-  const o = stats.outbound;
-  const i = stats.inbound;
-
-  const outboundOut = o?.outboundAudioPacketsSent;
-  const outboundIn = o?.inboundAudioPacketsReceived;
-  const inboundOut = i?.outboundAudioPacketsSent;
-  const inboundIn = i?.inboundAudioPacketsReceived;
-
-  const oneWaySuspected = Boolean(
-    hasEstablished
-    && (
-      (typeof outboundOut === 'number' && outboundOut > 0 && typeof outboundIn === 'number' && outboundIn === 0)
-      || (typeof inboundOut === 'number' && inboundOut > 0 && typeof inboundIn === 'number' && inboundIn === 0)
-      || (hasEstablished && !hasPlayOk)
-      || hasPlayFail
-      || hasNoPlay
-      || hasRelayMismatch
-    )
-  );
-
-  const suspectedMsg = (() => {
-    const parts = [];
-    if (typeof outboundOut === 'number' || typeof outboundIn === 'number') {
-      parts.push(`caller(outbound) sent=${outboundOut ?? '?'} recv=${outboundIn ?? '?'}`);
-    }
-    if (typeof inboundOut === 'number' || typeof inboundIn === 'number') {
-      parts.push(`callee(inbound) sent=${inboundOut ?? '?'} recv=${inboundIn ?? '?'}`);
-    }
-    if (!hasPlayOk) parts.push('missing remote-audio-play-ok');
-    if (hasPlayFail) parts.push('remote-audio-play-failed');
-    if (hasNoPlay) parts.push('no-remote-audio-play');
-    if (hasRelayMismatch) parts.push('selected-pair-relay-mismatch');
-    return parts.join(' | ');
-  })();
-
-  return {
-    hasEstablished,
-    hasIceComplete,
-    hasMediaError,
-    hasPlayOk,
-    oneWaySuspected,
-    suspectedMsg,
-    stats,
-  };
-}
 
 function isConcreteCount(v) {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0;
@@ -197,27 +132,6 @@ function formatTs(ts) {
   }
 }
 
-function canonicalType(ev) {
-  const t = (ev && ev.type) || '';
-  if (!t) return '';
-  if (t === 'outbound-invite-sent') return 'invite-sent';
-  if (t === 'outbound-remote-audio-attached') return 'remote-audio-attached';
-  if (t === 'outbound-call-established') return 'call-established';
-  if (t === 'call-established') return 'call-established';
-  if (t === 'media-answer-outgoing') return 'call-established';
-  if (t === 'outbound-preflight-complete') return 'outbound-preflight-result';
-  if (t === 'outbound-preflight-result') return 'outbound-preflight-result';
-  if (t === 'preflight-complete') return 'outbound-preflight-result';
-  if (t === 'outbound-preflight-start') return 'outbound-preflight-result';
-  if (t === 'preflight-ok') return 'outbound-preflight-result';
-  if (t === 'preflight-fail') return 'outbound-preflight-result';
-  if (t === 'outbound-preflight-icecandidateerror') return 'preflight-icecandidateerror';
-  if (t === 'outbound-remote-audio-play-ok') return 'remote-audio-play-ok';
-  if (t === 'outbound-remote-audio-play-failed') return 'remote-audio-play-failed';
-  if (t === 'outbound-remote-track-added') return 'remote-audio-track-added';
-  return t;
-}
-
 function stageLabel(ev) {
   if (((ev && ev.code) || '').startsWith('MEDIA-E')) return 'Error';
   const t = canonicalType(ev);
@@ -280,16 +194,22 @@ function buildHumanSummaryEvents(events) {
     byCorr.get(k).push(ev);
   }
 
+  const callClassByKey = new Map();
+  for (const [key, evs] of byCorr.entries()) {
+    callClassByKey.set(key, inferCallClass(evs).class);
+  }
+
   const callProblem = new Map();
   for (const [key, evs] of byCorr.entries()) {
-    const d = buildCallDiagnosis(evs);
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    const d = buildCallDiagnosis(evs, callClass);
     if (d.oneWaySuspected) callProblem.set(key, d);
   }
 
   const callMissingLeg = new Set();
   for (const [key, evs] of byCorr.entries()) {
-    const dirs = new Set(evs.map((e) => e.dir).filter(Boolean));
-    if (dirs.size === 1) callMissingLeg.add(key);
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    if (computeMissingLeg(evs, callClass)) callMissingLeg.add(key);
   }
 
   // Preflight canonical row per corrKey+dir
@@ -389,7 +309,14 @@ function buildHumanSummaryEvents(events) {
       msg: d.suspectedMsg || 'One-way audio suspected (derived from stats)',
     });
 
-    if (callMissingLeg.has(key)) {
+    const callClass = callClassByKey.get(key) || 'pbx/unknown';
+    const shouldEmitProbableLte = computeProbableLteReceiveFailure({
+      isMissingLeg: callMissingLeg.has(key),
+      callClass,
+      diagnosis: d,
+    });
+
+    if (shouldEmitProbableLte) {
       out.push({
         _seq: rep._seq,
         ts: rep.ts,

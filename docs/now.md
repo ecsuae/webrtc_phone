@@ -1,77 +1,45 @@
 # NOW
 
 ## Current task
-TASK-022 — Registration cleanup pass: continue safe dead-code cleanup after registration isolation Steps 1–6, thin Android bridge cleanup, and verified desktop/Android registration success.
+TASK-024 — UI: restore in-call RX/TX packet indicators (live bars/counters during a call).
 
 ## Why this matters
-Registration/login was previously getting broken by unrelated work. Registration logic is now being isolated step by step so login/Enable Calls remains independent, testable, and safe to change without affecting call/media logic.
+The in-call RX/TX packet indicators are a key live diagnostic and user confidence signal during a call. They previously worked and were lost during refactors/upgrades.
 
 ## Already proven
-- Desktop registration works.
-- Android registration works.
-- DNS resolution issue on server side was one real cause of earlier registration failure and has been fixed.
-- Registration isolation Steps 1–6 were applied without breaking normal registration:
-  - Step 1: registration-owned state
-  - Step 2: registration config builder
-  - Step 3: registration service/starter
-  - Step 4: Enable/Disable Calls actions
-  - Step 5: registration event bridge
-  - Step 6: registration UI bindings
-- Thin Android registration bridge cleanup was applied and Android registration still works.
-- One dead old registration path was safely removed:
-  - `registerWithSBC(...)` removed
-  - `stopSecondaryRegistration(...)` kept because it is still used on logout
+- WebRTC stats collection exists (`RTCPeerConnection.getStats()`), but there is no active UI binding rendering live RX/TX bars/counters.
 
 ## Current blocker
-Registration isolation is working, but `docs/now.md` fell behind actual progress and no longer matches the real verified state. Next work must continue from the current verified registration baseline, not from older pending-test text.
+The call UI no longer contains or updates the in-call RX/TX packet indicator elements.
 
 ## Required focus
-- Continue registration cleanup only.
-- Remove only registration code that is proven unused.
-- Keep behavior unchanged.
-- Keep registration independent from:
-  - outgoing call logic
-  - incoming call logic
-  - LTE/Wi-Fi media logic
-  - export/PDF/admin call log work
+- Fix only the UI/telemetry path for in-call RX/TX indicators.
+- Do not change registration.
+- Do not change outgoing/incoming signaling flow except if required for packet UI only.
+- Do not change media negotiation.
+- Do not change admin/export/PDF logic.
 
 ## Do not touch
-- media/RTP/TURN/Kamailio call handling
-- outgoing/incoming call logic
-- export/PDF work
-- pinned `?v=` imports
-- broad refactors outside registration scope
-- Wi-Fi to Wi-Fi working call behavior
+- registration logic
+- outgoing/incoming call logic (except UI telemetry hookup only)
+- LTE/Wi-Fi media path logic
+- admin call logs/export/PDF logic
+- service worker / cache versioning
+- Kamailio / rtpengine / coturn / docker config
 
 ## Files most likely involved
-- `www/app/registration/state.js`
-- `www/app/registration/registrationState.js`
-- `www/app/registration/registrationConfig.js`
-- `www/app/registration/registrationService.js`
-- `www/app/registration/registrationActions.js`
-- `www/app/registration/registrationEvents.js`
-- `www/app/registration/registrationUiBindings.js`
-- `www/app/registration/secondary.js`
-- `www/app/runtime/registerFlow.js`
-- `www/app/runtime/android/registrationAndroid.js`
-- `www/app/runtime/controlBindings.js`
-- `www/app/sipRegister.js`
-- `www/app/registration/primary.js`
+- `www/app/pc/stats.js`
+- `www/app/pc/bind.js`
+- `www/app/ui/appUi.js`
+- `www/app/layout/dialpadSection.js`
+- `www/styles/*`
 
 ## Exact next safe step
-Do a focused registration dead-code audit and remove only code that is proven unused after the new ownership split.
-
-Priority order:
-1. identify any remaining old registration wrappers or duplicate execution paths
-2. grep-prove whether they are still referenced
-3. remove only confirmed dead registration code
-4. verify again on:
-   - desktop
-   - Android
+1. Hard refresh the web app.
+2. Place any call.
+3. Confirm the in-call UI shows live RX/TX packet indicators and they update during the call.
 
 ## Verification rule
-After every registration cleanup step, verify:
-- Enable Calls works on desktop
-- Enable Calls works on Android
-- Stop / Log off still works
-- no background auto-registration happens without explicit enable
+For this UI change, verify on:
+- one outbound call
+- one inbound call

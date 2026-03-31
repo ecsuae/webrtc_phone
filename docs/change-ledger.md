@@ -28,6 +28,98 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-03-31T02:45:00Z — TASK-024: UI — restore in-call RX/TX packet indicators (live bars/counters)
+- **AI**: Cascade
+- **Scope**: UI/telemetry only (no registration, signaling, media negotiation, admin/export/PDF, or infra changes)
+- **Problem**:
+  - In-call RX/TX packet indicators (live bars/counters) no longer rendered/updated during calls.
+- **Root cause**:
+  - WebRTC stats collection exists (`pc.getStats()`), but the call UI layout no longer included the indicator DOM and there was no active UI binding updating it.
+- **Fix**:
+  - Added minimal indicator DOM to `dialpadSection` and a small poller in `appUi` that computes packet deltas (pkt/s) from `pc.getStats()` and updates the bars/counters while `st.session` is active.
+- **Files changed**:
+  - `www/app/layout/dialpadSection.js`
+  - `www/app/ui/appUi.js`
+  - `www/styles/skin-modern-ops.css`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (frontend hard refresh only)
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Hard refresh the app, place a call, and confirm RX/TX indicators update live during the call.
+
+### 2026-03-31T02:25:00Z — TASK-023: Call logs — classify short numeric service targets (e.g. 9196) as feature-code/service to suppress peer-only PROBLEM rows
+- **AI**: Cascade
+- **Scope**: Call classification/summary diagnosis only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF changes)
+- **Problem (runtime evidence)**:
+  - `*9196` echo calls still emitted peer-only `PROBLEM:` rows in summary when the peer target appeared as `9196` (numeric) instead of `*9196`.
+- **Fix**:
+  - `push-server/src/services/callClassification.js`: treat short numeric peer targets (`\d{2,5}`) as `feature-code/service` when the local username looks like an extension (`\d{6,}`), preventing misclassification as peer calls.
+- **Files changed**:
+  - `push-server/src/services/callClassification.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Not yet runtime-verified after rebuild.
+- **Next safe step**:
+  - Rebuild/restart push-server, place a fresh `900900` → `*9196` call, and confirm summary shows no peer-only PROBLEM rows.
+  - Then troubleshoot the real no-return-audio issue using FreeSWITCH runtime evidence (`show channels`, `uuid_debug_media`, RTP/siptrace).
+
+### 2026-03-31T02:11:00Z — TASK-023: Call logs — fix remaining false missing-leg emitter for feature-code/service calls
+- **AI**: Cascade
+- **Scope**: Admin call logs summary missing-leg derivation only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF changes)
+- **Problem (post-restart re-test)**:
+  - `*9196` feature-code/echo calls still showed `PROBLEM: missing leg` even after peer-only diagnosis isolation.
+- **Root cause**:
+  - `push-server/src/admin/callLogPage.js` `applySummaryTransforms(...)` still injected a synthetic `type: 'incomplete-observability'` row for any `callMissingLeg` key without re-checking call class at emission time.
+- **Fix**:
+  - Gate the incomplete-observability injection behind `callClassAllowsMissingLeg(callClass)` so only `callClass=peer` can emit missing-leg problems.
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Not yet runtime-verified after rebuild.
+- **Next safe step**:
+  - Rebuild/restart push-server, place a fresh `900900` → `*9196` call, and confirm summary no longer emits `PROBLEM: missing leg`.
+
+### 2026-03-31T02:05:00Z — TASK-023: Call logs — isolate call classification + diagnosis; suppress peer-only false PROBLEM rows for feature-code/service calls
+- **AI**: Cascade
+- **Scope**: Call logs classification/diagnosis isolation only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF format changes)
+- **Problem proven by logs**:
+  - Feature-code/echo call to `*9196` shows call established + ICE connected + DTLS connected + RTP flowing, but summary incorrectly emits:
+    - `PROBLEM: one-way audio`
+    - `PROBLEM: LTE no receive`
+    - `PROBLEM: missing leg`
+- **Fix**:
+  - Created dedicated call classification module to distinguish peer vs feature-code/service vs pbx/unknown.
+  - Created dedicated diagnosis module and gated peer-only rules (missing-leg / one-way-audio / probable LTE receive failure) to `callClass=peer`.
+  - Kept summary/UI rendering separate from diagnosis logic (UI calls into the diagnosis module).
+- **Files created**:
+  - `push-server/src/services/callClassification.js`
+  - `push-server/src/services/callDiagnosis.js`
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/services/callLogPdf.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - push-server: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Not yet runtime-verified.
+- **Next safe step**:
+  - Export the `*9196` echo trace (JSON) by corrId/callId and confirm summary/PDF no longer emits peer-only PROBLEM rows for that call class.
+
 ### 2026-03-31T01:06:00Z — TASK-022: Registration cleanup pass — remove dead secondary SBC registration entrypoint
 - **AI**: Cascade
 - **Scope**: Registration-only cleanup (no behavior change intended; no outgoing/incoming/media/export/PDF changes)

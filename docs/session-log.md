@@ -106,3 +106,13 @@ Examples:
 2026-03-31 05:55 PKT | START  | TASK-022 | Registration cleanup pass: remove dead old registration code paths proven unused | AI: Cascade
 2026-03-31 06:05 PKT | CHANGE | TASK-022 | Removed dead disabled secondary SBC registration entrypoint registerWithSBC (kept stopSecondaryRegistration used on logout) | AI: Cascade
 2026-03-31 06:06 PKT | NOTE   | TASK-022 | Verification pending: desktop+Android Enable Calls and Stop/Logoff to confirm behavior unchanged | AI: Cascade
+2026-03-31 06:45 PKT | START  | TASK-023 | Isolate call log classification + diagnosis so feature-code/echo/IVR calls are not misdiagnosed as one-way audio/missing leg | AI: Cascade
+2026-03-31 06:55 PKT | CHANGE | TASK-023 | Added dedicated callClassification + callDiagnosis modules; gated peer-only missing-leg/LTE-receive/one-way-audio rules to callClass=peer in admin summary and PDF summary | AI: Cascade
+2026-03-31 06:56 PKT | BLOCKED| TASK-023 | Runtime verification pending: need exported *9196 echo trace (corrId/callId JSON) to confirm false PROBLEM rows suppressed | AI: Cascade
+2026-03-31 07:05 PKT | NOTE   | TASK-023 | After restart/re-test, *9196 no longer shows false one-way-audio/LTE-no-receive but still showed false PROBLEM: missing leg | AI: Cascade
+2026-03-31 07:10 PKT | CHANGE | TASK-023 | Fixed remaining missing-leg emitter: admin applySummaryTransforms incomplete-observability injection now gated by callClassAllowsMissingLeg(callClass) | AI: Cascade
+2026-03-31 07:11 PKT | NOTE   | TASK-023 | Restart required: push-server rebuild to load updated callLogPage.js; then re-test *9196 summary missing-leg is gone | AI: Cascade
+2026-03-31 07:20 PKT | NOTE   | TASK-023 | New proven symptom on *9196: ICE/DTLS connected, remote-audio-play-ok, but recv RTP stays 0 while sent RTP > 0 (no echo return audio) | AI: Cascade
+2026-03-31 07:22 PKT | CHANGE | TASK-023 | Tightened call classification: treat short numeric peer targets (e.g. 9196) as feature-code/service when local user looks like an extension; suppress peer-only PROBLEM rows in summary for service calls | AI: Cascade
+2026-03-31 07:25 PKT | START  | TASK-024 | Restore in-call RX/TX packet indicators (live bars/counters) | AI: Cascade
+2026-03-31 07:35 PKT | CHANGE | TASK-024 | Added rtpIndicators DOM to dialpad layout and bound a minimal getStats poller to update RX/TX pkt/s bars during active call | AI: Cascade

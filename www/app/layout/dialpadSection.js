@@ -13,6 +13,19 @@ export function dialpadSection() {
           </div>
         </div>
 
+        <div id="rtpIndicators" class="rtpIndicators" style="display: none;">
+          <div class="rtpIndicatorRow">
+            <div class="rtpIndicatorLabel">RX</div>
+            <div class="rtpBar"><div id="rtpRxBar" class="rtpBarFill rtpBarFillRx" style="width: 0%;"></div></div>
+            <div id="rtpRxText" class="rtpIndicatorValue">0 pkt/s</div>
+          </div>
+          <div class="rtpIndicatorRow">
+            <div class="rtpIndicatorLabel">TX</div>
+            <div class="rtpBar"><div id="rtpTxBar" class="rtpBarFill rtpBarFillTx" style="width: 0%;"></div></div>
+            <div id="rtpTxText" class="rtpIndicatorValue">0 pkt/s</div>
+          </div>
+        </div>
+
         <div class="dial-display">
           <button id="btnDialErase" type="button" class="dial-erase-btn" title="Erase last digit" style="display:none;">
             <i class="fas fa-delete-left"></i>
