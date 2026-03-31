@@ -391,6 +391,13 @@ function updateControlVisibility(st, ui) {
   } catch {}
 
   try {
+    const btnAddCall = document.getElementById('btnAddCall');
+    if (btnAddCall) btnAddCall.style.display = inCall ? 'none' : '';
+    const btnRecord = document.getElementById('btnRecord');
+    if (btnRecord) btnRecord.style.display = inCall ? 'none' : '';
+  } catch {}
+
+  try {
     const kbd = document.getElementById('btnToggleKeyboard');
     if (kbd) kbd.style.display = inCall ? 'none' : '';
   } catch {}
