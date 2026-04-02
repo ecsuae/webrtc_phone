@@ -112,6 +112,16 @@ async function readAudioStatsSnapshot(pc) {
   let inAudioLevel = null;
   let inTotalAudioEnergy = null;
 
+  let inCodecId = null;
+  let inDecoderImplementation = null;
+  let inPacketsDiscarded = null;
+  let inPacketsRepaired = null;
+  let inConcealedSamples = null;
+  let inSilentConcealedSamples = null;
+  let inTotalSamplesDecoded = null;
+  let inJitterBufferDelay = null;
+  let inJitterBufferEmittedCount = null;
+
   let outPackets = 0;
   let outBytes = 0;
 
@@ -128,6 +138,29 @@ async function readAudioStatsSnapshot(pc) {
       inBytes += r.bytesReceived || 0;
       inLost += r.packetsLost || 0;
       if (typeof r.jitter === 'number') inJitter = r.jitter;
+      if (r.codecId && !inCodecId) inCodecId = r.codecId;
+      if (typeof r.decoderImplementation === 'string' && !inDecoderImplementation) inDecoderImplementation = r.decoderImplementation;
+      if (typeof r.packetsDiscarded === 'number' && Number.isFinite(r.packetsDiscarded)) {
+        inPacketsDiscarded = (typeof inPacketsDiscarded === 'number') ? Math.max(inPacketsDiscarded, r.packetsDiscarded) : r.packetsDiscarded;
+      }
+      if (typeof r.packetsRepaired === 'number' && Number.isFinite(r.packetsRepaired)) {
+        inPacketsRepaired = (typeof inPacketsRepaired === 'number') ? Math.max(inPacketsRepaired, r.packetsRepaired) : r.packetsRepaired;
+      }
+      if (typeof r.concealedSamples === 'number' && Number.isFinite(r.concealedSamples)) {
+        inConcealedSamples = (typeof inConcealedSamples === 'number') ? Math.max(inConcealedSamples, r.concealedSamples) : r.concealedSamples;
+      }
+      if (typeof r.silentConcealedSamples === 'number' && Number.isFinite(r.silentConcealedSamples)) {
+        inSilentConcealedSamples = (typeof inSilentConcealedSamples === 'number') ? Math.max(inSilentConcealedSamples, r.silentConcealedSamples) : r.silentConcealedSamples;
+      }
+      if (typeof r.totalSamplesDecoded === 'number' && Number.isFinite(r.totalSamplesDecoded)) {
+        inTotalSamplesDecoded = (typeof inTotalSamplesDecoded === 'number') ? Math.max(inTotalSamplesDecoded, r.totalSamplesDecoded) : r.totalSamplesDecoded;
+      }
+      if (typeof r.jitterBufferDelay === 'number' && Number.isFinite(r.jitterBufferDelay)) {
+        inJitterBufferDelay = (typeof inJitterBufferDelay === 'number') ? Math.max(inJitterBufferDelay, r.jitterBufferDelay) : r.jitterBufferDelay;
+      }
+      if (typeof r.jitterBufferEmittedCount === 'number' && Number.isFinite(r.jitterBufferEmittedCount)) {
+        inJitterBufferEmittedCount = (typeof inJitterBufferEmittedCount === 'number') ? Math.max(inJitterBufferEmittedCount, r.jitterBufferEmittedCount) : r.jitterBufferEmittedCount;
+      }
       if (typeof r.audioLevel === 'number' && Number.isFinite(r.audioLevel)) {
         inAudioLevel = (typeof inAudioLevel === 'number') ? Math.max(inAudioLevel, r.audioLevel) : r.audioLevel;
       }
@@ -171,6 +204,17 @@ async function readAudioStatsSnapshot(pc) {
     return `local=${lp} remote=${rp}`;
   })();
 
+  const codec = (() => {
+    try {
+      if (!inCodecId) return null;
+      const c = stats.get(inCodecId);
+      if (!c || c.type !== 'codec') return null;
+      return c;
+    } catch {
+      return null;
+    }
+  })();
+
   return {
     inPackets,
     inBytes,
@@ -178,6 +222,18 @@ async function readAudioStatsSnapshot(pc) {
     inJitter,
     inAudioLevel: inAudioLevel ?? undefined,
     inTotalAudioEnergy: inTotalAudioEnergy ?? undefined,
+    inboundCodecMimeType: codec?.mimeType,
+    inboundCodecPayloadType: codec?.payloadType,
+    inboundCodecClockRate: codec?.clockRate,
+    inboundCodecChannels: codec?.channels,
+    decoderImplementation: inDecoderImplementation ?? undefined,
+    packetsDiscarded: inPacketsDiscarded ?? undefined,
+    packetsRepaired: inPacketsRepaired ?? undefined,
+    concealedSamples: inConcealedSamples ?? undefined,
+    silentConcealedSamples: inSilentConcealedSamples ?? undefined,
+    totalSamplesDecoded: inTotalSamplesDecoded ?? undefined,
+    jitterBufferDelay: inJitterBufferDelay ?? undefined,
+    jitterBufferEmittedCount: inJitterBufferEmittedCount ?? undefined,
     outPackets,
     outBytes,
     selectedPair: selectedPairText,
@@ -329,6 +385,13 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
               outboundAudioPacketsSent: snap.outPackets,
               audioLevel: snap.inAudioLevel,
               totalAudioEnergy: snap.inTotalAudioEnergy,
+              inboundCodecMimeType: snap.inboundCodecMimeType,
+              inboundCodecPayloadType: snap.inboundCodecPayloadType,
+              decoderImplementation: snap.decoderImplementation,
+              packetsDiscarded: snap.packetsDiscarded,
+              concealedSamples: snap.concealedSamples,
+              silentConcealedSamples: snap.silentConcealedSamples,
+              totalSamplesDecoded: snap.totalSamplesDecoded,
               msg: wants10s ? 'Receive render proof (10s after stats)' : 'Receive render proof (5s after stats)',
             });
           }
@@ -366,6 +429,18 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
           outboundAudioBytesSent: snap.outBytes,
           audioLevel: snap.inAudioLevel,
           totalAudioEnergy: snap.inTotalAudioEnergy,
+          inboundCodecMimeType: snap.inboundCodecMimeType,
+          inboundCodecPayloadType: snap.inboundCodecPayloadType,
+          inboundCodecClockRate: snap.inboundCodecClockRate,
+          inboundCodecChannels: snap.inboundCodecChannels,
+          decoderImplementation: snap.decoderImplementation,
+          packetsDiscarded: snap.packetsDiscarded,
+          packetsRepaired: snap.packetsRepaired,
+          concealedSamples: snap.concealedSamples,
+          silentConcealedSamples: snap.silentConcealedSamples,
+          totalSamplesDecoded: snap.totalSamplesDecoded,
+          jitterBufferDelay: snap.jitterBufferDelay,
+          jitterBufferEmittedCount: snap.jitterBufferEmittedCount,
           selectedPair: snap.selectedPair,
           localCandidateType: snap.localCandidateType,
           remoteCandidateType: snap.remoteCandidateType,
@@ -453,6 +528,18 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
             outboundAudioBytesSent: snap.outBytes,
             audioLevel: snap.inAudioLevel,
             totalAudioEnergy: snap.inTotalAudioEnergy,
+            inboundCodecMimeType: snap.inboundCodecMimeType,
+            inboundCodecPayloadType: snap.inboundCodecPayloadType,
+            inboundCodecClockRate: snap.inboundCodecClockRate,
+            inboundCodecChannels: snap.inboundCodecChannels,
+            decoderImplementation: snap.decoderImplementation,
+            packetsDiscarded: snap.packetsDiscarded,
+            packetsRepaired: snap.packetsRepaired,
+            concealedSamples: snap.concealedSamples,
+            silentConcealedSamples: snap.silentConcealedSamples,
+            totalSamplesDecoded: snap.totalSamplesDecoded,
+            jitterBufferDelay: snap.jitterBufferDelay,
+            jitterBufferEmittedCount: snap.jitterBufferEmittedCount,
             selectedPair: snap.selectedPair,
             localCandidateType: snap.localCandidateType,
             remoteCandidateType: snap.remoteCandidateType,

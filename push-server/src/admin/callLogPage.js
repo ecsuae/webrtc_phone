@@ -302,6 +302,9 @@ function stageLabel(ev) {
     case 'ice-complete': return 'ICE';
     case 'preflight-icecandidateerror': return 'ICE';
     case 'selected-pair-relay-mismatch': return 'ICE';
+    case 'outbound-selected-pair-details': return 'ICE';
+    case 'outbound-dtls-state': return 'ICE';
+    case 'outbound-connection-state': return 'ICE';
     case 'outbound-ice-connection-state': return 'ICE';
     case 'remote-audio-attached': return 'AUDIO';
     case 'remote-audio-play-ok': return 'AUDIO';
@@ -355,6 +358,7 @@ function shouldShowCandSummary(ev, viewMode) {
   return t === 'outbound-preflight-result'
     || t === 'ice-complete'
     || t === 'preflight-icecandidateerror'
+    || t === 'outbound-selected-pair-details'
     || t.startsWith('media-stats-');
 }
 
@@ -507,9 +511,35 @@ function applySummaryTransforms(events, { includeSession } = {}) {
       `track.enabled=${fmtBool(trackEnabled)}`,
     ];
 
+    const codec = (typeof ev.inboundCodecMimeType === 'string' && ev.inboundCodecMimeType.trim())
+      ? ev.inboundCodecMimeType.trim()
+      : null;
+    const pt = (typeof ev.inboundCodecPayloadType === 'number' && Number.isFinite(ev.inboundCodecPayloadType))
+      ? ev.inboundCodecPayloadType
+      : null;
+    const decImpl = (typeof ev.decoderImplementation === 'string' && ev.decoderImplementation.trim())
+      ? ev.decoderImplementation.trim()
+      : null;
+    const decoded = (typeof ev.totalSamplesDecoded === 'number' && Number.isFinite(ev.totalSamplesDecoded))
+      ? ev.totalSamplesDecoded
+      : null;
+    const concealed = (typeof ev.concealedSamples === 'number' && Number.isFinite(ev.concealedSamples))
+      ? ev.concealedSamples
+      : null;
+    const discarded = (typeof ev.packetsDiscarded === 'number' && Number.isFinite(ev.packetsDiscarded))
+      ? ev.packetsDiscarded
+      : null;
+    const cParts = [];
+    if (codec) cParts.push(`codec=${codec}${pt !== null ? ` pt=${pt}` : ''}`);
+    if (decImpl) cParts.push(`dec=${decImpl}`);
+    if (decoded !== null) cParts.push(`decoded=${decoded}`);
+    if (concealed !== null) cParts.push(`concealed=${concealed}`);
+    if (discarded !== null) cParts.push(`discarded=${discarded}`);
+
     parts.push(`Render[${stage}]: ${elParts.join(' ')}`);
     parts.push(`${tParts.join(' ')}`);
     parts.push(`${sParts.join(' ')}`);
+    if (cParts.length) parts.push(`${cParts.join(' ')}`);
 
     const hasRtp = (recv !== null && recv > 0);
     const hasEnergy = ((typeof totalAudioEnergy === 'number' && totalAudioEnergy > 0) || (typeof audioLevel === 'number' && audioLevel > 0));
@@ -635,6 +665,26 @@ function applySummaryTransforms(events, { includeSession } = {}) {
   const seenMilestone = new Set();
   const emittedPreflight = new Set();
 
+  // Group A: if inbound audio is clearly present but we never got an explicit
+  // remote-audio-attached milestone (client timing/emit gaps), synthesize one
+  // compact AUDIO row in summary for RCA. Summary-only; raw view unchanged.
+  const inboundHasAttached = new Set();
+  const inboundHasTrackOrPlay = new Map();
+  for (const ev of input) {
+    const t = canonicalType(ev);
+    const key = corrKey(ev);
+    if (!key) continue;
+    if (ev.dir !== 'inbound') continue;
+    if (t === 'remote-audio-attached') {
+      inboundHasAttached.add(key);
+      continue;
+    }
+    if (t === 'remote-audio-track-added' || t === 'remote-audio-play-ok') {
+      if (!inboundHasTrackOrPlay.has(key)) inboundHasTrackOrPlay.set(key, ev);
+    }
+  }
+  const syntheticInboundAttachedEmitted = new Set();
+
   // Emit one synthetic PROBLEM row per callId (newest-first ordering).
   for (const [key, d] of callProblem.entries()) {
     const rep = (byCorr.get(key) || [])[0] || {};
@@ -727,12 +777,59 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     const ev = { ...ev0 };
     ev.type = canonicalType(ev);
 
+    // Group A cleanup: normalize CLIENT milestones to a stable dir so summary dedupe
+    // does not show duplicates across mixed client versions.
+    if ((ev.type === 'profile-selected' || ev.type === 'ua-ice-policy') && !ev.dir) {
+      ev.dir = 'session';
+    }
+
+    if (ev.type === 'outbound-selected-pair-details') {
+      // Compact selected-pair visibility in summary without raw dumps.
+      const lc = (typeof ev.localCandidateType === 'string' && ev.localCandidateType) ? ev.localCandidateType : '?';
+      const rc = (typeof ev.remoteCandidateType === 'string' && ev.remoteCandidateType) ? ev.remoteCandidateType : '?';
+      const rtt = (typeof ev.currentRoundTripTime === 'number' && Number.isFinite(ev.currentRoundTripTime))
+        ? ` rtt=${String(ev.currentRoundTripTime).slice(0, 6)}`
+        : '';
+      const nom = (typeof ev.nominated === 'boolean') ? ` nominated=${String(ev.nominated)}` : '';
+      const pair = (typeof ev.selectedPair === 'string' && ev.selectedPair.trim()) ? ev.selectedPair.trim() : '';
+      ev.candSummary = `pair=${lc}->${rc}${rtt}${nom}${pair ? ` ${pair}` : ''}`;
+    }
+
     if (ev.type === 'receive-render-proof') {
       const m = fmtRenderProofSummary(ev);
       if (m) ev.msg = m;
     }
 
     const key = corrKey(ev);
+
+    // Group A: if inbound has track/play evidence but no attached milestone, emit
+    // a single synthetic compact AUDIO row in the summary timeline.
+    if (key && ev.dir === 'inbound' && !syntheticInboundAttachedEmitted.has(key)) {
+      if (!inboundHasAttached.has(key) && inboundHasTrackOrPlay.has(key)) {
+        const src = inboundHasTrackOrPlay.get(key) || ev;
+        syntheticInboundAttachedEmitted.add(key);
+        out.push({
+          _seq: src._seq,
+          ts: src.ts,
+          _serverTs: src._serverTs,
+          type: 'remote-audio-attached',
+          callId: src.callId,
+          corrId: src.corrId,
+          dir: 'inbound',
+          username: src.username,
+          domain: src.domain,
+          aor: src.aor,
+          peer: src.peer,
+          peerDomain: src.peerDomain,
+          peerAor: src.peerAor,
+          lteMode: src.lteMode,
+          mode: src.mode,
+          selectedProfile: src.selectedProfile,
+          icePolicy: src.icePolicy,
+          msg: 'synthetic: inbound audio activity observed (track/play) but attached milestone missing',
+        });
+      }
+    }
 
     const isSession = SESSION_EVENT_TYPES.has(ev.type);
     if (isSession && !includeSession) {
@@ -801,7 +898,11 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     }
 
     // 2) Collapse duplicates: only one canonical row per milestone per callId+dir
-    if (key) {
+    const sessionClientDedupeKey = (!key && (ev.type === 'profile-selected' || ev.type === 'ua-ice-policy'))
+      ? `session|${ev.aor || ev.username || ''}`
+      : '';
+    const dedupeKey = key || sessionClientDedupeKey;
+    if (dedupeKey) {
       const dedupeStage = (ev.type === 'receive-render-proof')
         ? (() => {
           const m = typeof ev.msg === 'string' ? ev.msg : '';
@@ -811,7 +912,7 @@ function applySummaryTransforms(events, { includeSession } = {}) {
           return '';
         })()
         : '';
-      const k = `${key}|${ev.dir || ''}|${isMediaError ? (ev.code || '') : ev.type}${dedupeStage ? `|${dedupeStage}` : ''}`;
+      const k = `${dedupeKey}|${ev.dir || ''}|${isMediaError ? (ev.code || '') : ev.type}${dedupeStage ? `|${dedupeStage}` : ''}`;
       if (seenMilestone.has(k)) continue;
       seenMilestone.add(k);
     }
@@ -905,13 +1006,50 @@ function renderEventRow(ev, viewMode) {
     if (viewMode !== 'summary') return '';
     const inP = ev.inboundAudioPacketsReceived;
     const outP = ev.outboundAudioPacketsSent;
-    if (typeof inP !== 'number' && typeof outP !== 'number') return '';
+    const hasPackets = (typeof inP === 'number') || (typeof outP === 'number');
+    const codec = (typeof ev.inboundCodecMimeType === 'string' && ev.inboundCodecMimeType.trim())
+      ? ev.inboundCodecMimeType.trim()
+      : '';
+    const pt = (typeof ev.inboundCodecPayloadType === 'number' && Number.isFinite(ev.inboundCodecPayloadType))
+      ? ev.inboundCodecPayloadType
+      : null;
+    const dec = (typeof ev.decoderImplementation === 'string' && ev.decoderImplementation.trim())
+      ? ev.decoderImplementation.trim()
+      : '';
+    const decoded = (typeof ev.totalSamplesDecoded === 'number' && Number.isFinite(ev.totalSamplesDecoded))
+      ? ev.totalSamplesDecoded
+      : null;
+    const concealed = (typeof ev.concealedSamples === 'number' && Number.isFinite(ev.concealedSamples))
+      ? ev.concealedSamples
+      : null;
+    const discarded = (typeof ev.packetsDiscarded === 'number' && Number.isFinite(ev.packetsDiscarded))
+      ? ev.packetsDiscarded
+      : null;
+
+    const hasCodec = !!(codec || dec || decoded !== null || concealed !== null || discarded !== null);
+    if (!hasPackets && !hasCodec) return '';
     const fmt = (label, v) => {
       if (typeof v !== 'number') return `${label}: ?`;
       const cls = v === 0 ? ' class="rtp-problem"' : '';
       return `${label}: <span${cls}>${v}</span>`;
     };
-    return `<br><span style="font-family: var(--mono); font-size: 11px;">${fmt('recv', inP)} | ${fmt('sent', outP)}</span>`;
+
+    const pktLine = hasPackets
+      ? `${fmt('recv', inP)} | ${fmt('sent', outP)}`
+      : '';
+
+    const codecBits = [];
+    if (codec) codecBits.push(`codec=${escHtml(codec)}${pt !== null ? ` pt=${pt}` : ''}`);
+    if (dec) codecBits.push(`dec=${escHtml(dec)}`);
+    if (decoded !== null) codecBits.push(`decoded=${decoded}`);
+    if (concealed !== null) codecBits.push(`concealed=${concealed}`);
+    if (discarded !== null) codecBits.push(`discarded=${discarded}`);
+    const codecLine = codecBits.length ? codecBits.join(' ') : '';
+
+    const lines = [pktLine, codecLine].filter(Boolean);
+    return lines.length
+      ? `<br><span style="font-family: var(--mono); font-size: 11px;">${lines.join('<br>')}</span>`
+      : '';
   })();
 
   const msgProof = (viewMode === 'raw')

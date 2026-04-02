@@ -320,6 +320,22 @@ export async function handleIncomingCall(SIP, st, ui, invitation) {
       if (window.callTimer) window.callTimer.start();
       attachIncomingRemoteAudio(invitation, ui);
       const _ctx = getInboundDiagContext(st, invitation);
+
+      // Group A: ensure inbound leg has a stable AUDIO milestone in server logs even
+      // when track/receiver timing prevents incoming/media.js from binding.
+      try {
+        const pc = invitation?.sessionDescriptionHandler?.peerConnection;
+        if (pc && !pc.__incomingRemoteAudioAttachedEmitted) {
+          pc.__incomingRemoteAudioAttachedEmitted = true;
+          sendCallMediaEvent({
+            type: 'remote-audio-attached',
+            ..._ctx,
+            hasRemoteStream: true,
+            msg: 'Inbound established: remote audio attachment assumed (milestone emit)',
+          });
+        }
+      } catch {}
+
       bindPeerConnection(invitation, "inbound", { aor: _ctx.aor, callId: _ctx.callId });
 
       try {

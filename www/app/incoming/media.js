@@ -1,6 +1,7 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
 import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js?v=1773034001";
+import { sendCallMediaEvent } from "../features/callMediaLog.js";
 
 export function attachIncomingRemoteAudio(session, ui) {
   try {
@@ -34,6 +35,25 @@ export function attachIncomingRemoteAudio(session, ui) {
       audioEl.playsInline = true;
       audioEl.muted = false;
       audioEl.volume = 1;
+
+      // Group A cleanup: ensure inbound leg has a compact AUDIO milestone row in summary,
+      // even if we short-circuit due to sameTrack already playing.
+      try {
+        if (!pc.__incomingRemoteAudioAttachedEmitted) {
+          pc.__incomingRemoteAudioAttachedEmitted = true;
+          const ctx = (session && session.__callMediaDiag && typeof session.__callMediaDiag === 'object')
+            ? session.__callMediaDiag
+            : {};
+          sendCallMediaEvent({
+            type: 'remote-audio-attached',
+            ...ctx,
+            dir: 'inbound',
+            hasRemoteStream: Boolean(stream),
+            remoteAudioTrackCount: stream?.getAudioTracks?.()?.length,
+            msg: `incoming/media bound ${trackKind} to audio element`,
+          });
+        }
+      } catch {}
 
       // If the same track is already playing, do not spam play()/rebind.
       if (sameTrack && !audioEl.paused && audioEl.srcObject) {

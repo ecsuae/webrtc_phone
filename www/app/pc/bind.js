@@ -264,26 +264,6 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
         remoteAudioTrackCount,
         msg: `pc.track kind=${trackKind} streams=${streamCount}`,
       });
-
-      if (dir === 'outbound') {
-        sendCallMediaEvent({
-          type: 'outbound-remote-audio-attached',
-          dir,
-          aor: _diag.aor || aor,
-          callId,
-          username: _diag.username,
-          domain: _diag.domain,
-          peer: _diag.peer,
-          peerDomain: _diag.peerDomain,
-          peerAor: _diag.peerAor,
-          mode: _diag.mode,
-          selectedProfile: _diag.selectedProfile,
-          icePolicy: _diag.icePolicy,
-          hasRemoteStream: Boolean(remoteStream),
-          remoteAudioTrackCount,
-          msg: `pc.track (outbound) kind=${trackKind} streams=${streamCount}`,
-        });
-      }
     } catch {
       // no-op
     }

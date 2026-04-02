@@ -314,7 +314,27 @@ function queryEvents(filter = {}) {
   const matches = _events.filter((ev) => {
     if (allowedCorrKeys) {
       const k = corrKey(ev);
-      if (!k || !allowedCorrKeys.has(k)) return false;
+      if (!k || !allowedCorrKeys.has(k)) {
+        // Group A: Keep key session CLIENT milestones even when they lack corrId/callId,
+        // as long as they match the caller/receiver identity filter.
+        const t = (ev && ev.type) || '';
+        if (t === 'profile-selected' || t === 'ua-ice-policy') {
+          const ids = identityKeysFromEvent(ev);
+          const ok = ids.some((u) => {
+            const ul = normUserKey(u);
+            const hasCaller = callerLower ? ul.includes(callerLower) : true;
+            const hasReceiver = receiverLower ? ul.includes(receiverLower) : true;
+            return hasCaller && hasReceiver;
+          });
+          if (ok) {
+            // allow through
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
     }
     if (aorLower && !(ev.aor || '').toLowerCase().includes(aorLower)) return false;
     if (usernameLower) {
