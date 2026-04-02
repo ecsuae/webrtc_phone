@@ -13,10 +13,9 @@ The admin call logs summary is a critical diagnostic tool for troubleshooting me
 - Android/outbound receives RTP, ICE/DTLS healthy, playback element active, codec visible, concealment high, energy tiny.
 
 ## Current blocker
-1. Inbound AUDIO compact row is missing from summary.
-2. macOS CLIENT row is missing.
-3. Decode/RCA visibility partial: missing decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount.
-4. Logging reliability if call-log-post-failed is still involved.
+1. macOS CLIENT row is missing.
+2. Decode/RCA visibility partial: missing decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount.
+3. Logging reliability if call-log-post-failed is still involved.
 
 ## Required focus
 - Restore missing existing rows only (inbound AUDIO compact, macOS CLIENT).
@@ -24,6 +23,9 @@ The admin call logs summary is a critical diagnostic tool for troubleshooting me
 - Logging reliability only after A/B are understood.
 - Do not refactor summary pipeline, rewrite from backup, change raw-view behavior, remove existing working summary rows.
 - Do not mix logging work with speaker/earpiece/render/binding/registration/bootstrap/module-loading changes.
+
+## Latest proven improvement
+- Inbound AUDIO compact row is restored in summary via summary-only synthesis from inbound media-stats RTP evidence when explicit inbound AUDIO milestones are missing.
 
 ## Do not touch
 - Registration logic

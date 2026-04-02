@@ -116,3 +116,5 @@ Examples:
 2026-03-31 07:22 PKT | CHANGE | TASK-023 | Tightened call classification: treat short numeric peer targets (e.g. 9196) as feature-code/service when local user looks like an extension; suppress peer-only PROBLEM rows in summary for service calls | AI: Cascade
 2026-03-31 07:25 PKT | START  | TASK-024 | Restore in-call RX/TX packet indicators (live bars/counters) | AI: Cascade
 2026-03-31 07:35 PKT | CHANGE | TASK-024 | Added rtpIndicators DOM to dialpad layout and bound a minimal getStats poller to update RX/TX pkt/s bars during active call | AI: Cascade
+2026-04-03 04:16 PKT | CHANGE | TASK-025 | Summary-only: synthesize inbound remote-audio-attached from inbound media-stats RTP evidence when explicit inbound AUDIO milestones missing | AI: Cascade
+2026-04-03 04:21 PKT | VERIFY | TASK-025 | Verified inbound AUDIO compact row appears; protected rows unchanged (CALL/ICE/outbound AUDIO/Render/selected-pair/CLIENT); hidden rows still hidden; no duplicate inbound AUDIO row in sample | AI: Cascade

@@ -170,6 +170,29 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
       relay: _counts.relay, host: _counts.host, srflx: _counts.srflx, total: sdpCounts.total,
       msg: 'from-sdp (late-bind)',
     });
+
+    // Group A: inbound-only — start stats snapshots once ICE gathering is complete,
+    // even if iceConnectionState never reaches connected/completed on this leg.
+    try {
+      if (label === 'inbound' && pc && !pc.__callMediaInboundStatsStarted) {
+        pc.__callMediaInboundStatsStarted = true;
+        scheduleMediaStatsSnapshots(pc, label, {
+          aor: _diag.aor || aor,
+          callId: _callId,
+          corrId: _corrId,
+          sessionId: _diag.sessionId,
+          username: _diag.username,
+          domain: _diag.domain,
+          peer: _diag.peer,
+          peerDomain: _diag.peerDomain,
+          peerAor: _diag.peerAor,
+          lteMode: _lteMode,
+          mode: _diag.mode,
+          selectedProfile: _diag.selectedProfile,
+          icePolicy: _diag.icePolicy,
+        });
+      }
+    } catch {}
   }
 
   pc.addEventListener("track", (ev) => {
@@ -301,6 +324,28 @@ export function bindPeerConnection(session, label, { aor, callId } = {}) {
         icePolicy: _diag.icePolicy,
         relay: _counts.relay, host: _counts.host, srflx: _counts.srflx, total,
       });
+
+      // Group A: inbound-only — start stats snapshots once ICE gathering is complete.
+      try {
+        if (label === 'inbound' && pc && !pc.__callMediaInboundStatsStarted) {
+          pc.__callMediaInboundStatsStarted = true;
+          scheduleMediaStatsSnapshots(pc, label, {
+            aor: _diag.aor || aor,
+            callId: _callId,
+            corrId: _corrId,
+            sessionId: _diag.sessionId,
+            username: _diag.username,
+            domain: _diag.domain,
+            peer: _diag.peer,
+            peerDomain: _diag.peerDomain,
+            peerAor: _diag.peerAor,
+            lteMode: _lteMode,
+            mode: _diag.mode,
+            selectedProfile: _diag.selectedProfile,
+            icePolicy: _diag.icePolicy,
+          });
+        }
+      } catch {}
       return;
     }
     const typ = candType(candidate);

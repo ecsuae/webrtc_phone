@@ -60,6 +60,11 @@ function loadPcStats() {
       try {
         console.error('[incoming/handlers] Failed to import pc/stats.js', err);
       } catch {}
+      try {
+        const line = `[${nowISO()}] [incoming:diag] loadPcStats import FAILED url=${url} err=${err?.message || err}`;
+        logLine(line);
+        console.error(line);
+      } catch {}
       throw err;
     });
 
@@ -318,25 +323,104 @@ export async function handleIncomingCall(SIP, st, ui, invitation) {
       ui.setStatus(`On call with ${callerDisplay}`);
       ui.setButtons();
       if (window.callTimer) window.callTimer.start();
-      attachIncomingRemoteAudio(invitation, ui);
       const _ctx = getInboundDiagContext(st, invitation);
+      invitation.__callMediaDiag = _ctx;
 
-      // Group A: ensure inbound leg has a stable AUDIO milestone in server logs even
-      // when track/receiver timing prevents incoming/media.js from binding.
-      try {
-        const pc = invitation?.sessionDescriptionHandler?.peerConnection;
-        if (pc && !pc.__incomingRemoteAudioAttachedEmitted) {
-          pc.__incomingRemoteAudioAttachedEmitted = true;
-          sendCallMediaEvent({
-            type: 'remote-audio-attached',
-            ..._ctx,
-            hasRemoteStream: true,
-            msg: 'Inbound established: remote audio attachment assumed (milestone emit)',
-          });
-        }
-      } catch {}
+      // Group A: attach audio element observers even if answer flow did not attach them
+      // (guarded internally by audioEl.__callMediaPlayObserved).
+      observeRemoteAudioPlay(ui, _ctx);
+      attachIncomingRemoteAudio(invitation, ui);
 
       bindPeerConnection(invitation, "inbound", { aor: _ctx.aor, callId: _ctx.callId });
+
+      // Group A: if the remote audio element is not yet mounted/available at the
+      // moment we enter Established, retry a few times so we still get inbound
+      // AUDIO milestones (remote-audio-attached / ready-state / play-ok) on the
+      // correct inbound context.
+      try {
+        if (invitation.__incomingRemoteAudioRetryTimer) {
+          clearInterval(invitation.__incomingRemoteAudioRetryTimer);
+          invitation.__incomingRemoteAudioRetryTimer = null;
+        }
+        if (!invitation.__incomingRemoteAudioRetryTimer) {
+          let tries = 0;
+          const t = setInterval(() => {
+            tries += 1;
+            try {
+              if (invitation.__incomingRemoteAudioRetryTimer !== t) {
+                clearInterval(t);
+                return;
+              }
+              if (invitation?.state === SIP.SessionState.Terminated) {
+                clearInterval(t);
+                if (invitation.__incomingRemoteAudioRetryTimer === t) {
+                  invitation.__incomingRemoteAudioRetryTimer = null;
+                }
+                return;
+              }
+              const pc = invitation?.sessionDescriptionHandler?.peerConnection;
+              const audioEl = ui?.remoteAudio?.();
+
+              // Group A: emit inbound AUDIO milestone even if the UI audio element
+              // is not yet available (or never becomes available on some clients).
+              try {
+                if (pc && !pc.__incomingRemoteAudioTrackAddedEmitted) {
+                  const receiver = pc.getReceivers?.().find((r) => r?.track && r.track.kind === 'audio') || null;
+                  const track = receiver?.track || null;
+                  if (track) {
+                    pc.__incomingRemoteAudioTrackAddedEmitted = true;
+                    sendCallMediaEvent({
+                      type: 'remote-audio-track-added',
+                      ..._ctx,
+                      trackId: track.id,
+                      trackMuted: typeof track.muted === 'boolean' ? track.muted : undefined,
+                      msg: 'Inbound audio receiver track present (handlers retry)',
+                    });
+                  }
+                }
+              } catch {}
+
+              if (!pc) {
+                if (tries >= 10) {
+                  clearInterval(t);
+                  if (invitation.__incomingRemoteAudioRetryTimer === t) {
+                    invitation.__incomingRemoteAudioRetryTimer = null;
+                  }
+                }
+                return;
+              }
+
+              // UI element dependent paths: only attempt once the element exists.
+              if (audioEl) {
+                observeRemoteAudioPlay(ui, _ctx);
+                attachIncomingRemoteAudio(invitation, ui);
+              }
+
+              if (pc.__incomingRemoteAudioAttachedEmitted || audioEl?.__callMediaPlayObserved) {
+                clearInterval(t);
+                if (invitation.__incomingRemoteAudioRetryTimer === t) {
+                  invitation.__incomingRemoteAudioRetryTimer = null;
+                }
+                return;
+              }
+              if (tries >= 10) {
+                clearInterval(t);
+                if (invitation.__incomingRemoteAudioRetryTimer === t) {
+                  invitation.__incomingRemoteAudioRetryTimer = null;
+                }
+              }
+            } catch {
+              if (tries >= 10) {
+                try { clearInterval(t); } catch {}
+                if (invitation.__incomingRemoteAudioRetryTimer === t) {
+                  invitation.__incomingRemoteAudioRetryTimer = null;
+                }
+              }
+            }
+          }, 250);
+          invitation.__incomingRemoteAudioRetryTimer = t;
+        }
+      } catch {}
 
       try {
         const audioEl = ui?.remoteAudio?.();
@@ -356,6 +440,13 @@ export async function handleIncomingCall(SIP, st, ui, invitation) {
 
       try {
         const pc = invitation?.sessionDescriptionHandler?.peerConnection;
+        try {
+          const hasPc = !!pc;
+          const scheduled = pc ? !!pc.__mediaStatsScheduled : false;
+          const line = `[${nowISO()}] [incoming:diag] Established: scheduleMediaStatsSnapshots reached pc=${hasPc} pc.__mediaStatsScheduled=${scheduled}`;
+          logLine(line);
+          console.log(line);
+        } catch {}
         if (pc) scheduleMediaStatsSnapshots(pc, 'inbound', _ctx);
       } catch {}
 
@@ -560,6 +651,14 @@ export async function answerIncomingCallIsolated(SIP, st, ui) {
     };
 
     await invitation.accept(inviteOptions);
+
+    // Diagnostic-only (Group A): prove whether inbound PC exists immediately after accept().
+    try {
+      const pc = invitation?.sessionDescriptionHandler?.peerConnection;
+      const line = `[${nowISO()}] [incoming:diag] accept() resolved: pc=${!!pc} hasGetStats=${typeof pc?.getStats === 'function'} hasGetReceivers=${typeof pc?.getReceivers === 'function'}`;
+      logLine(line);
+      console.log(line);
+    } catch {}
 
     sendCallMediaEvent({
       type: 'answer-accept-success',

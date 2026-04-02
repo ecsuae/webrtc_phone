@@ -670,6 +670,7 @@ function applySummaryTransforms(events, { includeSession } = {}) {
   // compact AUDIO row in summary for RCA. Summary-only; raw view unchanged.
   const inboundHasAttached = new Set();
   const inboundHasTrackOrPlay = new Map();
+  const inboundHasStatsRtp = new Map();
   for (const ev of input) {
     const t = canonicalType(ev);
     const key = corrKey(ev);
@@ -681,6 +682,15 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     }
     if (t === 'remote-audio-track-added' || t === 'remote-audio-play-ok') {
       if (!inboundHasTrackOrPlay.has(key)) inboundHasTrackOrPlay.set(key, ev);
+      continue;
+    }
+    if (t && t.startsWith('media-stats-')) {
+      const recv = (typeof ev.inboundAudioPacketsReceived === 'number' && Number.isFinite(ev.inboundAudioPacketsReceived))
+        ? ev.inboundAudioPacketsReceived
+        : null;
+      if (recv !== null && recv > 0) {
+        if (!inboundHasStatsRtp.has(key)) inboundHasStatsRtp.set(key, ev);
+      }
     }
   }
   const syntheticInboundAttachedEmitted = new Set();
@@ -805,8 +815,8 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     // Group A: if inbound has track/play evidence but no attached milestone, emit
     // a single synthetic compact AUDIO row in the summary timeline.
     if (key && ev.dir === 'inbound' && !syntheticInboundAttachedEmitted.has(key)) {
-      if (!inboundHasAttached.has(key) && inboundHasTrackOrPlay.has(key)) {
-        const src = inboundHasTrackOrPlay.get(key) || ev;
+      if (!inboundHasAttached.has(key) && (inboundHasTrackOrPlay.has(key) || inboundHasStatsRtp.has(key))) {
+        const src = inboundHasTrackOrPlay.get(key) || inboundHasStatsRtp.get(key) || ev;
         syntheticInboundAttachedEmitted.add(key);
         out.push({
           _seq: src._seq,
@@ -826,7 +836,9 @@ function applySummaryTransforms(events, { includeSession } = {}) {
           mode: src.mode,
           selectedProfile: src.selectedProfile,
           icePolicy: src.icePolicy,
-          msg: 'synthetic: inbound audio activity observed (track/play) but attached milestone missing',
+          msg: inboundHasTrackOrPlay.has(key)
+            ? 'synthetic: inbound audio activity observed (track/play) but attached milestone missing'
+            : 'synthetic: inbound RTP observed in media-stats but attached milestone missing',
         });
       }
     }
