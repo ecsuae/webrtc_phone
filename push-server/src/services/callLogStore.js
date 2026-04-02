@@ -176,6 +176,22 @@ function ingestEvents(rawEvents, sourceIp) {
       outboundAudioPacketsSent: typeof ev.outboundAudioPacketsSent === 'number' ? ev.outboundAudioPacketsSent : undefined,
       outboundAudioBytesSent: typeof ev.outboundAudioBytesSent === 'number' ? ev.outboundAudioBytesSent : undefined,
 
+      // Group B: codec/decode/energy RCA fields (whitelist only; no summary changes)
+      audioLevel: typeof ev.audioLevel === 'number' ? ev.audioLevel : undefined,
+      totalAudioEnergy: typeof ev.totalAudioEnergy === 'number' ? ev.totalAudioEnergy : undefined,
+      inboundCodecMimeType: typeof ev.inboundCodecMimeType === 'string' ? ev.inboundCodecMimeType.slice(0, 128) : undefined,
+      inboundCodecPayloadType: typeof ev.inboundCodecPayloadType === 'number' ? ev.inboundCodecPayloadType : undefined,
+      inboundCodecClockRate: typeof ev.inboundCodecClockRate === 'number' ? ev.inboundCodecClockRate : undefined,
+      inboundCodecChannels: typeof ev.inboundCodecChannels === 'number' ? ev.inboundCodecChannels : undefined,
+      decoderImplementation: typeof ev.decoderImplementation === 'string' ? ev.decoderImplementation.slice(0, 128) : undefined,
+      totalSamplesDecoded: typeof ev.totalSamplesDecoded === 'number' ? ev.totalSamplesDecoded : undefined,
+      concealedSamples: typeof ev.concealedSamples === 'number' ? ev.concealedSamples : undefined,
+      silentConcealedSamples: typeof ev.silentConcealedSamples === 'number' ? ev.silentConcealedSamples : undefined,
+      packetsDiscarded: typeof ev.packetsDiscarded === 'number' ? ev.packetsDiscarded : undefined,
+      packetsRepaired: typeof ev.packetsRepaired === 'number' ? ev.packetsRepaired : undefined,
+      jitterBufferDelay: typeof ev.jitterBufferDelay === 'number' ? ev.jitterBufferDelay : undefined,
+      jitterBufferEmittedCount: typeof ev.jitterBufferEmittedCount === 'number' ? ev.jitterBufferEmittedCount : undefined,
+
       // Local timestamp markers (ISO strings) for timeline correlation
       t_callStart: typeof ev.t_callStart === 'string' ? ev.t_callStart.slice(0, 32) : undefined,
       t_inviteSent: typeof ev.t_inviteSent === 'string' ? ev.t_inviteSent.slice(0, 32) : undefined,
