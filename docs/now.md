@@ -1,45 +1,55 @@
 # NOW
 
 ## Current task
-TASK-024 — UI: restore in-call RX/TX packet indicators (live bars/counters during a call).
+TASK-025 — Admin call logs summary: restore missing inbound AUDIO compact row, macOS CLIENT row, and enhance decode/RCA visibility.
 
 ## Why this matters
-The in-call RX/TX packet indicators are a key live diagnostic and user confidence signal during a call. They previously worked and were lost during refactors/upgrades.
+The admin call logs summary is a critical diagnostic tool for troubleshooting media issues. Currently missing inbound AUDIO compact row and macOS CLIENT row limit observability. Incomplete decode/RCA fields (decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount) hinder root cause analysis of Android decode/render/output quality issues.
 
 ## Already proven
-- WebRTC stats collection exists (`RTCPeerConnection.getStats()`), but there is no active UI binding rendering live RX/TX bars/counters.
+- CALL rows, ICE rows, outbound AUDIO rows, receive-render-proof rows (Render[early], Render[5s], Render[10s]) are working.
+- Outbound selected-pair compact ICE detail and outbound RTP/render RCA fields are visible (recv/sent, audioLevel, totalAudioEnergy, codec, concealed).
+- Hidden rows (call-log-post-buffered, profile-badge-rendered) stay hidden as intended.
+- Android/outbound receives RTP, ICE/DTLS healthy, playback element active, codec visible, concealment high, energy tiny.
 
 ## Current blocker
-The call UI no longer contains or updates the in-call RX/TX packet indicator elements.
+1. Inbound AUDIO compact row is missing from summary.
+2. macOS CLIENT row is missing.
+3. Decode/RCA visibility partial: missing decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount.
+4. Logging reliability if call-log-post-failed is still involved.
 
 ## Required focus
-- Fix only the UI/telemetry path for in-call RX/TX indicators.
-- Do not change registration.
-- Do not change outgoing/incoming signaling flow except if required for packet UI only.
-- Do not change media negotiation.
-- Do not change admin/export/PDF logic.
+- Restore missing existing rows only (inbound AUDIO compact, macOS CLIENT).
+- Enhance decode/RCA visibility only if already emitted or safely ingestible.
+- Logging reliability only after A/B are understood.
+- Do not refactor summary pipeline, rewrite from backup, change raw-view behavior, remove existing working summary rows.
+- Do not mix logging work with speaker/earpiece/render/binding/registration/bootstrap/module-loading changes.
 
 ## Do not touch
-- registration logic
-- outgoing/incoming call logic (except UI telemetry hookup only)
-- LTE/Wi-Fi media path logic
-- admin call logs/export/PDF logic
-- service worker / cache versioning
-- Kamailio / rtpengine / coturn / docker config
+- Registration logic
+- Outgoing/incoming signaling flow (except logging events)
+- Media negotiation
+- Speakerphone, earpiece, remote audio binding
+- Bootstrap, module loading
+- Currently working summary rows (CALL, ICE, outbound AUDIO, receive-render-proof, outbound selected-pair compact ICE detail, outbound RTP/render RCA fields)
+- Hidden rows (call-log-post-buffered, profile-badge-rendered)
 
 ## Files most likely involved
-- `www/app/pc/stats.js`
-- `www/app/pc/bind.js`
-- `www/app/ui/appUi.js`
-- `www/app/layout/dialpadSection.js`
-- `www/styles/*`
+- `push-server/src/admin/callLogPage.js` (summary rendering)
+- `push-server/src/services/callLogStore.js` (event ingestion)
+- `www/app/features/callMediaLog.js` (frontend media log events)
+- `www/app/pc/stats.js` (WebRTC stats collection)
+- `www/app/pc/bind.js` (stats binding)
+- `www/app/ui/appUi.js` (UI events)
 
 ## Exact next safe step
-1. Hard refresh the web app.
-2. Place any call.
-3. Confirm the in-call UI shows live RX/TX packet indicators and they update during the call.
+1. Inspect current summary rendering logic to identify why inbound AUDIO compact row is missing.
+2. Determine if macOS CLIENT row emission is missing from frontend or filtered out in summary.
+3. Check if decode/RCA fields are being collected in stats but not included in summary.
+4. Apply smallest patch to restore missing rows only, ensuring all currently working summary rows remain unchanged.
 
 ## Verification rule
-For this UI change, verify on:
-- one outbound call
-- one inbound call
+For this logging/backend-storage/dashboard change, verify on:
+- Existing call logs that show outbound AUDIO rows but missing inbound AUDIO rows.
+- macOS client logs (if available) to confirm CLIENT row appears after fix.
+- Android decode stats to confirm new fields appear in summary when available.
