@@ -44,6 +44,8 @@ const SESSION_EVENT_TYPES = new Set([
 ]);
 
 const SUMMARY_MILESTONE_TYPES = new Set([
+  'profile-selected',
+  'ua-ice-policy',
   'outbound-preflight-result',
   'invite-sent',
   'ice-complete',
@@ -51,6 +53,7 @@ const SUMMARY_MILESTONE_TYPES = new Set([
   'remote-audio-play-ok',
   'remote-audio-play-failed',
   'no-remote-audio-play',
+  'receive-render-proof',
   'call-established',
   'call-ended',
   'call-log-post-failed',
@@ -288,31 +291,32 @@ function stageLabel(ev) {
 
   const t = canonicalType(ev);
   switch (t) {
-    case 'profile-selected': return 'Profile selected';
-    case 'ua-ice-policy': return 'ICE policy';
+    case 'profile-selected': return 'CLIENT';
+    case 'ua-ice-policy': return 'CLIENT';
     case 'outbound-preflight-start': return 'Preflight';
     case 'outbound-preflight-result': {
       if (typeof ev.relay === 'number') return ev.relay > 0 ? 'Preflight OK' : 'Preflight FAIL';
       return 'Preflight result';
     }
-    case 'invite-sent': return 'INVITE sent';
-    case 'ice-complete': return 'ICE complete';
-    case 'remote-audio-attached': return 'Remote audio attached';
-    case 'remote-audio-play-ok': return 'Remote audio play';
-    case 'remote-audio-play-failed': return 'Remote audio play';
-    case 'no-remote-audio-play': return 'Remote audio play';
-    case 'call-established': return 'Established';
-    case 'call-ended': return 'Ended';
-    case 'call-log-post-failed': return 'POST failed';
-    case 'no-inbound-rtp': return 'No inbound RTP';
-    case 'no-outbound-rtp': return 'No outbound RTP';
-    case 'dtls-connected-but-no-rtp': return 'DTLS ok / no RTP';
-    case 'selected-pair-relay-mismatch': return 'ICE mismatch';
-    case 'remote-audio-play-failed': return 'Audio play failed';
-    case 'no-remote-audio-play': return 'No audio play';
-    case 'one-way-audio-suspected': return 'PROBLEM: one-way audio';
-    case 'incomplete-observability': return 'PROBLEM: missing leg';
-    case 'probable-lte-receive-path-failure': return 'PROBLEM: LTE no receive';
+    case 'invite-sent': return 'CALL';
+    case 'ice-complete': return 'ICE';
+    case 'preflight-icecandidateerror': return 'ICE';
+    case 'selected-pair-relay-mismatch': return 'ICE';
+    case 'outbound-ice-connection-state': return 'ICE';
+    case 'remote-audio-attached': return 'AUDIO';
+    case 'remote-audio-play-ok': return 'AUDIO';
+    case 'remote-audio-play-failed': return 'AUDIO';
+    case 'no-remote-audio-play': return 'AUDIO';
+    case 'receive-render-proof': return 'AUDIO';
+    case 'call-established': return 'CALL';
+    case 'call-ended': return 'CALL';
+    case 'call-log-post-failed': return 'POST';
+    case 'no-inbound-rtp': return 'AUDIO';
+    case 'no-outbound-rtp': return 'AUDIO';
+    case 'dtls-connected-but-no-rtp': return 'ICE';
+    case 'one-way-audio-suspected': return 'AUDIO';
+    case 'incomplete-observability': return 'AUDIO';
+    case 'probable-lte-receive-path-failure': return 'AUDIO';
     case 'preflight-icecandidateerror': return (ev._aggCount > 1)
       ? `Preflight ICE error x${ev._aggCount}`
       : 'Preflight ICE error';
@@ -441,6 +445,92 @@ function mergeIceErrorDetail(best, ev) {
 
 function applySummaryTransforms(events, { includeSession } = {}) {
   const input = Array.isArray(events) ? events : [];
+
+  const fmtRenderProofSummary = (ev) => {
+    if (!ev) return '';
+    const parts = [];
+    const msg = (typeof ev.msg === 'string' ? ev.msg : '') || '';
+    const stage = (() => {
+      if (/\b10s\b/i.test(msg)) return '10s';
+      if (/\b5s\b/i.test(msg)) return '5s';
+      if (/\bearly\b/i.test(msg)) return 'early';
+      // Heuristic: early proof usually lacks RTP/energy fields.
+      const hasAnyStats = (ev.inboundAudioPacketsReceived !== undefined)
+        || (ev.outboundAudioPacketsSent !== undefined)
+        || (ev.audioLevel !== undefined)
+        || (ev.totalAudioEnergy !== undefined);
+      return hasAnyStats ? '?' : 'early';
+    })();
+
+    const fmtBool = (v) => (typeof v === 'boolean' ? String(v) : '?');
+    const fmtNum = (v, { digits } = {}) => {
+      if (typeof v !== 'number' || !Number.isFinite(v)) return '?';
+      const s = String(v);
+      return (typeof digits === 'number') ? s.slice(0, digits) : s;
+    };
+
+    const paused = (typeof ev.audioElPaused === 'boolean') ? ev.audioElPaused : null;
+    const muted = (typeof ev.audioElMuted === 'boolean') ? ev.audioElMuted : null;
+    const volume = (typeof ev.audioElVolume === 'number' && Number.isFinite(ev.audioElVolume)) ? ev.audioElVolume : null;
+    const readyState = (typeof ev.audioElReadyState === 'number' && Number.isFinite(ev.audioElReadyState)) ? ev.audioElReadyState : null;
+    const currentTime = (typeof ev.audioElCurrentTime === 'number' && Number.isFinite(ev.audioElCurrentTime)) ? ev.audioElCurrentTime : null;
+
+    const elParts = [
+      `paused=${fmtBool(paused)}`,
+      `muted=${fmtBool(muted)}`,
+      `volume=${fmtNum(volume, { digits: 6 })}`,
+      `readyState=${readyState !== null ? String(readyState) : '?'}`,
+      `currentTime=${(currentTime !== null) ? (currentTime > 0 ? '>0' : '0') : '?'}`,
+    ];
+
+    const recv = (typeof ev.inboundAudioPacketsReceived === 'number' && Number.isFinite(ev.inboundAudioPacketsReceived))
+      ? ev.inboundAudioPacketsReceived
+      : null;
+    const sent = (typeof ev.outboundAudioPacketsSent === 'number' && Number.isFinite(ev.outboundAudioPacketsSent))
+      ? ev.outboundAudioPacketsSent
+      : null;
+    const audioLevel = (typeof ev.audioLevel === 'number' && Number.isFinite(ev.audioLevel)) ? ev.audioLevel : null;
+    const totalAudioEnergy = (typeof ev.totalAudioEnergy === 'number' && Number.isFinite(ev.totalAudioEnergy)) ? ev.totalAudioEnergy : null;
+    const sParts = [
+      `recv=${recv !== null ? String(recv) : '?'}`,
+      `sent=${sent !== null ? String(sent) : '?'}`,
+      `audioLevel=${fmtNum(audioLevel, { digits: 8 })}`,
+      `totalAudioEnergy=${fmtNum(totalAudioEnergy, { digits: 10 })}`,
+    ];
+
+    const trackEnabled = (typeof ev.trackEnabled === 'boolean') ? ev.trackEnabled : null;
+    const trackMuted = (typeof ev.trackMuted === 'boolean') ? ev.trackMuted : null;
+    const trackReadyState = (typeof ev.trackReadyState === 'string' && ev.trackReadyState.trim()) ? ev.trackReadyState.trim() : null;
+    const tParts = [
+      `track=${trackReadyState || '?'}`,
+      `track.muted=${fmtBool(trackMuted)}`,
+      `track.enabled=${fmtBool(trackEnabled)}`,
+    ];
+
+    parts.push(`Render[${stage}]: ${elParts.join(' ')}`);
+    parts.push(`${tParts.join(' ')}`);
+    parts.push(`${sParts.join(' ')}`);
+
+    const hasRtp = (recv !== null && recv > 0);
+    const hasEnergy = ((typeof totalAudioEnergy === 'number' && totalAudioEnergy > 0) || (typeof audioLevel === 'number' && audioLevel > 0));
+
+    // Mismatch evidence: only emit when strongly supported.
+    if (hasRtp && !hasEnergy) {
+      parts.push('MISMATCH: RTP present but no energy');
+    }
+    if (hasRtp && trackMuted === true) {
+      parts.push('MISMATCH: RTP present but track muted');
+    }
+    const looksStuck = (paused === false)
+      && (readyState !== null && readyState >= 3)
+      && (currentTime !== null && currentTime === 0)
+      && (trackMuted === true || hasRtp);
+    if (looksStuck) {
+      parts.push('MISMATCH: play ok but render stuck');
+    }
+
+    return parts.join(' | ');
+  };
 
   // Pre-compute call-level diagnosis for synthetic PROBLEM rows.
   const byCorr = new Map();
@@ -637,11 +727,20 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     const ev = { ...ev0 };
     ev.type = canonicalType(ev);
 
+    if (ev.type === 'receive-render-proof') {
+      const m = fmtRenderProofSummary(ev);
+      if (m) ev.msg = m;
+    }
+
     const key = corrKey(ev);
 
-    const isSession = SESSION_EVENT_TYPES.has(ev.type) || (!key && !((ev.code || '').startsWith('MEDIA-E')));
+    const isSession = SESSION_EVENT_TYPES.has(ev.type);
     if (isSession && !includeSession) {
-      continue;
+      // Restore: keep key client milestones in summary, but continue to hide
+      // profile-badge-rendered unless includeSession is enabled.
+      if (!(ev.type === 'profile-selected' || ev.type === 'ua-ice-policy')) {
+        continue;
+      }
     }
 
     const isMediaError = (ev.code || '').startsWith('MEDIA-E');
@@ -657,8 +756,11 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     }
 
     // Prefer call-linked events in main summary (unless session is explicitly included)
+    // Regression fix: some milestone rows may legitimately lack corrId/callId; keep them.
     if (!key && !isMediaError) {
-      if (!(includeSession && SESSION_EVENT_TYPES.has(ev.type))) continue;
+      const allowSession = includeSession && SESSION_EVENT_TYPES.has(ev.type);
+      const allowMilestone = SUMMARY_MILESTONE_TYPES.has(ev.type) || ev.type.startsWith('media-stats-');
+      if (!allowSession && !allowMilestone) continue;
     }
 
     // Replace any preflight-family row with the canonical preflight-result for this callId+dir (emitted once)
@@ -700,7 +802,16 @@ function applySummaryTransforms(events, { includeSession } = {}) {
 
     // 2) Collapse duplicates: only one canonical row per milestone per callId+dir
     if (key) {
-      const k = `${key}|${ev.dir || ''}|${isMediaError ? (ev.code || '') : ev.type}`;
+      const dedupeStage = (ev.type === 'receive-render-proof')
+        ? (() => {
+          const m = typeof ev.msg === 'string' ? ev.msg : '';
+          if (/\b10s\b/i.test(m)) return '10s';
+          if (/\b5s\b/i.test(m)) return '5s';
+          if (/\bearly\b/i.test(m)) return 'early';
+          return '';
+        })()
+        : '';
+      const k = `${key}|${ev.dir || ''}|${isMediaError ? (ev.code || '') : ev.type}${dedupeStage ? `|${dedupeStage}` : ''}`;
       if (seenMilestone.has(k)) continue;
       seenMilestone.add(k);
     }

@@ -109,6 +109,9 @@ async function readAudioStatsSnapshot(pc) {
   let inLost = 0;
   let inJitter = null;
 
+  let inAudioLevel = null;
+  let inTotalAudioEnergy = null;
+
   let outPackets = 0;
   let outBytes = 0;
 
@@ -125,6 +128,12 @@ async function readAudioStatsSnapshot(pc) {
       inBytes += r.bytesReceived || 0;
       inLost += r.packetsLost || 0;
       if (typeof r.jitter === 'number') inJitter = r.jitter;
+      if (typeof r.audioLevel === 'number' && Number.isFinite(r.audioLevel)) {
+        inAudioLevel = (typeof inAudioLevel === 'number') ? Math.max(inAudioLevel, r.audioLevel) : r.audioLevel;
+      }
+      if (typeof r.totalAudioEnergy === 'number' && Number.isFinite(r.totalAudioEnergy)) {
+        inTotalAudioEnergy = (typeof inTotalAudioEnergy === 'number') ? Math.max(inTotalAudioEnergy, r.totalAudioEnergy) : r.totalAudioEnergy;
+      }
     }
     if (r.type === 'outbound-rtp' && r.kind === 'audio') {
       outPackets += r.packetsSent || 0;
@@ -167,6 +176,8 @@ async function readAudioStatsSnapshot(pc) {
     inBytes,
     inLost,
     inJitter,
+    inAudioLevel: inAudioLevel ?? undefined,
+    inTotalAudioEnergy: inTotalAudioEnergy ?? undefined,
     outPackets,
     outBytes,
     selectedPair: selectedPairText,
@@ -282,6 +293,47 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
         if (!pc || pc.connectionState === 'closed') return;
         const snap = await readAudioStatsSnapshot(pc);
 
+        // Logging-only: follow-up receive render proof after stats settle (Android outbound).
+        try {
+          const isAndroid = /Android/i.test(navigator.userAgent || '');
+          const wants5s = (type === 'media-stats-5s');
+          const wants10s = (type === 'media-stats-10s');
+          const allow = isAndroid && base.dir === 'outbound' && (wants5s || wants10s);
+          const already = wants5s ? !!pc.__receiveRenderProof5sEmitted : (wants10s ? !!pc.__receiveRenderProof10sEmitted : true);
+          if (allow && !already) {
+            if (wants5s) pc.__receiveRenderProof5sEmitted = true;
+            if (wants10s) pc.__receiveRenderProof10sEmitted = true;
+            const audioEl = (() => {
+              try { return window.__callMediaRemoteAudioEl || null; } catch { return null; }
+            })();
+            const track = (() => {
+              try {
+                const receiver = pc.getReceivers?.().find((r) => r.track && r.track.kind === 'audio') || null;
+                return receiver?.track || null;
+              } catch {
+                return null;
+              }
+            })();
+            sendCallMediaEvent({
+              type: 'receive-render-proof',
+              ...base,
+              audioElPaused: typeof audioEl?.paused === 'boolean' ? audioEl.paused : undefined,
+              audioElMuted: typeof audioEl?.muted === 'boolean' ? audioEl.muted : undefined,
+              audioElVolume: typeof audioEl?.volume === 'number' ? audioEl.volume : undefined,
+              audioElCurrentTime: typeof audioEl?.currentTime === 'number' ? audioEl.currentTime : undefined,
+              audioElReadyState: typeof audioEl?.readyState === 'number' ? audioEl.readyState : undefined,
+              trackEnabled: typeof track?.enabled === 'boolean' ? track.enabled : undefined,
+              trackMuted: typeof track?.muted === 'boolean' ? track.muted : undefined,
+              trackReadyState: typeof track?.readyState === 'string' ? track.readyState : undefined,
+              inboundAudioPacketsReceived: snap.inPackets,
+              outboundAudioPacketsSent: snap.outPackets,
+              audioLevel: snap.inAudioLevel,
+              totalAudioEnergy: snap.inTotalAudioEnergy,
+              msg: wants10s ? 'Receive render proof (10s after stats)' : 'Receive render proof (5s after stats)',
+            });
+          }
+        } catch {}
+
         if (base.dir === 'outbound') {
           try {
             const trackCount = tryGetRemoteAudioTrackCount(pc);
@@ -312,6 +364,8 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
           inboundAudioJitter: snap.inJitter ?? undefined,
           outboundAudioPacketsSent: snap.outPackets,
           outboundAudioBytesSent: snap.outBytes,
+          audioLevel: snap.inAudioLevel,
+          totalAudioEnergy: snap.inTotalAudioEnergy,
           selectedPair: snap.selectedPair,
           localCandidateType: snap.localCandidateType,
           remoteCandidateType: snap.remoteCandidateType,
@@ -397,6 +451,8 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
             inboundAudioJitter: snap.inJitter ?? undefined,
             outboundAudioPacketsSent: snap.outPackets,
             outboundAudioBytesSent: snap.outBytes,
+            audioLevel: snap.inAudioLevel,
+            totalAudioEnergy: snap.inTotalAudioEnergy,
             selectedPair: snap.selectedPair,
             localCandidateType: snap.localCandidateType,
             remoteCandidateType: snap.remoteCandidateType,

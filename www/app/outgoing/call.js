@@ -202,6 +202,12 @@ function configureRemoteAudio(ui) {
             audioEl.__callMediaNoPlayTimer = null;
           }
         } catch {}
+
+        // Logging-only: expose remote audio element for later stats-based proof sampling.
+        try {
+          window.__callMediaRemoteAudioEl = audioEl;
+        } catch {}
+
         const ctx = audioEl.__callMediaDiagContext || {};
         sendCallMediaEvent({
           type: 'outbound-remote-audio-play-ok',
@@ -218,6 +224,35 @@ function configureRemoteAudio(ui) {
           audioPlayOk: true,
           msg: 'remoteAudio is playing',
         });
+
+        // Logging-only: early receive render proof (restore previous summary row).
+        try {
+          if (!audioEl.__receiveRenderProofEarlyEmitted) {
+            audioEl.__receiveRenderProofEarlyEmitted = true;
+            const track = (() => {
+              try {
+                const t = audioEl?.srcObject?.getAudioTracks?.()?.[0] || null;
+                return t || null;
+              } catch {
+                return null;
+              }
+            })();
+            sendCallMediaEvent({
+              type: 'receive-render-proof',
+              ...ctx,
+              dir: 'outbound',
+              audioElPaused: typeof audioEl.paused === 'boolean' ? audioEl.paused : undefined,
+              audioElMuted: typeof audioEl.muted === 'boolean' ? audioEl.muted : undefined,
+              audioElVolume: typeof audioEl.volume === 'number' ? audioEl.volume : undefined,
+              audioElCurrentTime: typeof audioEl.currentTime === 'number' ? audioEl.currentTime : undefined,
+              audioElReadyState: typeof audioEl.readyState === 'number' ? audioEl.readyState : undefined,
+              trackEnabled: typeof track?.enabled === 'boolean' ? track.enabled : undefined,
+              trackMuted: typeof track?.muted === 'boolean' ? track.muted : undefined,
+              trackReadyState: typeof track?.readyState === 'string' ? track.readyState : undefined,
+              msg: 'Receive render proof (early)',
+            });
+          }
+        } catch {}
       }, { once: true });
       audioEl.addEventListener('error', () => {
         const ctx = audioEl.__callMediaDiagContext || {};
