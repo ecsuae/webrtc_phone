@@ -529,12 +529,24 @@ function applySummaryTransforms(events, { includeSession } = {}) {
     const discarded = (typeof ev.packetsDiscarded === 'number' && Number.isFinite(ev.packetsDiscarded))
       ? ev.packetsDiscarded
       : null;
+    const repaired = (typeof ev.packetsRepaired === 'number' && Number.isFinite(ev.packetsRepaired))
+      ? ev.packetsRepaired
+      : null;
+    const jbDelay = (typeof ev.jitterBufferDelay === 'number' && Number.isFinite(ev.jitterBufferDelay))
+      ? ev.jitterBufferDelay
+      : null;
+    const jbEmit = (typeof ev.jitterBufferEmittedCount === 'number' && Number.isFinite(ev.jitterBufferEmittedCount))
+      ? ev.jitterBufferEmittedCount
+      : null;
     const cParts = [];
     if (codec) cParts.push(`codec=${codec}${pt !== null ? ` pt=${pt}` : ''}`);
     if (decImpl) cParts.push(`dec=${decImpl}`);
     if (decoded !== null) cParts.push(`decoded=${decoded}`);
     if (concealed !== null) cParts.push(`concealed=${concealed}`);
     if (discarded !== null) cParts.push(`discarded=${discarded}`);
+    if (repaired !== null) cParts.push(`repaired=${repaired}`);
+    if (jbDelay !== null) cParts.push(`jbDelay=${fmtNum(jbDelay, { digits: 10 })}`);
+    if (jbEmit !== null) cParts.push(`jbEmit=${jbEmit}`);
 
     parts.push(`Render[${stage}]: ${elParts.join(' ')}`);
     parts.push(`${tParts.join(' ')}`);
@@ -1075,10 +1087,24 @@ function renderEventRow(ev, viewMode) {
     })()
     : '';
 
+  const rawPayload = (viewMode === 'raw')
+    ? (() => {
+      try {
+        const json = JSON.stringify(ev, null, 2);
+        return json
+          ? `<details style="margin-top: 4px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">payload</summary><pre style="white-space: pre-wrap; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 6px 0 0; color: var(--dim);">${escHtml(json)}</pre></details>`
+          : '';
+      } catch {
+        return '';
+      }
+    })()
+    : '';
+
   const msgCellHtml = [
     msgMain,
     statsAnnotation,
     msgProof ? `<br><span style="color: var(--dim); font-family: var(--mono); font-size: 11px;">${msgProof}</span>` : '',
+    rawPayload,
   ].join('');
 
   const rowKey = ev.corrId || ev.callId || '';
