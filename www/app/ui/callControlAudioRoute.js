@@ -10,6 +10,55 @@ const state = {
   lastEnforceAt: 0,
 };
 
+function _readSpeakerButtonActive() {
+  try {
+    const btn = document.getElementById('btnSpeaker');
+    if (!btn) return null;
+    return btn.classList.contains('active');
+  } catch {
+    return null;
+  }
+}
+
+function _readStorageModeRaw() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'speaker' || saved === 'earpiece') return saved;
+  } catch {}
+  return null;
+}
+
+export function readAppAudioRouteDiagSnapshot() {
+  const ts = (() => {
+    try { return new Date().toISOString(); } catch { return undefined; }
+  })();
+
+  const mem = (state.mode === 'speaker' || state.mode === 'earpiece') ? state.mode : null;
+  const ls = _readStorageModeRaw();
+  const speakerBtnActive = _readSpeakerButtonActive();
+  const uiMode = (typeof speakerBtnActive === 'boolean') ? (speakerBtnActive ? 'speaker' : 'earpiece') : null;
+
+  const mode = mem || ls || uiMode || 'unknown';
+  const source = mem ? 'memory' : (ls ? 'localStorage' : (uiMode ? 'ui-state' : 'none'));
+  const detail = mem ? 'callControlAudioRoute.state.mode'
+    : (ls ? `localStorage.${STORAGE_KEY}`
+      : (uiMode ? '#btnSpeaker.active' : 'none'));
+
+  const speakerButtonActive = (typeof speakerBtnActive === 'boolean') ? speakerBtnActive : false;
+  const earpieceButtonActive = (typeof speakerBtnActive === 'boolean') ? !speakerBtnActive : false;
+  const audioRouteStateAvailable = (mode === 'speaker' || mode === 'earpiece');
+
+  return {
+    appAudioRouteMode: mode,
+    appAudioRouteSource: source,
+    appAudioRouteDetail: detail,
+    speakerButtonActive,
+    earpieceButtonActive,
+    audioRouteStateAvailable,
+    audioRouteSnapshotTs: ts,
+  };
+}
+
 function isMobileClient() {
   const ua = navigator.userAgent || "";
   return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
@@ -163,6 +212,24 @@ export function initializeAudioRouteButton(button) {
     state.mode = state.mode === "speaker" ? "earpiece" : "speaker";
     saveMode(state.mode);
     await enforceCurrentAudioRoute(audioEl);
+
+    try {
+      const diag = readAppAudioRouteDiagSnapshot();
+      import('../features/callMediaLog.js')
+        .then((m) => {
+          const fn = m?.sendCallMediaEvent;
+          if (typeof fn !== 'function') return;
+          fn({
+            type: 'app-audio-route-snapshot',
+            dir: 'outbound',
+            trigger: 'ui-toggle',
+            reason: 'speaker-button-click',
+            ...diag,
+            msg: 'App audio route snapshot (UI toggle)',
+          });
+        })
+        .catch(() => {});
+    } catch {}
   });
 
   enforceCurrentAudioRoute(audioEl).catch(() => {});

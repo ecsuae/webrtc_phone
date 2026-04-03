@@ -157,6 +157,43 @@ function ingestEvents(rawEvents, sourceIp) {
       audioElPaused: typeof ev.audioElPaused === 'boolean' ? ev.audioElPaused : undefined,
       audioElCurrentTime: typeof ev.audioElCurrentTime === 'number' ? ev.audioElCurrentTime : undefined,
 
+      // Audio output route diagnostics (raw-only observability)
+      desiredMode: typeof ev.desiredMode === 'string' ? ev.desiredMode.slice(0, 32) : undefined,
+      routedTo: typeof ev.routedTo === 'string' ? ev.routedTo.slice(0, 32) : undefined,
+      sinkSupported: typeof ev.sinkSupported === 'boolean' ? ev.sinkSupported : undefined,
+      sinkId: typeof ev.sinkId === 'string' ? ev.sinkId.slice(0, 128) : undefined,
+      enumerateDevicesAvailable: typeof ev.enumerateDevicesAvailable === 'boolean' ? ev.enumerateDevicesAvailable : undefined,
+      setSinkIdAvailable: typeof ev.setSinkIdAvailable === 'boolean' ? ev.setSinkIdAvailable : undefined,
+      routeInfoUnavailable: typeof ev.routeInfoUnavailable === 'boolean' ? ev.routeInfoUnavailable : undefined,
+      routeInfoSource: typeof ev.routeInfoSource === 'string' ? ev.routeInfoSource.slice(0, 64) : undefined,
+      androidRouteControlAvailable: typeof ev.androidRouteControlAvailable === 'boolean' ? ev.androidRouteControlAvailable : undefined,
+      effectiveOutput: typeof ev.effectiveOutput === 'string' ? ev.effectiveOutput.slice(0, 64) : undefined,
+      routeDecision: typeof ev.routeDecision === 'string' ? ev.routeDecision.slice(0, 96) : undefined,
+      routeDecisionReason: typeof ev.routeDecisionReason === 'string' ? ev.routeDecisionReason.slice(0, 256) : undefined,
+      trigger: typeof ev.trigger === 'string' ? ev.trigger.slice(0, 64) : undefined,
+      reason: typeof ev.reason === 'string' ? ev.reason.slice(0, 128) : undefined,
+      audioOutputs: Array.isArray(ev.audioOutputs)
+        ? ev.audioOutputs.slice(0, 8).map((d) => ({
+          deviceId: (d && typeof d.deviceId === 'string') ? d.deviceId.slice(0, 128) : undefined,
+          label: (d && typeof d.label === 'string') ? d.label.slice(0, 128) : undefined,
+        }))
+        : undefined,
+
+      // Ringback (WebAudio) diagnostics
+      ringbackRunning: typeof ev.ringbackRunning === 'boolean' ? ev.ringbackRunning : undefined,
+      ringbackCtxState: typeof ev.ringbackCtxState === 'string' ? ev.ringbackCtxState.slice(0, 32) : undefined,
+      ringbackCtxCurrentTime: typeof ev.ringbackCtxCurrentTime === 'number' ? ev.ringbackCtxCurrentTime : undefined,
+
+      // App/page audio route selection snapshot (raw-only observability)
+      appAudioRouteMode: typeof ev.appAudioRouteMode === 'string' ? ev.appAudioRouteMode.slice(0, 32) : undefined,
+      appAudioRouteSource: typeof ev.appAudioRouteSource === 'string' ? ev.appAudioRouteSource.slice(0, 32) : undefined,
+      appAudioRouteDetail: typeof ev.appAudioRouteDetail === 'string' ? ev.appAudioRouteDetail.slice(0, 128) : undefined,
+      speakerButtonActive: typeof ev.speakerButtonActive === 'boolean' ? ev.speakerButtonActive : undefined,
+      earpieceButtonActive: typeof ev.earpieceButtonActive === 'boolean' ? ev.earpieceButtonActive : undefined,
+      audioRouteStateAvailable: typeof ev.audioRouteStateAvailable === 'boolean' ? ev.audioRouteStateAvailable : undefined,
+      audioRouteMismatch: typeof ev.audioRouteMismatch === 'boolean' ? ev.audioRouteMismatch : undefined,
+      audioRouteSnapshotTs: typeof ev.audioRouteSnapshotTs === 'string' ? ev.audioRouteSnapshotTs.slice(0, 32) : undefined,
+
       // Post-establish receive health fields (LTE receive-leg observability)
       packetsReceived: typeof ev.packetsReceived === 'number' ? ev.packetsReceived : undefined,
       bytesReceived: typeof ev.bytesReceived === 'number' ? ev.bytesReceived : undefined,

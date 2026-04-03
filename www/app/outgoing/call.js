@@ -14,6 +14,7 @@ import { guardLteRelayReadiness, checkLteRelayAvailable, MEDIA_ERRORS } from "..
 import { sendCallMediaEvent } from "../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
 import { ICE_SERVERS } from "../config.js";
+import { readAppAudioRouteDiagSnapshot } from "../ui/callControlAudioRoute.js";
 
 let _pcStats = null;
 let _pcStatsImport = null;
@@ -69,6 +70,306 @@ function loadPcStatsForDiag() {
     .catch(() => null);
 
   return _pcStatsImport;
+}
+
+async function readAudioOutputSnapshot(audioEl) {
+  const desiredModeRaw = (() => {
+    try {
+      const v = localStorage.getItem('audioRouteMode');
+      return (v === 'speaker' || v === 'earpiece') ? v : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const desiredMode = desiredModeRaw || 'unknown';
+
+  const sinkSupported = !!(audioEl && typeof audioEl.setSinkId === 'function');
+  const sinkId = (() => {
+    try {
+      return audioEl && typeof audioEl.sinkId === 'string' ? audioEl.sinkId : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const enumerateDevicesAvailable = !!navigator.mediaDevices?.enumerateDevices;
+  const setSinkIdAvailable = !!(audioEl && typeof audioEl.setSinkId === 'function');
+
+  let outputs = undefined;
+  try {
+    if (enumerateDevicesAvailable) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      outputs = (devices || [])
+        .filter((d) => d && d.kind === 'audiooutput')
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label,
+        }));
+    }
+  } catch {
+    // ignore
+  }
+
+  const routeInfoUnavailable = (!enumerateDevicesAvailable && !setSinkIdAvailable);
+
+  const outputsList = Array.isArray(outputs) ? outputs : [];
+  const defaultOnly = outputsList.length === 1
+    && String(outputsList[0]?.deviceId || '') === 'default'
+    && String(outputsList[0]?.label || '').toLowerCase().includes('default');
+
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  const androidRouteControlAvailable = isAndroid ? false : undefined;
+  const effectiveOutput = (isAndroid && defaultOnly && !setSinkIdAvailable) ? 'default-only' : undefined;
+  const routeDecision = (isAndroid && (!setSinkIdAvailable)) ? 'web-cannot-determine-android-route' : undefined;
+  const routeDecisionReason = (isAndroid && defaultOnly && !setSinkIdAvailable)
+    ? 'enumerateDevices only exposes Default and setSinkId unsupported'
+    : (isAndroid && !setSinkIdAvailable ? 'setSinkId unsupported on this runtime' : undefined);
+
+  const appRoute = (() => {
+    try {
+      const d = readAppAudioRouteDiagSnapshot?.();
+      return d && typeof d === 'object' ? d : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const audioRouteMismatch = (() => {
+    try {
+      const appMode = appRoute?.appAudioRouteMode;
+      const wants = (appMode === 'speaker' || appMode === 'earpiece');
+      const limited = (routeDecision === 'web-cannot-determine-android-route') || (effectiveOutput === 'default-only');
+      return !!(wants && limited);
+    } catch {
+      return false;
+    }
+  })();
+
+  return {
+    desiredMode,
+    routedTo: desiredModeRaw || 'unknown',
+    sinkSupported,
+    sinkId: (sinkId || (setSinkIdAvailable ? 'unknown' : 'unsupported')),
+    outputs,
+    enumerateDevicesAvailable,
+    setSinkIdAvailable,
+    routeInfoUnavailable,
+    routeInfoSource: routeInfoUnavailable ? 'web-runtime-limited' : 'web-runtime',
+    androidRouteControlAvailable,
+    effectiveOutput,
+    routeDecision,
+    routeDecisionReason,
+    appRoute,
+    audioRouteMismatch,
+  };
+}
+
+function startOutboundAudioOutputDiag(audioEl, ctx) {
+  if (!audioEl || audioEl.__callMediaAudioOutputDiagStarted) return;
+  audioEl.__callMediaAudioOutputDiagStarted = true;
+
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  if (!isAndroid) return;
+
+  try {
+    readAudioOutputSnapshot(audioEl).then((snap) => {
+      try {
+        sendCallMediaEvent({
+          type: 'audio-output-route',
+          ...ctx,
+          dir: 'outbound',
+          desiredMode: snap?.desiredMode,
+          routedTo: snap?.routedTo,
+          sinkSupported: snap?.sinkSupported,
+          sinkId: snap?.sinkId,
+          audioOutputs: snap?.outputs,
+          enumerateDevicesAvailable: snap?.enumerateDevicesAvailable,
+          setSinkIdAvailable: snap?.setSinkIdAvailable,
+          routeInfoUnavailable: snap?.routeInfoUnavailable,
+          routeInfoSource: snap?.routeInfoSource,
+          androidRouteControlAvailable: snap?.androidRouteControlAvailable,
+          effectiveOutput: snap?.effectiveOutput,
+          routeDecision: snap?.routeDecision,
+          routeDecisionReason: snap?.routeDecisionReason,
+          appAudioRouteMode: snap?.appRoute?.appAudioRouteMode || 'unknown',
+          appAudioRouteSource: snap?.appRoute?.appAudioRouteSource || 'none',
+          appAudioRouteDetail: snap?.appRoute?.appAudioRouteDetail || 'none',
+          speakerButtonActive: typeof snap?.appRoute?.speakerButtonActive === 'boolean' ? snap.appRoute.speakerButtonActive : false,
+          earpieceButtonActive: typeof snap?.appRoute?.earpieceButtonActive === 'boolean' ? snap.appRoute.earpieceButtonActive : false,
+          audioRouteStateAvailable: typeof snap?.appRoute?.audioRouteStateAvailable === 'boolean' ? snap.appRoute.audioRouteStateAvailable : false,
+          audioRouteSnapshotTs: snap?.appRoute?.audioRouteSnapshotTs || undefined,
+          audioRouteMismatch: typeof snap?.audioRouteMismatch === 'boolean' ? snap.audioRouteMismatch : false,
+          msg: 'Audio output route snapshot',
+        });
+      } catch {}
+    });
+  } catch {}
+
+  try {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.addEventListener !== 'function') return;
+    const handler = () => {
+      try {
+        readAudioOutputSnapshot(audioEl).then((snap) => {
+          try {
+            sendCallMediaEvent({
+              type: 'audio-output-route-change',
+              ...ctx,
+              dir: 'outbound',
+              desiredMode: snap?.desiredMode,
+              routedTo: snap?.routedTo,
+              sinkSupported: snap?.sinkSupported,
+              sinkId: snap?.sinkId,
+              audioOutputs: snap?.outputs,
+              enumerateDevicesAvailable: snap?.enumerateDevicesAvailable,
+              setSinkIdAvailable: snap?.setSinkIdAvailable,
+              routeInfoUnavailable: snap?.routeInfoUnavailable,
+              routeInfoSource: snap?.routeInfoSource,
+              androidRouteControlAvailable: snap?.androidRouteControlAvailable,
+              effectiveOutput: snap?.effectiveOutput,
+              routeDecision: snap?.routeDecision,
+              routeDecisionReason: snap?.routeDecisionReason,
+              appAudioRouteMode: snap?.appRoute?.appAudioRouteMode || 'unknown',
+              appAudioRouteSource: snap?.appRoute?.appAudioRouteSource || 'none',
+              appAudioRouteDetail: snap?.appRoute?.appAudioRouteDetail || 'none',
+              speakerButtonActive: typeof snap?.appRoute?.speakerButtonActive === 'boolean' ? snap.appRoute.speakerButtonActive : false,
+              earpieceButtonActive: typeof snap?.appRoute?.earpieceButtonActive === 'boolean' ? snap.appRoute.earpieceButtonActive : false,
+              audioRouteStateAvailable: typeof snap?.appRoute?.audioRouteStateAvailable === 'boolean' ? snap.appRoute.audioRouteStateAvailable : false,
+              audioRouteSnapshotTs: snap?.appRoute?.audioRouteSnapshotTs || undefined,
+              audioRouteMismatch: typeof snap?.audioRouteMismatch === 'boolean' ? snap.audioRouteMismatch : false,
+              msg: 'Audio output devicechange observed',
+            });
+          } catch {}
+        });
+      } catch {}
+    };
+    audioEl.__callMediaDeviceChangeHandler = handler;
+    navigator.mediaDevices.addEventListener('devicechange', handler);
+  } catch {}
+}
+
+function startOutboundRenderDiag(audioEl, ctx) {
+  if (!audioEl || audioEl.__callMediaRenderDiagTimer) return;
+
+  const isAndroid = /Android/i.test(navigator.userAgent || '');
+  if (!isAndroid) return;
+
+  const startedAt = Date.now();
+  audioEl.__callMediaRenderDiagTimer = setInterval(() => {
+    try {
+      const now = Date.now();
+      if ((now - startedAt) > 30000) {
+        clearInterval(audioEl.__callMediaRenderDiagTimer);
+        audioEl.__callMediaRenderDiagTimer = null;
+        return;
+      }
+
+      const track = (() => {
+        try {
+          const t = audioEl?.srcObject?.getAudioTracks?.()?.[0] || null;
+          return t || null;
+        } catch {
+          return null;
+        }
+      })();
+
+      const appRoute = (() => {
+        try {
+          const d = readAppAudioRouteDiagSnapshot?.();
+          return d && typeof d === 'object' ? d : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      const baseEv = {
+        type: 'outbound-render-diag',
+        ...ctx,
+        dir: 'outbound',
+        audioElCurrentTime: typeof audioEl.currentTime === 'number' ? audioEl.currentTime : undefined,
+        audioElPaused: typeof audioEl.paused === 'boolean' ? audioEl.paused : undefined,
+        audioElMuted: typeof audioEl.muted === 'boolean' ? audioEl.muted : undefined,
+        audioElVolume: typeof audioEl.volume === 'number' ? audioEl.volume : undefined,
+        audioElReadyState: typeof audioEl.readyState === 'number' ? audioEl.readyState : undefined,
+        trackMuted: typeof track?.muted === 'boolean' ? track.muted : undefined,
+        trackEnabled: typeof track?.enabled === 'boolean' ? track.enabled : undefined,
+        trackReadyState: typeof track?.readyState === 'string' ? track.readyState : undefined,
+        appAudioRouteMode: appRoute?.appAudioRouteMode || 'unknown',
+        appAudioRouteSource: appRoute?.appAudioRouteSource || 'none',
+        appAudioRouteDetail: appRoute?.appAudioRouteDetail || 'none',
+        speakerButtonActive: typeof appRoute?.speakerButtonActive === 'boolean' ? appRoute.speakerButtonActive : false,
+        earpieceButtonActive: typeof appRoute?.earpieceButtonActive === 'boolean' ? appRoute.earpieceButtonActive : false,
+        audioRouteStateAvailable: typeof appRoute?.audioRouteStateAvailable === 'boolean' ? appRoute.audioRouteStateAvailable : false,
+        audioRouteSnapshotTs: appRoute?.audioRouteSnapshotTs || undefined,
+        audioRouteMismatch: false,
+        msg: 'Outbound render progress snapshot',
+      };
+
+      const pc = (() => {
+        try { return audioEl.__callMediaPc || null; } catch { return null; }
+      })();
+
+      if (!pc) {
+        sendCallMediaEvent(baseEv);
+        return;
+      }
+
+      loadPcStatsForDiag().then(async (m) => {
+        try {
+          const fn = m?.readAudioStatsSnapshotForDiag;
+          if (typeof fn !== 'function') {
+            sendCallMediaEvent(baseEv);
+            return;
+          }
+          const snap = await fn(pc);
+          if (!snap) {
+            sendCallMediaEvent(baseEv);
+            return;
+          }
+          sendCallMediaEvent({
+            ...baseEv,
+            decoderImplementation: snap.decoderImplementation,
+            totalSamplesDecoded: snap.totalSamplesDecoded,
+            packetsRepaired: snap.packetsRepaired,
+            jitterBufferDelay: snap.jitterBufferDelay,
+            jitterBufferEmittedCount: snap.jitterBufferEmittedCount,
+            concealedSamples: snap.concealedSamples,
+            silentConcealedSamples: snap.silentConcealedSamples,
+            packetsDiscarded: snap.packetsDiscarded,
+            audioLevel: snap.inAudioLevel,
+            totalAudioEnergy: snap.inTotalAudioEnergy,
+            inboundAudioPacketsReceived: snap.inPackets,
+            outboundAudioPacketsSent: snap.outPackets,
+            inboundCodecMimeType: snap.inboundCodecMimeType,
+            inboundCodecPayloadType: snap.inboundCodecPayloadType,
+            msg: 'Outbound render+decode snapshot',
+          });
+        } catch {
+          sendCallMediaEvent(baseEv);
+        }
+      });
+    } catch {
+      // ignore
+    }
+  }, 3000);
+}
+
+function stopOutboundDiag(audioEl) {
+  if (!audioEl) return;
+  try {
+    if (audioEl.__callMediaRenderDiagTimer) {
+      clearInterval(audioEl.__callMediaRenderDiagTimer);
+      audioEl.__callMediaRenderDiagTimer = null;
+    }
+  } catch {}
+
+  try {
+    const handler = audioEl.__callMediaDeviceChangeHandler;
+    if (handler && navigator.mediaDevices && typeof navigator.mediaDevices.removeEventListener === 'function') {
+      navigator.mediaDevices.removeEventListener('devicechange', handler);
+    }
+    audioEl.__callMediaDeviceChangeHandler = null;
+  } catch {}
 }
 
 function scheduleMediaStatsSnapshots(pc, label, diagCtx) {
@@ -386,6 +687,35 @@ function onOutboundStateChange(SIP, inviter, st, ui, { t_callStart, peer } = {})
       if (window.callTimer) window.callTimer.start();
 
       try {
+        const diag = readAppAudioRouteDiagSnapshot?.();
+        sendCallMediaEvent({
+          type: 'app-audio-route-snapshot',
+          ...getOutboundDiagContext(st, peer, inviter),
+          dir: 'outbound',
+          trigger: 'call-established',
+          reason: 'session-established',
+          appAudioRouteMode: diag?.appAudioRouteMode || 'unknown',
+          appAudioRouteSource: diag?.appAudioRouteSource || 'none',
+          appAudioRouteDetail: diag?.appAudioRouteDetail || 'none',
+          speakerButtonActive: typeof diag?.speakerButtonActive === 'boolean' ? diag.speakerButtonActive : false,
+          earpieceButtonActive: typeof diag?.earpieceButtonActive === 'boolean' ? diag.earpieceButtonActive : false,
+          audioRouteStateAvailable: typeof diag?.audioRouteStateAvailable === 'boolean' ? diag.audioRouteStateAvailable : false,
+          audioRouteSnapshotTs: diag?.audioRouteSnapshotTs || undefined,
+          audioRouteMismatch: false,
+          msg: 'App audio route snapshot (call established)',
+        });
+      } catch {}
+
+      try {
+        const ctx = getOutboundDiagContext(st, peer, inviter);
+        const audioEl = ui?.remoteAudio?.();
+        if (audioEl) {
+          startOutboundAudioOutputDiag(audioEl, ctx);
+          startOutboundRenderDiag(audioEl, ctx);
+        }
+      } catch {}
+
+      try {
         const audioEl = ui?.remoteAudio?.();
         if (audioEl && !audioEl.__callMediaNoPlayTimer) {
           audioEl.__callMediaNoPlayTimer = setTimeout(() => {
@@ -522,6 +852,11 @@ function onOutboundStateChange(SIP, inviter, st, ui, { t_callStart, peer } = {})
     if (s === SIP.SessionState.Terminated) {
       stopRingbackTone();
       clearEarlyMediaAttachLoop(inviter);
+
+      try {
+        const audioEl = ui?.remoteAudio?.();
+        stopOutboundDiag(audioEl);
+      } catch {}
 
       sendCallMediaEvent({
         type: 'call-ended',
@@ -770,12 +1105,12 @@ export async function startCall(SIP, st, ui) {
         if (code === 180) {
           // 180 Ringing: Start local ringback as fallback since PBX won't send early media
           ui.setStatus("Ringing...");
-          startRingbackTone();
+          startRingbackTone({ trigger: 'sip-180', reason: 'sip-180-ringing' });
         }
 
         if (code === 183) {
           if (hasSdp) {
-            stopRingbackTone();
+            stopRingbackTone({ trigger: 'sip-183', reason: 'early-media-sdp' });
             ui.setStatus("Early media...");
           } else {
             ui.setStatus("Progress...");
@@ -787,7 +1122,7 @@ export async function startCall(SIP, st, ui) {
       }
     },
     onAccept: async (resp) => {
-      stopRingbackTone();
+      stopRingbackTone({ trigger: 'sip-200', reason: 'call-answered' });
       const info = formatSipResponse(resp);
       const details = getSipRejectDetails(resp);
       window.callHistory?.addCall?.(target, "outgoing", 0, {
@@ -797,12 +1132,12 @@ export async function startCall(SIP, st, ui) {
       ui.setStatus(info ? `Call established (${info})` : "Call established");
     },
     onRedirect: async (resp) => {
-      stopRingbackTone();
+      stopRingbackTone({ trigger: 'sip-3xx', reason: 'redirect' });
       const info = formatSipResponse(resp);
       ui.setStatus(info ? `Call redirected (${info})` : "Call redirected");
     },
     onReject: async (resp) => {
-      stopRingbackTone();
+      stopRingbackTone({ trigger: 'sip-reject', reason: 'reject' });
       const info = formatSipResponse(resp);
       const details = getSipRejectDetails(resp);
       const human = mapSipFailureToMessage(details);
@@ -885,7 +1220,7 @@ export async function startCall(SIP, st, ui) {
         stopLocalAudioStream();
         st.session = null;
         ui.setButtons();
-        stopRingbackTone();
+        stopRingbackTone({ trigger: 'hangup', reason: 'hangup' });
       },
     });
 
@@ -911,7 +1246,7 @@ export async function hangupCall(st, ui, silent = false) {
   const s = st.session;
   if (!silent) logLine(`[${nowISO()}] [call] hangup`);
 
-  stopRingbackTone();
+  stopRingbackTone({ trigger: 'hangup', reason: 'hangup' });
 
   try {
     if (s.state === SIP.SessionState.Established) await s.bye();
