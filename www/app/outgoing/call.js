@@ -15,6 +15,9 @@ import { sendCallMediaEvent } from "../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../features/mobileNetworkMode.js";
 import { ICE_SERVERS } from "../config.js";
 
+let _pcStats = null;
+let _pcStatsImport = null;
+
 let _stats = null;
 let _statsImport = null;
 
@@ -50,6 +53,22 @@ function loadPcStats() {
     });
 
   return _statsImport;
+}
+
+function loadPcStatsForDiag() {
+  if (_pcStats) return Promise.resolve(_pcStats);
+  if (_pcStatsImport) return _pcStatsImport;
+
+  const cb = getRuntimeCb();
+  const url = cb ? `../pc/stats.js?cb=${encodeURIComponent(cb)}` : '../pc/stats.js';
+  _pcStatsImport = import(url)
+    .then((m) => {
+      _pcStats = m;
+      return m;
+    })
+    .catch(() => null);
+
+  return _pcStatsImport;
 }
 
 function scheduleMediaStatsSnapshots(pc, label, diagCtx) {
@@ -237,7 +256,7 @@ function configureRemoteAudio(ui) {
                 return null;
               }
             })();
-            sendCallMediaEvent({
+            const baseEv = {
               type: 'receive-render-proof',
               ...ctx,
               dir: 'outbound',
@@ -250,7 +269,49 @@ function configureRemoteAudio(ui) {
               trackMuted: typeof track?.muted === 'boolean' ? track.muted : undefined,
               trackReadyState: typeof track?.readyState === 'string' ? track.readyState : undefined,
               msg: 'Receive render proof (early)',
-            });
+            };
+
+            const pc = (() => {
+              try { return audioEl.__callMediaPc || null; } catch { return null; }
+            })();
+
+            if (pc) {
+              loadPcStatsForDiag().then(async (m) => {
+                try {
+                  const fn = m?.readAudioStatsSnapshotForDiag;
+                  if (typeof fn !== 'function') {
+                    sendCallMediaEvent(baseEv);
+                    return;
+                  }
+                  const snap = await fn(pc);
+                  if (!snap) {
+                    sendCallMediaEvent(baseEv);
+                    return;
+                  }
+                  sendCallMediaEvent({
+                    ...baseEv,
+                    inboundAudioPacketsReceived: snap.inPackets,
+                    outboundAudioPacketsSent: snap.outPackets,
+                    audioLevel: snap.inAudioLevel,
+                    totalAudioEnergy: snap.inTotalAudioEnergy,
+                    inboundCodecMimeType: snap.inboundCodecMimeType,
+                    inboundCodecPayloadType: snap.inboundCodecPayloadType,
+                    decoderImplementation: snap.decoderImplementation,
+                    packetsDiscarded: snap.packetsDiscarded,
+                    packetsRepaired: snap.packetsRepaired,
+                    concealedSamples: snap.concealedSamples,
+                    silentConcealedSamples: snap.silentConcealedSamples,
+                    totalSamplesDecoded: snap.totalSamplesDecoded,
+                    jitterBufferDelay: snap.jitterBufferDelay,
+                    jitterBufferEmittedCount: snap.jitterBufferEmittedCount,
+                  });
+                } catch {
+                  sendCallMediaEvent(baseEv);
+                }
+              });
+            } else {
+              sendCallMediaEvent(baseEv);
+            }
           }
         } catch {}
       }, { once: true });
@@ -313,6 +374,12 @@ function onOutboundStateChange(SIP, inviter, st, ui, { t_callStart, peer } = {})
     const _callId = inviter.outgoingRequestMessage?.callId || undefined;
     bindPeerConnection(inviter, "outbound", { aor: _aor, callId: _callId });
     attachRemoteAudio(inviter, ui);
+
+    try {
+      const audioEl = ui?.remoteAudio?.();
+      const pc = inviter?.sessionDescriptionHandler?.peerConnection;
+      if (audioEl && pc) audioEl.__callMediaPc = pc;
+    } catch {}
 
     if (s === SIP.SessionState.Established) {
       stopRingbackTone();

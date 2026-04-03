@@ -149,6 +149,8 @@ function ingestEvents(rawEvents, sourceIp) {
       // Track/audio-element health
       trackId: typeof ev.trackId === 'string' ? ev.trackId.slice(0, 128) : undefined,
       trackMuted: typeof ev.trackMuted === 'boolean' ? ev.trackMuted : undefined,
+      trackEnabled: typeof ev.trackEnabled === 'boolean' ? ev.trackEnabled : undefined,
+      trackReadyState: typeof ev.trackReadyState === 'string' ? ev.trackReadyState.slice(0, 32) : undefined,
       audioElMuted: typeof ev.audioElMuted === 'boolean' ? ev.audioElMuted : undefined,
       audioElVolume: typeof ev.audioElVolume === 'number' ? ev.audioElVolume : undefined,
       audioElReadyState: typeof ev.audioElReadyState === 'number' ? ev.audioElReadyState : undefined,

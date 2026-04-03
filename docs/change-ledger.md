@@ -28,6 +28,36 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-03T22:31:00Z — TASK-025: Admin call logs — RAW per-row full payload usability + Render RCA completeness
+- **AI**: Cascade
+- **Scope**: Group A logging/observability only (admin RAW/SUMMARY rendering + store whitelist + stats event payload enrichment). No registration/signaling/media-path behavior changes.
+- **Problem**:
+  - RAW `/admin/calllogs?view=raw` payload JSON exists but is not practically usable due to narrow column layout/word-breaking.
+  - SUMMARY Render rows could not show `repaired/jbDelay/jbEmit` if `receive-render-proof` payload lacked those fields.
+- **Root cause**:
+  - RAW CSS: `.msg-cell` had `max-width: 320px` and `word-break: break-word` which constrained the expanded `<pre>` and made inspection painful.
+  - `receive-render-proof` emission did not include `packetsRepaired/jitterBufferDelay/jitterBufferEmittedCount` even when the stats snapshot had them.
+- **Fix**:
+  - `push-server/src/admin/callLogPage.js`:
+    - RAW-view-only layout widening via `body.view-raw` CSS overrides; keep summary CSS unchanged.
+    - Payload `<details>` label now prefixed with `payload` + `type dir #_seq ts`.
+  - `www/app/pc/stats.js`: include `packetsRepaired`, `jitterBufferDelay`, `jitterBufferEmittedCount` on `receive-render-proof` events (sourced from existing stats snapshot).
+  - `push-server/src/services/callLogStore.js`: whitelist `trackEnabled` + `trackReadyState` (and confirm required RCA fields are stored when emitted).
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/services/callLogStore.js`
+  - `www/app/pc/stats.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - push-server (for admin page/store changes): `docker compose up -d --build push-server`
+  - frontend hard refresh (for receive-render-proof payload enrichment)
+- **Verified result**:
+  - Not yet runtime-verified in container; changes are code-proven and isolated.
+- **Next safe step**:
+  - Place one call, open `/admin/calllogs?view=raw`, expand a row, confirm full JSON is readable inline.
+  - Confirm Render[5s]/[10s] rows now show `repaired/jbDelay/jbEmit` when stats provide them; confirm no duplication and protected rows unchanged.
+
 ### 2026-03-31T02:45:00Z — TASK-024: UI — restore in-call RX/TX packet indicators (live bars/counters)
 - **AI**: Cascade
 - **Scope**: UI/telemetry only (no registration, signaling, media negotiation, admin/export/PDF, or infra changes)

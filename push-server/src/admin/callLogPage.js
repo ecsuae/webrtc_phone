@@ -450,6 +450,21 @@ function mergeIceErrorDetail(best, ev) {
 function applySummaryTransforms(events, { includeSession } = {}) {
   const input = Array.isArray(events) ? events : [];
 
+  const fmtPktBits = (stats, label) => {
+    if (!stats || typeof stats !== 'object') return '';
+    const recv = (typeof stats.inboundAudioPacketsReceived === 'number' && Number.isFinite(stats.inboundAudioPacketsReceived))
+      ? stats.inboundAudioPacketsReceived
+      : null;
+    const sent = (typeof stats.outboundAudioPacketsSent === 'number' && Number.isFinite(stats.outboundAudioPacketsSent))
+      ? stats.outboundAudioPacketsSent
+      : null;
+    if (recv === null && sent === null) return '';
+    const parts = [];
+    if (recv !== null) parts.push(`recv=${recv}`);
+    if (sent !== null) parts.push(`sent=${sent}`);
+    return `${label} ${parts.join(' ')}`;
+  };
+
   const fmtRenderProofSummary = (ev) => {
     if (!ev) return '';
     const parts = [];
@@ -710,6 +725,13 @@ function applySummaryTransforms(events, { includeSession } = {}) {
   // Emit one synthetic PROBLEM row per callId (newest-first ordering).
   for (const [key, d] of callProblem.entries()) {
     const rep = (byCorr.get(key) || [])[0] || {};
+
+    const rcaBits = [
+      fmtPktBits(d && d.stats && d.stats.outbound, 'caller'),
+      fmtPktBits(d && d.stats && d.stats.inbound, 'callee'),
+    ].filter(Boolean);
+    const rcaSuffix = rcaBits.length ? ` | ${rcaBits.join(' | ')}` : '';
+
     out.push({
       _seq: rep._seq,
       ts: rep.ts,
@@ -728,7 +750,7 @@ function applySummaryTransforms(events, { includeSession } = {}) {
       mode: rep.mode,
       selectedProfile: rep.selectedProfile,
       icePolicy: rep.icePolicy,
-      msg: d.suspectedMsg || 'One-way audio suspected (derived from stats)',
+      msg: (d.suspectedMsg || 'One-way audio suspected (derived from stats)') + rcaSuffix,
     });
 
     const callClass = callClassByKey.get(key) || 'pbx/unknown';
@@ -757,7 +779,7 @@ function applySummaryTransforms(events, { includeSession } = {}) {
         mode: rep.mode,
         selectedProfile: rep.selectedProfile,
         icePolicy: rep.icePolicy,
-        msg: 'PROBLEM: probable LTE receive-path failure (opposite leg logs missing)',
+        msg: 'PROBLEM: probable LTE receive-path failure (opposite leg logs missing)' + rcaSuffix,
       });
     }
   }
@@ -817,7 +839,7 @@ function applySummaryTransforms(events, { includeSession } = {}) {
       ev.candSummary = `pair=${lc}->${rc}${rtt}${nom}${pair ? ` ${pair}` : ''}`;
     }
 
-    if (ev.type === 'receive-render-proof') {
+    if (ev.type === 'receive-render-proof' || ev0.type === 'outbound-receive-render-proof' || ev0.type === 'inbound-receive-render-proof') {
       const m = fmtRenderProofSummary(ev);
       if (m) ev.msg = m;
     }
@@ -1091,8 +1113,15 @@ function renderEventRow(ev, viewMode) {
     ? (() => {
       try {
         const json = JSON.stringify(ev, null, 2);
+        const labelBits = [];
+        if (ev.type) labelBits.push(String(ev.type));
+        if (ev.dir) labelBits.push(String(ev.dir));
+        if (ev._seq !== undefined) labelBits.push(`#${String(ev._seq)}`);
+        const ts0 = ev.ts || ev._serverTs;
+        if (ts0) labelBits.push(String(ts0));
+        const label = labelBits.length ? `payload ${labelBits.join(' ')}` : 'payload';
         return json
-          ? `<details style="margin-top: 4px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">payload</summary><pre style="white-space: pre-wrap; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 6px 0 0; color: var(--dim);">${escHtml(json)}</pre></details>`
+          ? `<details style="margin-top: 6px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">${escHtml(label)}</summary><div style="margin-top: 6px; border: 1px solid rgba(160,160,160,.25); border-radius: 6px; background: rgba(0,0,0,.08); padding: 8px;"><pre style="white-space: pre; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 0; color: var(--dim);">${escHtml(json)}</pre></div></details>`
           : '';
       } catch {
         return '';
@@ -1299,6 +1328,9 @@ function renderCallLogPage(events, stats, filter) {
   .trace-link { color: var(--accent); text-decoration: none; margin-left: 8px; font-size: 11px; }
   .trace-link:hover { text-decoration: underline; }
   .msg-cell { color: var(--dim); max-width: 320px; word-break: break-word; }
+  body.view-raw .msg-cell { max-width: none; word-break: normal; }
+  body.view-raw .cand-cell { max-width: none; word-break: normal; }
+  body.view-raw .peer-cell { max-width: none; word-break: normal; }
   .peer-cell { max-width: 220px; word-break: break-word; }
   .cand-cell { max-width: 260px; word-break: break-word; }
   .type-cell { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
@@ -1318,7 +1350,7 @@ function renderCallLogPage(events, stats, filter) {
   .nav-links a:hover { text-decoration: underline; }
 </style>
 </head>
-<body>
+<body class="view-${escHtml(viewMode)}">
 <div class="nav-links">
   <a href="/dashboard">← Dashboard</a>
   <a href="/admin/calllogs">Call Logs</a>

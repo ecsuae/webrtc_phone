@@ -14,7 +14,7 @@ The admin call logs summary is a critical diagnostic tool for troubleshooting me
 
 ## Current blocker
 1. macOS CLIENT row is missing.
-2. Decode/RCA visibility partial: missing decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount.
+2. Decode/RCA visibility partial: confirm decoderImplementation/totalSamplesDecoded/packetsRepaired/jitterBufferDelay/jitterBufferEmittedCount appear on Render rows after latest receive-render-proof payload enrichment.
 3. Logging reliability if call-log-post-failed is still involved.
 
 ## Required focus
@@ -26,6 +26,8 @@ The admin call logs summary is a critical diagnostic tool for troubleshooting me
 
 ## Latest proven improvement
 - Inbound AUDIO compact row is restored in summary via summary-only synthesis from inbound media-stats RTP evidence when explicit inbound AUDIO milestones are missing.
+- RAW view now shows per-row expandable full stored JSON payload inline; raw-only layout widened for practical inspection.
+- receive-render-proof now carries additional RCA fields (repaired/jbDelay/jbEmit) when available so Render rows can surface them.
 
 ## Do not touch
 - Registration logic

@@ -245,6 +245,15 @@ async function readAudioStatsSnapshot(pc) {
   };
 }
 
+export async function readAudioStatsSnapshotForDiag(pc) {
+  if (!pc) return null;
+  try {
+    return await readAudioStatsSnapshot(pc);
+  } catch {
+    return null;
+  }
+}
+
 function tryGetRemoteAudioTrackCount(pc) {
   try {
     const receivers = typeof pc.getReceivers === 'function' ? pc.getReceivers() : [];
@@ -389,9 +398,12 @@ export function scheduleMediaStatsSnapshots(pc, label, diagCtx = {}) {
               inboundCodecPayloadType: snap.inboundCodecPayloadType,
               decoderImplementation: snap.decoderImplementation,
               packetsDiscarded: snap.packetsDiscarded,
+              packetsRepaired: snap.packetsRepaired,
               concealedSamples: snap.concealedSamples,
               silentConcealedSamples: snap.silentConcealedSamples,
               totalSamplesDecoded: snap.totalSamplesDecoded,
+              jitterBufferDelay: snap.jitterBufferDelay,
+              jitterBufferEmittedCount: snap.jitterBufferEmittedCount,
               msg: wants10s ? 'Receive render proof (10s after stats)' : 'Receive render proof (5s after stats)',
             });
           }

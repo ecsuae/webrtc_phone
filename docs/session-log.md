@@ -118,3 +118,8 @@ Examples:
 2026-03-31 07:35 PKT | CHANGE | TASK-024 | Added rtpIndicators DOM to dialpad layout and bound a minimal getStats poller to update RX/TX pkt/s bars during active call | AI: Cascade
 2026-04-03 04:16 PKT | CHANGE | TASK-025 | Summary-only: synthesize inbound remote-audio-attached from inbound media-stats RTP evidence when explicit inbound AUDIO milestones missing | AI: Cascade
 2026-04-03 04:21 PKT | VERIFY | TASK-025 | Verified inbound AUDIO compact row appears; protected rows unchanged (CALL/ICE/outbound AUDIO/Render/selected-pair/CLIENT); hidden rows still hidden; no duplicate inbound AUDIO row in sample | AI: Cascade
+2026-04-04 03:16 PKT | START  | TASK-025 | Finalize RAW + SUMMARY RCA visibility: raw per-row full JSON payload usability + receive-render-proof RCA fields + store whitelist audit | AI: Cascade
+2026-04-04 03:24 PKT | CHANGE | TASK-025 | receive-render-proof now emits packetsRepaired + jitterBufferDelay + jitterBufferEmittedCount; store whitelist includes trackEnabled/trackReadyState and all required RCA fields | AI: Cascade
+2026-04-04 03:28 PKT | CHANGE | TASK-025 | RAW view: make per-row payload JSON practically usable (raw-only layout widening + payload label clarity); summary behavior unchanged | AI: Cascade
+2026-04-04 03:30 PKT | NOTE   | TASK-025 | Verification not runtime-proven in container yet; changes are code-proven and isolated to logging/observability | AI: Cascade
+2026-04-04 03:31 PKT | STOP   | TASK-025 | Session end | worked 15m | AI: Cascade
