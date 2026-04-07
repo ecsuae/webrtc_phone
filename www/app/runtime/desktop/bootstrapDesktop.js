@@ -13,9 +13,13 @@ import { createDesktopRegistration } from "./registrationDesktop.js";
 import { setupDesktopCallFlow } from "./callFlowDesktop.js?v=1773032001";
 import { setupDesktopPush } from "./pushDesktop.js";
 import { setupDesktopCallControls } from "./callControlsDesktop.js";
+import { setPlatformAdapter } from "../shared/platformAdapter.js";
+import { createPlatformAdapterDesktop } from "./platformAdapterDesktop.js";
 
 export function bootstrapDesktopApp(SIP = window.SIP) {
   bootLog();
+
+  setPlatformAdapter(createPlatformAdapterDesktop());
 
   const st = createAppState();
   const ui = createUi(st);

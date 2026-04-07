@@ -1,4 +1,5 @@
 import { logLine } from "../log.js";
+import { getRuntimeEnv } from "../runtime/shared/runtimeEnv.js";
 
 const SW_BUILD = "20260310-r2";
 
@@ -17,27 +18,24 @@ export function isPushSupported() {
   const basicSupport = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   if (!basicSupport) return false;
 
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const env = getRuntimeEnv();
+  const isIOS = !!env?.isIOS;
   if (!isIOS) return true;
 
   const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone === true;
-  const isChromeIOS = /CriOS/i.test(ua);
+  const isChromeIOS = !!env?.isChromeIOS;
 
-  // iOS Web Push requires a Home Screen installed web app.
   if (!isStandalone) return false;
-
-  // Chrome on iOS still has inconsistent web push behavior.
   if (isChromeIOS) return false;
 
   return true;
 }
 
 export function inspectPushEnvironment() {
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const env = getRuntimeEnv();
+  const isIOS = !!env?.isIOS;
   const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone === true;
-  const isChromeIOS = /CriOS/i.test(ua);
+  const isChromeIOS = !!env?.isChromeIOS;
   const hasNotificationApi = "Notification" in window;
   const permission = hasNotificationApi ? Notification.permission : "denied";
 
@@ -75,7 +73,6 @@ export async function requestNotificationPermission() {
   if (isIOS && !isStandalone) {
     const message = "📱 To enable notifications: Tap Share → Add to Home Screen, then open app from home screen icon";
     logLine(`[Push] ${message}`);
-    // Show instructions only once per session to avoid alert loops.
     if (shouldShowSessionPrompt("push-ios-install-guidance-shown") && window.confirm(message + "\n\nShow instructions?")) {
       alert("Step 1: Tap the Share button (square with arrow) at the bottom of Safari\n\nStep 2: Scroll down and tap 'Add to Home Screen'\n\nStep 3: Tap 'Add'\n\nStep 4: Open the app from your home screen icon\n\nStep 5: Allow notifications when prompted");
     }
@@ -94,12 +91,12 @@ export async function requestNotificationPermission() {
     logLine("[Push] Notifications not supported in this browser");
     return "denied";
   }
-  
+
   if (Notification.permission === "granted") {
     logLine("[Push] Notification permission already granted");
     return "granted";
   }
-  
+
   if (Notification.permission === "denied") {
     logLine("[Push] Notification permission previously denied");
     if (shouldShowSessionPrompt("push-permission-denied-guidance-shown")) {
@@ -115,13 +112,13 @@ export async function requestNotificationPermission() {
   try {
     logLine("[Push] Requesting notification permission...");
     const permission = await Notification.requestPermission();
-    
+
     if (permission === "granted") {
       logLine("[Push] ✅ Notification permission granted!");
     } else if (permission === "denied") {
       logLine("[Push] ❌ Notification permission denied by user");
     }
-    
+
     return permission;
   } catch (err) {
     logLine("[Push] Error requesting permission: " + err.message);

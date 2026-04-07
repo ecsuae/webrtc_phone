@@ -28,58 +28,717 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
-### 2026-04-03T22:31:00Z — TASK-025: Admin call logs — RAW per-row full payload usability + Render RCA completeness
+### 2026-04-07T18:25:00Z — TASK-028: push-server isolation step 33 — consolidate trace diagnosis HTML helpers into callLogTraceDiagBlocks.js
 - **AI**: Cascade
-- **Scope**: Group A logging/observability only (admin RAW/SUMMARY rendering + store whitelist + stats event payload enrichment). No registration/signaling/media-path behavior changes.
-- **Problem**:
-  - RAW `/admin/calllogs?view=raw` payload JSON exists but is not practically usable due to narrow column layout/word-breaking.
-  - SUMMARY Render rows could not show `repaired/jbDelay/jbEmit` if `receive-render-proof` payload lacked those fields.
-- **Root cause**:
-  - RAW CSS: `.msg-cell` had `max-width: 320px` and `word-break: break-word` which constrained the expanded `<pre>` and made inspection painful.
-  - `receive-render-proof` emission did not include `packetsRepaired/jitterBufferDelay/jitterBufferEmittedCount` even when the stats snapshot had them.
-- **Fix**:
-  - `push-server/src/admin/callLogPage.js`:
-    - RAW-view-only layout widening via `body.view-raw` CSS overrides; keep summary CSS unchanged.
-    - Payload `<details>` label now prefixed with `payload` + `type dir #_seq ts`.
-  - `www/app/pc/stats.js`: include `packetsRepaired`, `jitterBufferDelay`, `jitterBufferEmittedCount` on `receive-render-proof` events (sourced from existing stats snapshot).
-  - `push-server/src/services/callLogStore.js`: whitelist `trackEnabled` + `trackReadyState` (and confirm required RCA fields are stored when emitted).
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated trace diagnosis HTML helpers into one themed module to reduce helper file fragmentation.
 - **Files changed**:
+  - `push-server/src/admin/callLogTraceDiagBlocks.js`
   - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/services/callLogStore.js`
-  - `www/app/pc/stats.js`
+  - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogTraceDiagHtml.js`
+  - `push-server/src/admin/callLogLegSummaryBlock.js`
+  - `push-server/src/admin/callLogMediaDiagnosisBlock.js`
 - **Restart required**:
-  - push-server (for admin page/store changes): `docker compose up -d --build push-server`
-  - frontend hard refresh (for receive-render-proof payload enrichment)
+  - No (code inspection only).
 - **Verified result**:
-  - Not yet runtime-verified in container; changes are code-proven and isolated.
+  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagBlocks.js`.
+  - Node syntax check: `node -c push-server/server.js`.
 - **Next safe step**:
-  - Place one call, open `/admin/calllogs?view=raw`, expand a row, confirm full JSON is readable inline.
-  - Confirm Render[5s]/[10s] rows now show `repaired/jbDelay/jbEmit` when stats provide them; confirm no duplication and protected rows unchanged.
+  - Consolidate another small family of call-log helpers into a themed module (100–200 lines) without behavior changes.
 
-### 2026-03-31T02:45:00Z — TASK-024: UI — restore in-call RX/TX packet indicators (live bars/counters)
+### 2026-04-07T18:14:00Z — TASK-028: push-server isolation step 32 — consolidate call-log catalogs/type sets into callLogCatalogs.js
 - **AI**: Cascade
-- **Scope**: UI/telemetry only (no registration, signaling, media negotiation, admin/export/PDF, or infra changes)
-- **Problem**:
-  - In-call RX/TX packet indicators (live bars/counters) no longer rendered/updated during calls.
-- **Root cause**:
-  - WebRTC stats collection exists (`pc.getStats()`), but the call UI layout no longer included the indicator DOM and there was no active UI binding updating it.
-- **Fix**:
-  - Added minimal indicator DOM to `dialpadSection` and a small poller in `appUi` that computes packet deltas (pkt/s) from `pc.getStats()` and updates the bars/counters while `st.session` is active.
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated call-log constant catalogs and type sets into one themed module to reduce helper file fragmentation.
 - **Files changed**:
-  - `www/app/layout/dialpadSection.js`
-  - `www/app/ui/appUi.js`
-  - `www/styles/skin-modern-ops.css`
+  - `push-server/src/admin/callLogCatalogs.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogErrorCatalog.js`
+  - `push-server/src/admin/callLogEventTypeSets.js`
+  - `push-server/src/admin/callLogMilestoneTypeSets.js`
+  - `push-server/src/admin/callLogRowTypeSets.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `MEDIA_ERROR_DESCRIPTIONS`, `SESSION_EVENT_TYPES`, `SUMMARY_MILESTONE_TYPES`, `PROBLEM_ROW_TYPES`, and `WARN_ROW_TYPES` from `callLogCatalogs.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
+
+### 2026-04-07T18:05:00Z — TASK-028: push-server isolation step 31 — consolidate call-log query/export helpers into callLogQueryHelpers.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated three closely related call-log query/export helpers into one themed module to reduce helper file fragmentation.
+  - Updated `docs/prompts/builder.txt` to allow using a `CONSOLIDATION PLAN` section for consolidation steps.
+- **Files changed**:
+  - `push-server/src/admin/callLogQueryHelpers.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/prompts/builder.txt`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogQueryString.js`
+  - `push-server/src/admin/callLogToggleQsBase.js`
+  - `push-server/src/admin/callLogExportLinks.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildQueryString`, `buildToggleQsBase`, and `buildExportLinks` from `callLogQueryHelpers.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating related call-log helpers into a small number of themed modules (100–200 lines) without changing behavior.
+
+### 2026-04-07T17:52:00Z — TASK-028: push-server isolation step 30 — consolidate call-log display helpers into callLogDisplayHelpers.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated three closely related call-log display helpers into one themed module to reduce helper file fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogDisplayHelpers.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogPktBits.js`
+  - `push-server/src/admin/callLogRawPayloadDetails.js`
+  - `push-server/src/admin/callLogStatsAnnotation.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `fmtPktBits`, `renderRawPayloadDetails`, and `renderStatsAnnotation` from `callLogDisplayHelpers.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidation into a small number of themed admin modules (100–200 lines) and reduce `callLogPage.js` size with isolated, reversible moves.
+
+### 2026-04-07T17:42:00Z — TASK-028: push-server isolation step 29 — extract renderStatsAnnotation into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `renderStatsAnnotation` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogStatsAnnotation.js`
+  - `push-server/src/admin/callLogPage.js`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (frontend hard refresh only)
+  - No (code inspection only).
 - **Verified result**:
-  - Not yet runtime-verified.
+  - Code inspection: `callLogPage.js` now imports `renderStatsAnnotation` from `callLogStatsAnnotation.js` and no longer builds the stats annotation inline.
+  - Node syntax check: `node -c push-server/server.js`.
 - **Next safe step**:
-  - Hard refresh the app, place a call, and confirm RX/TX indicators update live during the call.
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:36:00Z — TASK-028: push-server isolation step 28 — extract renderRawPayloadDetails into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `renderRawPayloadDetails` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogRawPayloadDetails.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `renderRawPayloadDetails` from `callLogRawPayloadDetails.js` and no longer builds raw payload details inline.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:30:00Z — TASK-028: push-server isolation step 27 — extract fmtPktBits into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `fmtPktBits` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogPktBits.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `fmtPktBits` from `callLogPktBits.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:25:00Z — TASK-028: push-server isolation step 26 — extract fmtRenderProofSummary into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `fmtRenderProofSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogRenderProofSummary.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `fmtRenderProofSummary` from `callLogRenderProofSummary.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:15:00Z — TASK-028: push-server isolation step 25 — extract deriveViewMode into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `deriveViewMode` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogViewMode.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `deriveViewMode` from `callLogViewMode.js` and no longer derives `viewMode` inline.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:06:00Z — TASK-028: push-server isolation step 24 — extract buildTraceDiagHtml into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `buildTraceDiagHtml` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogTraceDiagHtml.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagHtml.js` and no longer builds `traceDiagHtml` inline.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T17:00:00Z — TASK-028: push-server isolation step 23 — extract buildToggleQsBase into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `buildToggleQsBase` query/base helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogToggleQsBase.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildToggleQsBase` from `callLogToggleQsBase.js` and no longer builds `toggleQsBase` inline.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T06:00:00Z — TASK-028: push-server isolation step 22 — extract renderMediaDiagnosisBlock into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `renderMediaDiagnosisBlock` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaDiagnosisBlock.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `renderMediaDiagnosisBlock` from `callLogMediaDiagnosisBlock.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:55:00Z — TASK-028: push-server isolation step 21 — extract renderLegSummaryBlock into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `renderLegSummaryBlock` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogLegSummaryBlock.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `renderLegSummaryBlock` from `callLogLegSummaryBlock.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:47:00Z — TASK-028: push-server isolation step 20 — extract PROBLEM_ROW_TYPES/WARN_ROW_TYPES into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `PROBLEM_ROW_TYPES` and `WARN_ROW_TYPES` constant sets into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogRowTypeSets.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `PROBLEM_ROW_TYPES`/`WARN_ROW_TYPES` from `callLogRowTypeSets.js` and no longer defines them locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:42:00Z — TASK-028: push-server isolation step 19 — extract deriveAsymmetricDirectionDiagnosis into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `deriveAsymmetricDirectionDiagnosis` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `deriveAsymmetricDirectionDiagnosis` from `callLogAsymmetricDirectionDiagnosis.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:12:00Z — TASK-028: push-server isolation step 18 — extract buildLegSummary into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `buildLegSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogLegSummary.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildLegSummary` from `callLogLegSummary.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:07:00Z — TASK-028: push-server isolation step 17 — extract buildExportLinks into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `buildExportLinks` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogExportLinks.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildExportLinks` from `callLogExportLinks.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T05:02:00Z — TASK-028: push-server isolation step 16 — extract stageLabel into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `stageLabel` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogStageLabel.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `stageLabel` from `callLogStageLabel.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:57:00Z — TASK-028: push-server isolation step 15 — extract shouldShowCandSummary into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `shouldShowCandSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogShouldShowCandSummary.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `shouldShowCandSummary` from `callLogShouldShowCandSummary.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:52:00Z — TASK-028: push-server isolation step 14 — extract pickBetterCounts into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `pickBetterCounts` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogPickBetterCounts.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `pickBetterCounts` from `callLogPickBetterCounts.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:47:00Z — TASK-028: push-server isolation step 13 — extract mergeIceErrorDetail into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `mergeIceErrorDetail` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogMergeIceErrorDetail.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `mergeIceErrorDetail` from `callLogMergeIceErrorDetail.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:40:00Z — TASK-028: push-server isolation step 12 — extract isSuspiciousStatsEvent into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `isSuspiciousStatsEvent` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogSuspiciousStatsEvent.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `isSuspiciousStatsEvent` from `callLogSuspiciousStatsEvent.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:29:00Z — TASK-028: push-server isolation step 11 — extract isPreflightFamily into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `isPreflightFamily` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogPreflightFamily.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `isPreflightFamily` from `callLogPreflightFamily.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:24:00Z — TASK-028: push-server isolation step 10 — extract preflightOkFromCounts into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `preflightOkFromCounts` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogPreflightOkFromCounts.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `preflightOkFromCounts` from `callLogPreflightOkFromCounts.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:18:00Z — TASK-028: push-server isolation step 9 — extract isConcreteCount into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `isConcreteCount` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogConcreteCount.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `isConcreteCount` from `callLogConcreteCount.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T04:11:00Z — TASK-028: push-server isolation step 8 — extract buildQueryString into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `buildQueryString` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogQueryString.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildQueryString` from `callLogQueryString.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T03:59:00Z — TASK-028: push-server isolation step 7 — extract modeLabel into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `modeLabel` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogModeLabel.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `modeLabel` from `callLogModeLabel.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T03:49:00Z — TASK-028: push-server isolation step 6 — extract corrKey into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `corrKey` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogCorrelationKey.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `corrKey` from `callLogCorrelationKey.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T03:39:00Z — TASK-028: push-server isolation step 5 — extract escHtml into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `escHtml` HTML-escaping helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogHtmlEscape.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `escHtml` from `callLogHtmlEscape.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+
+### 2026-04-07T03:24:00Z — TASK-028: push-server isolation step 4 — extract SUMMARY_MILESTONE_TYPES into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `SUMMARY_MILESTONE_TYPES` Set constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogMilestoneTypeSets.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `SUMMARY_MILESTONE_TYPES` from `callLogMilestoneTypeSets.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure helper/constant group (e.g., `escHtml`) from `push-server/src/admin/callLogPage.js` in a single small step.
+
+### 2026-04-07T03:14:00Z — TASK-028: push-server isolation step 3 — extract SESSION_EVENT_TYPES into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `SESSION_EVENT_TYPES` Set constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogEventTypeSets.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `SESSION_EVENT_TYPES` from `callLogEventTypeSets.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure constant group (e.g., `SUMMARY_MILESTONE_TYPES`) from `push-server/src/admin/callLogPage.js` in a single small step.
+
+### 2026-04-07T03:03:00Z — TASK-028: push-server isolation step 2 — extract MEDIA_ERROR_DESCRIPTIONS into dedicated admin helper module
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted `MEDIA_ERROR_DESCRIPTIONS` constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Files changed**:
+  - `push-server/src/admin/callLogErrorCatalog.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `MEDIA_ERROR_DESCRIPTIONS` from `callLogErrorCatalog.js` and no longer defines it locally.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional pure constant group (e.g., one of the Set constants) from `push-server/src/admin/callLogPage.js` in a single small step.
+
+### 2026-04-07T02:48:00Z — TASK-028: docs reconciliation — now.md updated to reflect completed isolation step 1
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Confirmed repo state: `push-server/src/admin/timeFormat.js` exists and `push-server/src/admin/callLogPage.js` imports it.
+  - `docs/now.md` now records isolation step 1 as complete and points to the next safe step.
+- **Next safe step**:
+  - Push-server only: continue isolating the oversized admin surface by extracting one additional pure helper/constant group.
+
+### 2026-04-07T02:38:00Z — TASK-028: push-server isolation step 1 — extract timestamp formatting helpers from admin call log page
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted timestamp formatting helpers from the oversized admin call log page into a dedicated module.
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/admin/timeFormat.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `formatTs`/`parseTsMs` from `timeFormat.js`; no call sites changed.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue isolating the admin surface by extracting one additional pure helper/constant group (keep each step small and reversible).
+
+### 2026-04-07T02:32:00Z — TASK-028 activated: push-server service isolation (docs-only)
+- **AI**: Cascade
+- **Scope**: docs/workflow only (no code/runtime/config changes).
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - `docs/now.md` now sets the active task to TASK-028 and constrains scope to push-server isolation.
+- **Next safe step**:
+  - Push-server only: complete an audit of `push-server/src/admin/callLogPage.js` responsibilities and choose one minimal, reversible extraction/split step.
+
+### 2026-04-07T00:05:00Z — Ledger rotation + TASK-027 history file created
+- **AI**: Cascade
+- **Scope**: docs/workflow only (no code/runtime/config changes).
+- **Change**:
+  - Rotated the previous long-form ledger into an archive file.
+  - Created a task-specific history file for TASK-027.
+- **Files changed**:
+  - `docs/change-ledger.md`
+  - `docs/tasks/TASK-027.md`
+- **Files archived**:
+  - `Work_Flow/2026/04-Apr/2026-03-29_to_2026-04-07_change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Historical ledger preserved in the archive; live `docs/change-ledger.md` is now a short global index.
+- **Next safe step**:
+  - Keep future ledger entries concise; store full task histories under `docs/tasks/<TASK-ID>.md`.
+
+### 2026-04-07T00:00:00Z — TASK-027 complete: RTPEngine CLI-owned flags migrated to repo config
+- **AI**: Cascade
+- **Scope**: RTPEngine isolation only.
+- **Files changed**:
+  - `docker-compose.yml`
+  - `rtpengine/rtpengine.conf`
+  - `rtpengine/entrypoint-wrapper.sh`
+  - `docs/now.md`
+  - `docs/session-log.md`
+- **Restart required**:
+  - RTPEngine: yes (during the migration steps)
+- **Verified result**:
+  - In-container `/proc/1/cmdline` contains no migrated RTPEngine CLI flags (uses `--config-file /etc/rtpengine.conf`).
+  - `/config/rtpengine.conf` matches `/etc/rtpengine.conf` for: `log-level`, `log-stderr`, `foreground`, `listen-ng`, `interface`, `port-min`, `port-max`.
+  - RTPEngine logs show `Startup complete` with no config parse errors.
+- **Final status**:
+  - Complete — full history: `docs/tasks/TASK-027.md`
+- **Next safe step**:
+  - None under TASK-027.
 
 ### 2026-03-31T02:25:00Z — TASK-023: Call logs — classify short numeric service targets (e.g. 9196) as feature-code/service to suppress peer-only PROBLEM rows
 - **AI**: Cascade

@@ -123,3 +123,191 @@ Examples:
 2026-04-04 03:28 PKT | CHANGE | TASK-025 | RAW view: make per-row payload JSON practically usable (raw-only layout widening + payload label clarity); summary behavior unchanged | AI: Cascade
 2026-04-04 03:30 PKT | NOTE   | TASK-025 | Verification not runtime-proven in container yet; changes are code-proven and isolated to logging/observability | AI: Cascade
 2026-04-04 03:31 PKT | STOP   | TASK-025 | Session end | worked 15m | AI: Cascade
+2026-04-06 08:37 PKT | START  | TASK-026 | Kamailio isolation audit + minimal split-brain cleanup (remove unused PBX defines from local.cfg) | AI: Cascade
+2026-04-06 08:37 PKT | CHANGE | TASK-026 | Removed unused PBX_IP/PBX_PORT defines from kamailio/local.cfg to keep PBX ownership env-driven; advertise/public IP macros unchanged | AI: Cascade
+2026-04-06 08:37 PKT | VERIFY | TASK-026 | Verified kamailio config parses in container: kamailio -c /etc/kamailio/kamailio.cfg -I | AI: Cascade
+2026-04-06 08:37 PKT | STOP   | TASK-026 | Session end | worked 10m | AI: Cascade
+2026-04-06 09:06 PKT | START  | TASK-027 | RTPEngine isolation step 1: make /etc/rtpengine.conf repo-owned without changing runtime behavior | AI: Cascade
+2026-04-06 09:07 PKT | CHANGE | TASK-027 | Updated repo rtpengine/rtpengine.conf to match live in-container /etc/rtpengine.conf base settings (content-equivalent) | AI: Cascade
+2026-04-06 09:08 PKT | CHANGE | TASK-027 | Tried mounting ./rtpengine/rtpengine.conf -> /etc/rtpengine.conf:ro; rtpengine exited (entrypoint sed rename failed on bind mount) | AI: Cascade
+2026-04-06 09:09 PKT | CHANGE | TASK-027 | Rolled back /etc/rtpengine.conf bind mount to restore rtpengine service | AI: Cascade
+2026-04-06 09:09 PKT | VERIFY | TASK-027 | Verified rtpengine running again; /proc/1/cmdline unchanged; /etc/rtpengine.conf still image-owned | AI: Cascade
+2026-04-06 09:09 PKT | BLOCKED| TASK-027 | Cannot mount /etc/rtpengine.conf read-only because rtpengine entrypoint edits it on startup; need decision on safe alternative | AI: Cascade
+2026-04-06 09:09 PKT | STOP   | TASK-027 | Session end | worked 25m | AI: Cascade
+2026-04-06 09:18 PKT | START  | TASK-027 | RTPEngine isolation step 1 (wrapper): mount repo config to /config and copy to /etc at startup | AI: Cascade
+2026-04-06 09:19 PKT | CHANGE | TASK-027 | Added rtpengine/entrypoint-wrapper.sh and updated docker-compose rtpengine entrypoint to wrapper; command flags unchanged | AI: Cascade
+2026-04-06 09:19 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline unchanged; /etc/rtpengine.conf matches /config/rtpengine.conf; RTPEngine startup logs clean | AI: Cascade
+2026-04-06 09:20 PKT | STOP   | TASK-027 | Session end | worked 15m | AI: Cascade
+2026-04-06 09:27 PKT | START  | TASK-027 | Step 2: move rtpengine log-level ownership from CLI into repo config | AI: Cascade
+2026-04-06 09:28 PKT | CHANGE | TASK-027 | Set log-level=7 in rtpengine/rtpengine.conf and removed --log-level=7 from docker-compose rtpengine command | AI: Cascade
+2026-04-06 09:28 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --log-level; /config and /etc both show log-level=7; startup logs clean | AI: Cascade
+2026-04-06 09:29 PKT | STOP   | TASK-027 | Session end | worked 10m | AI: Cascade
+2026-04-06 09:46 PKT | START  | TASK-027 | Step 3: move rtpengine log-stderr ownership from CLI into repo config | AI: Cascade
+2026-04-06 09:47 PKT | CHANGE | TASK-027 | Removed --log-stderr from docker-compose rtpengine command (config already has log-stderr=true) | AI: Cascade
+2026-04-06 09:47 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --log-stderr; /config and /etc both show log-stderr=true; startup logs clean | AI: Cascade
+2026-04-06 09:47 PKT | STOP   | TASK-027 | Session end | worked 8m | AI: Cascade
+2026-04-06 10:03 PKT | START  | TASK-027 | Step 4: verify foreground is config-owned and not passed via CLI (verification-only) | AI: Cascade
+2026-04-06 10:06 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --foreground; /config/rtpengine.conf and /etc/rtpengine.conf both show foreground = true | AI: Cascade
+2026-04-06 10:07 PKT | STOP   | TASK-027 | Session end | worked 4m | AI: Cascade
+2026-04-06 10:16 PKT | START  | TASK-027 | Align repo rtpengine.conf to live runtime for listen-ng and port range (no CLI flag removal) | AI: Cascade
+2026-04-06 10:18 PKT | CHANGE | TASK-027 | Updated rtpengine/rtpengine.conf: listen-ng=127.0.0.1:2223, port-min=30000, port-max=31000 (interface unchanged) | AI: Cascade
+2026-04-06 10:19 PKT | VERIFY | TASK-027 | Verified /config and /etc contain aligned listen-ng/port-min/port-max after rtpengine restart; /proc/1/cmdline unchanged; logs show startup complete | AI: Cascade
+2026-04-06 10:20 PKT | STOP   | TASK-027 | Session end | worked 4m | AI: Cascade
+2026-04-07 03:49 PKT | START  | TASK-027 | Align repo rtpengine.conf interface to match live runtime form (no CLI flag removal) | AI: Cascade
+2026-04-07 03:51 PKT | CHANGE | TASK-027 | Updated rtpengine/rtpengine.conf: interface=eth0!38.242.157.239 only (no other config changes) | AI: Cascade
+2026-04-07 03:52 PKT | VERIFY | TASK-027 | Verified /config and /etc contain interface=eth0!38.242.157.239 after rtpengine restart; /proc/1/cmdline still includes --interface=eth0!38.242.157.239; logs show startup complete with no config parse error | AI: Cascade
+2026-04-07 03:53 PKT | STOP   | TASK-027 | Session end | worked 4m | AI: Cascade
+2026-04-07 03:57 PKT | START  | TASK-027 | Remove CLI --listen-ng now that config is aligned (single-flag removal) | AI: Cascade
+2026-04-07 03:58 PKT | CHANGE | TASK-027 | docker-compose.yml: removed only --listen-ng=127.0.0.1:2223 from rtpengine command | AI: Cascade
+2026-04-07 03:59 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --listen-ng and still has --interface/--port-min/--port-max; /config and /etc contain listen-ng=127.0.0.1:2223; logs show startup complete; NG socket listening on 127.0.0.1:2223 | AI: Cascade
+2026-04-07 04:00 PKT | STOP   | TASK-027 | Session end | worked 3m | AI: Cascade
+2026-04-07 04:07 PKT | START  | TASK-027 | Remove CLI --interface now that config is aligned (single-flag removal) | AI: Cascade
+2026-04-07 04:08 PKT | CHANGE | TASK-027 | docker-compose.yml: removed only --interface=eth0!${PUBLIC_IP} from rtpengine command | AI: Cascade
+2026-04-07 04:09 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --interface and still has --port-min/--port-max; /config and /etc contain interface=eth0!38.242.157.239; logs show startup complete with no config parse error | AI: Cascade
+2026-04-07 04:10 PKT | STOP   | TASK-027 | Session end | worked 3m | AI: Cascade
+2026-04-07 04:24 PKT | START  | TASK-027 | Remove final CLI-owned port range flags as a coupled pair (--port-min/--port-max) | AI: Cascade
+2026-04-07 04:25 PKT | CHANGE | TASK-027 | docker-compose.yml: removed --port-min=30000 and --port-max=31000 together from rtpengine command | AI: Cascade
+2026-04-07 04:26 PKT | VERIFY | TASK-027 | Verified /proc/1/cmdline has no --port-min/--port-max; /config and /etc still contain port-min=30000 and port-max=31000; logs show startup complete with no config parse error | AI: Cascade
+2026-04-07 04:27 PKT | STOP   | TASK-027 | Session end | worked 3m | AI: Cascade
+2026-04-07 04:57 PKT | START  | TASK-027 | Docs/workflow-only refactor: move full TASK-027 history into docs/tasks and rotate live ledger | AI: Cascade
+2026-04-07 04:58 PKT | CHANGE | TASK-027 | Created docs/tasks/TASK-027.md preserving full task history; archived prior docs/change-ledger.md to Work_Flow/2026/04-Apr/2026-03-29_to_2026-04-07_change-ledger.md; trimmed live docs/change-ledger.md to short index with pointer | AI: Cascade
+2026-04-07 04:59 PKT | STOP   | TASK-027 | Session end | worked 2m | AI: Cascade
+2026-04-07 07:30 PKT | START  | TASK-028 | Docs-only prerequisite: activate TASK-028 in docs/now.md | AI: Cascade
+2026-04-07 07:31 PKT | CHANGE | TASK-028 | Updated docs/now.md to set current task to push-server isolation (no code/runtime changes) | AI: Cascade
+2026-04-07 07:32 PKT | STOP   | TASK-028 | Session end | worked 2m | AI: Cascade
+2026-04-07 07:34 PKT | START  | TASK-028 | Push-server isolation step 1: extract timestamp formatting helpers from callLogPage.js | AI: Cascade
+2026-04-07 07:36 PKT | CHANGE | TASK-028 | Added push-server/src/admin/timeFormat.js and updated callLogPage.js to import formatTs/parseTsMs (no behavior change intended) | AI: Cascade
+2026-04-07 07:37 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines ADMIN_TIMEZONE/ADMIN_TZ_LABEL/formatTs/parseTsMs; server.js syntax check passed | AI: Cascade
+2026-04-07 07:38 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 07:45 PKT | START  | TASK-028 | Docs reconciliation: ensure workflow source-of-truth reflects completed isolation step 1 | AI: Cascade
+2026-04-07 07:46 PKT | VERIFY | TASK-028 | Confirmed repo state: push-server/src/admin/timeFormat.js exists; callLogPage.js imports it; TASK-028 entries exist in session-log and change-ledger | AI: Cascade
+2026-04-07 07:47 PKT | CHANGE | TASK-028 | Updated docs/now.md to record isolation step 1 complete and adjust next safe step accordingly | AI: Cascade
+2026-04-07 07:48 PKT | STOP   | TASK-028 | Session end | worked 3m | AI: Cascade
+2026-04-07 07:58 PKT | START  | TASK-028 | Push-server isolation step 2: extract MEDIA_ERROR_DESCRIPTIONS into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:01 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogErrorCatalog.js and updated callLogPage.js to import MEDIA_ERROR_DESCRIPTIONS (no behavior change intended) | AI: Cascade
+2026-04-07 08:02 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines MEDIA_ERROR_DESCRIPTIONS; node syntax check passed | AI: Cascade
+2026-04-07 08:03 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-07 08:10 PKT | START  | TASK-028 | Push-server isolation step 3: extract SESSION_EVENT_TYPES into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:12 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogEventTypeSets.js and updated callLogPage.js to import SESSION_EVENT_TYPES (no behavior change intended) | AI: Cascade
+2026-04-07 08:13 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines SESSION_EVENT_TYPES; node syntax check passed | AI: Cascade
+2026-04-07 08:14 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 08:20 PKT | START  | TASK-028 | Push-server isolation step 4: extract SUMMARY_MILESTONE_TYPES into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:22 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogMilestoneTypeSets.js and updated callLogPage.js to import SUMMARY_MILESTONE_TYPES (no behavior change intended) | AI: Cascade
+2026-04-07 08:23 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines SUMMARY_MILESTONE_TYPES; node syntax check passed | AI: Cascade
+2026-04-07 08:24 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 08:35 PKT | START  | TASK-028 | Push-server isolation step 5: extract escHtml into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:37 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogHtmlEscape.js and updated callLogPage.js to import escHtml (no behavior change intended) | AI: Cascade
+2026-04-07 08:38 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines escHtml; node syntax check passed | AI: Cascade
+2026-04-07 08:39 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 08:45 PKT | START  | TASK-028 | Push-server isolation step 6: extract corrKey into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:47 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogCorrelationKey.js and updated callLogPage.js to import corrKey (no behavior change intended) | AI: Cascade
+2026-04-07 08:48 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines corrKey; node syntax check passed | AI: Cascade
+2026-04-07 08:49 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 08:55 PKT | START  | TASK-028 | Push-server isolation step 7: extract modeLabel into a dedicated admin helper module | AI: Cascade
+2026-04-07 08:57 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogModeLabel.js and updated callLogPage.js to import modeLabel (no behavior change intended) | AI: Cascade
+2026-04-07 08:58 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines modeLabel; node syntax check passed | AI: Cascade
+2026-04-07 08:59 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:07 PKT | START  | TASK-028 | Push-server isolation step 8: extract buildQueryString into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:09 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogQueryString.js and updated callLogPage.js to import buildQueryString (no behavior change intended) | AI: Cascade
+2026-04-07 09:10 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines buildQueryString; node syntax check passed | AI: Cascade
+2026-04-07 09:11 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:14 PKT | START  | TASK-028 | Push-server isolation step 9: extract isConcreteCount into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:16 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogConcreteCount.js and updated callLogPage.js to import isConcreteCount (no behavior change intended) | AI: Cascade
+2026-04-07 09:17 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines isConcreteCount; node syntax check passed | AI: Cascade
+2026-04-07 09:18 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:20 PKT | START  | TASK-028 | Push-server isolation step 10: extract preflightOkFromCounts into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:22 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPreflightOkFromCounts.js and updated callLogPage.js to import preflightOkFromCounts (no behavior change intended) | AI: Cascade
+2026-04-07 09:23 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines preflightOkFromCounts; node syntax check passed | AI: Cascade
+2026-04-07 09:24 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:25 PKT | START  | TASK-028 | Push-server isolation step 11: extract isPreflightFamily into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:27 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPreflightFamily.js and updated callLogPage.js to import isPreflightFamily (no behavior change intended) | AI: Cascade
+2026-04-07 09:28 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines isPreflightFamily; node syntax check passed | AI: Cascade
+2026-04-07 09:29 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:36 PKT | START  | TASK-028 | Push-server isolation step 12: extract isSuspiciousStatsEvent into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:38 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogSuspiciousStatsEvent.js and updated callLogPage.js to import isSuspiciousStatsEvent (no behavior change intended) | AI: Cascade
+2026-04-07 09:39 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines isSuspiciousStatsEvent; node syntax check passed | AI: Cascade
+2026-04-07 09:40 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:43 PKT | START  | TASK-028 | Push-server isolation step 13: extract mergeIceErrorDetail into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:45 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogMergeIceErrorDetail.js and updated callLogPage.js to import mergeIceErrorDetail (no behavior change intended) | AI: Cascade
+2026-04-07 09:46 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines mergeIceErrorDetail; node syntax check passed | AI: Cascade
+2026-04-07 09:47 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:48 PKT | START  | TASK-028 | Push-server isolation step 14: extract pickBetterCounts into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:50 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPickBetterCounts.js and updated callLogPage.js to import pickBetterCounts (no behavior change intended) | AI: Cascade
+2026-04-07 09:51 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines pickBetterCounts; node syntax check passed | AI: Cascade
+2026-04-07 09:52 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:53 PKT | START  | TASK-028 | Push-server isolation step 15: extract shouldShowCandSummary into a dedicated admin helper module | AI: Cascade
+2026-04-07 09:55 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogShouldShowCandSummary.js and updated callLogPage.js to import shouldShowCandSummary (no behavior change intended) | AI: Cascade
+2026-04-07 09:56 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines shouldShowCandSummary; node syntax check passed | AI: Cascade
+2026-04-07 09:57 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 09:58 PKT | START  | TASK-028 | Push-server isolation step 16: extract stageLabel into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:00 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogStageLabel.js and updated callLogPage.js to import stageLabel (no behavior change intended) | AI: Cascade
+2026-04-07 10:01 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines stageLabel; node syntax check passed | AI: Cascade
+2026-04-07 10:02 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:03 PKT | START  | TASK-028 | Push-server isolation step 17: extract buildExportLinks into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:05 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogExportLinks.js and updated callLogPage.js to import buildExportLinks (no behavior change intended) | AI: Cascade
+2026-04-07 10:06 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines buildExportLinks; node syntax check passed | AI: Cascade
+2026-04-07 10:07 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:08 PKT | START  | TASK-028 | Push-server isolation step 18: extract buildLegSummary into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:10 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogLegSummary.js and updated callLogPage.js to import buildLegSummary (no behavior change intended) | AI: Cascade
+2026-04-07 10:11 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines buildLegSummary; node syntax check passed | AI: Cascade
+2026-04-07 10:12 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:38 PKT | START  | TASK-028 | Push-server isolation step 19: extract deriveAsymmetricDirectionDiagnosis into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:40 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js and updated callLogPage.js to import deriveAsymmetricDirectionDiagnosis (no behavior change intended) | AI: Cascade
+2026-04-07 10:41 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines deriveAsymmetricDirectionDiagnosis; node syntax check passed | AI: Cascade
+2026-04-07 10:42 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:43 PKT | START  | TASK-028 | Push-server isolation step 20: extract PROBLEM_ROW_TYPES and WARN_ROW_TYPES into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:45 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogRowTypeSets.js and updated callLogPage.js to import PROBLEM_ROW_TYPES and WARN_ROW_TYPES (no behavior change intended) | AI: Cascade
+2026-04-07 10:46 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines PROBLEM_ROW_TYPES/WARN_ROW_TYPES locally; node syntax check passed | AI: Cascade
+2026-04-07 10:47 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:51 PKT | START  | TASK-028 | Push-server isolation step 21: extract renderLegSummaryBlock into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:53 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogLegSummaryBlock.js and updated callLogPage.js to import renderLegSummaryBlock (no behavior change intended) | AI: Cascade
+2026-04-07 10:54 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines renderLegSummaryBlock; node syntax check passed | AI: Cascade
+2026-04-07 10:55 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 10:56 PKT | START  | TASK-028 | Push-server isolation step 22: extract renderMediaDiagnosisBlock into a dedicated admin helper module | AI: Cascade
+2026-04-07 10:58 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogMediaDiagnosisBlock.js and updated callLogPage.js to import renderMediaDiagnosisBlock (no behavior change intended) | AI: Cascade
+2026-04-07 10:59 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines renderMediaDiagnosisBlock; node syntax check passed | AI: Cascade
+2026-04-07 11:00 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 21:56 PKT | START  | TASK-028 | Push-server isolation step 23: extract buildToggleQsBase into a dedicated admin helper module | AI: Cascade
+2026-04-07 21:58 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogToggleQsBase.js and updated callLogPage.js to import buildToggleQsBase (no behavior change intended) | AI: Cascade
+2026-04-07 21:59 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now uses buildToggleQsBase; node syntax check passed | AI: Cascade
+2026-04-07 22:00 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 22:02 PKT | START  | TASK-028 | Push-server isolation step 24: extract buildTraceDiagHtml into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:04 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogTraceDiagHtml.js and updated callLogPage.js to import buildTraceDiagHtml (no behavior change intended) | AI: Cascade
+2026-04-07 22:05 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now uses buildTraceDiagHtml; node syntax check passed | AI: Cascade
+2026-04-07 22:06 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 22:12 PKT | START  | TASK-028 | Push-server isolation step 25: extract deriveViewMode into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:13 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogViewMode.js and updated callLogPage.js to import deriveViewMode (no behavior change intended) | AI: Cascade
+2026-04-07 22:14 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now uses deriveViewMode; node syntax check passed | AI: Cascade
+2026-04-07 22:15 PKT | STOP   | TASK-028 | Session end | worked 3m | AI: Cascade
+2026-04-07 22:21 PKT | START  | TASK-028 | Push-server isolation step 26: extract fmtRenderProofSummary into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:23 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogRenderProofSummary.js and updated callLogPage.js to import fmtRenderProofSummary (no behavior change intended) | AI: Cascade
+2026-04-07 22:24 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports fmtRenderProofSummary; node syntax check passed | AI: Cascade
+2026-04-07 22:25 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 22:27 PKT | START  | TASK-028 | Push-server isolation step 27: extract fmtPktBits into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:28 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPktBits.js and updated callLogPage.js to import fmtPktBits (no behavior change intended) | AI: Cascade
+2026-04-07 22:29 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports fmtPktBits; node syntax check passed | AI: Cascade
+2026-04-07 22:30 PKT | STOP   | TASK-028 | Session end | worked 3m | AI: Cascade
+2026-04-07 22:32 PKT | START  | TASK-028 | Push-server isolation step 28: extract renderRawPayloadDetails into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:34 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogRawPayloadDetails.js and updated callLogPage.js to import renderRawPayloadDetails (no behavior change intended) | AI: Cascade
+2026-04-07 22:35 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports renderRawPayloadDetails; node syntax check passed | AI: Cascade
+2026-04-07 22:36 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 22:38 PKT | START  | TASK-028 | Push-server isolation step 29: extract renderStatsAnnotation into a dedicated admin helper module | AI: Cascade
+2026-04-07 22:40 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogStatsAnnotation.js and updated callLogPage.js to import renderStatsAnnotation (no behavior change intended) | AI: Cascade
+2026-04-07 22:41 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports renderStatsAnnotation; node syntax check passed | AI: Cascade
+2026-04-07 22:42 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 22:47 PKT | START  | TASK-028 | Push-server isolation step 30: consolidate call-log display helpers into one themed module | AI: Cascade
+2026-04-07 22:50 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogDisplayHelpers.js, updated callLogPage.js to import from it, and removed now-redundant tiny display helper files (no behavior change intended) | AI: Cascade
+2026-04-07 22:51 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports display helpers from callLogDisplayHelpers.js; node syntax check passed | AI: Cascade
+2026-04-07 22:52 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-07 23:00 PKT | START  | TASK-028 | Push-server isolation step 31: consolidate call-log query/export helpers into one themed module | AI: Cascade
+2026-04-07 23:03 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogQueryHelpers.js, updated callLogPage.js to import from it, and removed now-redundant tiny query/export helper files (no behavior change intended) | AI: Cascade
+2026-04-07 23:04 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports query/export helpers from callLogQueryHelpers.js; node syntax check passed | AI: Cascade
+2026-04-07 23:05 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-07 23:10 PKT | START  | TASK-028 | Push-server isolation step 32: consolidate call-log catalogs/type sets into one themed module | AI: Cascade
+2026-04-07 23:12 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogCatalogs.js, updated callLogPage.js to import from it, and removed now-redundant tiny catalog/type-set helper files (no behavior change intended) | AI: Cascade
+2026-04-07 23:13 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports catalogs/type sets from callLogCatalogs.js; node syntax check passed | AI: Cascade
+2026-04-07 23:14 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 23:20 PKT | START  | TASK-028 | Push-server isolation step 33: consolidate trace diagnosis HTML helpers into one themed module | AI: Cascade
+2026-04-07 23:23 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogTraceDiagBlocks.js, updated callLogPage.js to import buildTraceDiagHtml from it, and removed now-redundant trace diagnosis helper files (no behavior change intended) | AI: Cascade
+2026-04-07 23:24 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports buildTraceDiagHtml from callLogTraceDiagBlocks.js; node syntax check passed | AI: Cascade
+2026-04-07 23:25 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade

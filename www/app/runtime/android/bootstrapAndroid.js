@@ -12,6 +12,8 @@ import { createAppState } from "../../sipRegister.js";
 import { createAndroidRegistration } from "./registrationAndroid.js";
 import { setupAndroidPush } from "./pushAndroid.js";
 import { setupAndroidCallControls } from "./callControlsAndroid.js";
+import { setPlatformAdapter } from "../shared/platformAdapter.js";
+import { createPlatformAdapterAndroid } from "./platformAdapterAndroid.js";
 
 export function bootstrapAndroidApp(SIP = window.SIP) {
   try {
@@ -35,6 +37,8 @@ export function bootstrapAndroidApp(SIP = window.SIP) {
   } catch {}
   bootLog();
 
+  setPlatformAdapter(createPlatformAdapterAndroid());
+
   const st = createAppState();
   const ui = createUi(st);
 
@@ -54,7 +58,6 @@ export function bootstrapAndroidApp(SIP = window.SIP) {
     const diag = {
       build: String(window.__APP_BUILD__ || ''),
       cb: String(window.__BUILD_CB || ''),
-      ua: String(navigator.userAgent || ''),
       enabled: (() => {
         try { return localStorage.getItem('webrtc_calls_enabled') === '1'; } catch { return false; }
       })(),
@@ -65,10 +68,7 @@ export function bootstrapAndroidApp(SIP = window.SIP) {
     window.__APP_RUNTIME_DIAG__ = diag;
     const elDiag = document.getElementById('buildIndicator');
     if (elDiag) {
-      const uaShort = diag.ua.includes('SamsungBrowser') ? 'SamsungInternet'
-        : (diag.ua.includes('GSA') || diag.ua.includes('WebView') ? 'GoogleApp/WebView'
-        : (diag.ua.includes('Chrome') ? 'Chrome' : 'Other'));
-      elDiag.textContent = `build=${diag.build || 'unk'} cb=${diag.cb || 'unk'} br=${uaShort} enabled=${diag.enabled ? 1 : 0} hasUA=${diag.hasUA ? 1 : 0} reg=${diag.registered ? 1 : 0} mode=${diag.mode}`;
+      elDiag.textContent = `build=${diag.build || 'unk'} cb=${diag.cb || 'unk'} br=Android enabled=${diag.enabled ? 1 : 0} hasUA=${diag.hasUA ? 1 : 0} reg=${diag.registered ? 1 : 0} mode=${diag.mode}`;
     }
   } catch {}
 

@@ -8,20 +8,8 @@ export function setupAndroidCallFlow({
   stopAndUnregister,
   releaseWakeLock,
 }) {
-  const cb = (() => {
-    try {
-      return String(window.__BUILD_CB || "");
-    } catch {
-      return "";
-    }
-  })();
-
-  const controlUrl = cb
-    ? `../controlBindings.js?cb=${encodeURIComponent(cb)}`
-    : "../controlBindings.js";
-
-  import(controlUrl)
-    .then(({ bindAndroidAudioUnlock, bindControlHandlers }) => {
+  import("../shared/controlBindingsCore.js")
+    .then(({ bindControlHandlers }) => {
       bindControlHandlers({
         el,
         st,
@@ -32,12 +20,12 @@ export function setupAndroidCallFlow({
         stopAndUnregister,
         releaseWakeLock,
       });
-
-      bindAndroidAudioUnlock();
     })
-    .catch((err) => {
-      try {
-        console.error("[boot] Failed to load controlBindings:", err);
-      } catch {}
-    });
+    .catch(() => {});
+
+  import("./audioUnlockAndroid.js")
+    .then(({ bindAndroidAudioUnlock }) => {
+      if (typeof bindAndroidAudioUnlock === "function") bindAndroidAudioUnlock();
+    })
+    .catch(() => {});
 }

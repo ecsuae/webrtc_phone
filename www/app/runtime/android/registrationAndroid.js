@@ -37,13 +37,7 @@ function loadRegisterFlow() {
   return _registrationActionsImport;
 }
 
-function isAndroidClient() {
-  return /Android/i.test(navigator.userAgent || "");
-}
-
 function startPeriodicReregistration({ st, ext, logLine, nowISO }) {
-  if (!isAndroidClient()) return;
-
   if (st._reregTimer) {
     clearInterval(st._reregTimer);
     st._reregTimer = null;

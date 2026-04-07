@@ -1,0 +1,187 @@
+You are working in the current project repository.
+
+Before doing anything, read and follow these files fully:
+1. docs/00-read-first.md
+2. docs/ai-working-rules.md
+3. docs/now.md
+4. docs/session-log.md
+5. docs/change-ledger.md
+6. docs/known-good-baseline.md
+
+Treat them as the only workflow source of truth.
+
+Do not make any code or docs changes until you have read them and summarized the current task/status back to me.
+
+If my request conflicts with docs/now.md, docs/00-read-first.md, or docs/ai-working-rules.md, stop and say so clearly before changing anything.
+
+Do not scan unrelated repo files.
+After reading the required workflow files, read only the files strictly needed for the current task, and list them first.
+
+This task must be handled isolation-first.
+
+Before editing, output exactly these sections:
+
+1. TASK CLASSIFICATION
+Choose one only:
+- logging only
+- UI only
+- platform-specific runtime
+- media path
+- registration
+- backend/storage/dashboard
+- infra/service config
+- docs/workflow only
+
+2. CURRENT TASK SUMMARY
+- current task from docs/now.md
+- why it matters
+- what is already proven
+- current blocker
+- exact next safe step
+
+3. FILES TO READ
+List only the files you need to inspect for this task.
+
+4. FILES TO CHANGE
+List exact files you plan to modify and why each one is required.
+
+5. PROTECTED BEHAVIOR
+List the working features that must not break.
+
+6. ISOLATION PLAN
+Explain how the change stays isolated and what areas you will not touch.
+
+If the current step is explicitly a consolidation step, section 6 may be written as:
+6. CONSOLIDATION PLAN
+Describe the grouping strategy and exactly which small set of files/functions are being merged.
+
+7. RISK CHECK
+State:
+- whether rollback is simple
+- whether the target files are shared/high-risk
+- what baseline or last known-good point is relevant, if any
+
+Rules you must follow strictly:
+- Treat every task as isolation-first.
+- Follow the read order defined by docs/00-read-first.md. Do not invent a new read order.
+- Work only on the current task in docs/now.md unless I explicitly change task scope.
+- Make the smallest safe patch only.
+- Do not refactor unrelated code.
+- Do not mix unrelated domains in one step. Keep logging, UI, runtime, media, registration, infra, and docs changes separated unless the current task explicitly requires a coupled change.
+- If a change can be isolated to one platform, layer, route, module, or service, keep it there.
+- If a file is shared across multiple platforms, runtimes, or critical flows, treat it as high-risk and avoid editing it unless no safer isolated file exists.
+- If isolation is not possible, stop and say so before making changes.
+- Prefer backend-first diagnostics and proof gathering:
+  - ingress logs
+  - sanitizer/storage
+  - backend/dashboard rendering
+  - frontend emitters only if required
+- Do not replace a working baseline with an experiment.
+- Any experiment must be isolated and disabled by default.
+- Do not make module-loading, cache-busting, bootstrap, or import-path changes unless the task explicitly requires them.
+- Prefer meaningful, themed modules over many tiny helper files.
+- When splitting code, group closely related pure helpers/constants into coherent modules where practical.
+- Target roughly 100–200 lines per helper/module file when reasonable.
+- Avoid creating many tiny 5–10 line files unless there is a clear isolation/safety reason.
+- Do not extract trivial one-line wrappers into standalone files unless they belong inside a larger themed module.
+- Consolidation steps are allowed when they reduce fragmentation without changing behavior.
+- Keep each turn to one safe step only:
+  - either one isolated extraction
+  - or one isolated consolidation
+  - or one isolated bug fix
+  - or one docs/workflow-only change
+- If a touched file is already too large, prefer safe splitting or grouping work that reduces future fragmentation.
+- Do not claim completion without saying how the result was verified.
+- After changes, update workflow docs exactly as required by docs/00-read-first.md and docs/ai-working-rules.md.
+
+When updating docs/now.md:
+- Do not rewrite “Already proven” as only the latest micro-change.
+- “Already proven” must summarize the full currently proven state of the active task, including earlier completed safe steps that are still true.
+- Keep it short, but cumulative.
+- “Current blocker” and “Exact next safe step” should describe only the remaining work.
+- If a task is paused, docs/now.md must say it is paused, not abandoned or completed.
+
+Workflow file size and history rules:
+- Keep live workflow files small and manageable.
+- Do not let docs/change-ledger.md become a long per-task history dump.
+- When a task becomes large, spans many sessions, or is completed with meaningful history, create or update a task-specific history file under docs/tasks/ named with the task ID, for example:
+  - docs/tasks/TASK-XXX.md
+
+Task-specific history rules:
+- A task-specific history file must preserve the real task history, not just a summary.
+- When creating or updating a task-specific history file:
+  - preserve original timestamps from docs/change-ledger.md and docs/session-log.md
+  - do not replace timestamped history with untimed summaries only
+  - include clearly labeled sections such as:
+    - Timestamped task history
+    - Timestamped change ledger
+    - Timestamped verification history
+  - for each meaningful step, preserve:
+    - timestamp
+    - what changed
+    - files changed
+    - restart required or not
+    - exact verified result
+    - next safe step
+  - if summarizing a step, keep the original timestamp at the start of that step entry
+  - keep the historical order consistent
+- A task-specific history file should keep the full task record in one place, including:
+  - task title and scope
+  - why it mattered
+  - protected behavior
+  - files changed
+  - step-by-step safe changes
+  - verification performed
+  - final outcome
+  - next safe step or completion note
+
+Live change-ledger rules:
+- Keep docs/change-ledger.md as a short live global ledger:
+  - one concise summary entry per meaningful change
+  - include the task ID
+  - include the exact files changed
+  - include restart required or not
+  - include exact verified result
+  - include next safe step
+  - if a task-specific history file exists, keep the live ledger entry short and point readers to that task file for full detail
+- The live docs/change-ledger.md must stay a short global index, not a long historical dump.
+- After a completed task is migrated into docs/tasks/<TASK-ID>.md and the previous live ledger is archived, remove the duplicated detailed historical entries for that migrated period from the live docs/change-ledger.md.
+- Do not keep both:
+  - the archived full ledger
+  - and the same long detailed entries repeated in the live docs/change-ledger.md
+- The live docs/change-ledger.md should contain only:
+  - the ledger rules
+  - current essential entries
+  - concise task completion or index entries
+  - pointers to docs/tasks/<TASK-ID>.md and archived ledger files where applicable
+- The live docs/change-ledger.md may keep detailed entries only for active or very recent non-migrated work.
+- Do not move full task history into docs/now.md.
+
+If doing docs/workflow-only refactor:
+- do not change code or runtime config
+- preserve real history
+- do not delete factual history without first moving it into the appropriate task-specific file
+- if rotating or trimming docs/change-ledger.md, archive the previous live file first
+- keep structure clean and easy for the next AI to follow
+
+After finishing, output exactly these sections:
+
+1. EXACT DIFFS
+
+2. FILES CHANGED
+
+3. RESTART/REDEPLOY REQUIRED
+
+4. VERIFICATION DONE
+State exactly which of these apply:
+- code inspection only
+- container
+- live route
+- runtime/browser
+
+5. DOCS UPDATED
+List exactly which workflow/docs files were updated.
+
+6. WHAT WAS NOT CHANGED
+
+7. REMAINING RISKS

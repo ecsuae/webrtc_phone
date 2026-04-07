@@ -1,4 +1,5 @@
-import { bindControlHandlers, bindIosAudioUnlock } from "../controlBindings.js?v=1773032001";
+import { bindControlHandlers } from "../shared/controlBindingsCore.js";
+import { bindDesktopAudioUnlock } from "./audioUnlockDesktop.js";
 
 export function setupDesktopCallFlow({
   el,
@@ -21,5 +22,5 @@ export function setupDesktopCallFlow({
     releaseWakeLock,
   });
 
-  bindIosAudioUnlock();
+  bindDesktopAudioUnlock();
 }

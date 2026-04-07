@@ -2,7 +2,7 @@
 
 # STOP — READ THIS FILE BEFORE ANYTHING ELSE
 
-## Mandatory read order
+## Mandatory startup order
 Read these files first, in this exact order:
 1. `docs/ai-working-rules.md`
 2. `docs/now.md`
@@ -10,25 +10,29 @@ Read these files first, in this exact order:
 4. `docs/change-ledger.md`
 5. `docs/known-good-baseline.md`
 
+This file defines startup order only.
+
+Do not invent a second startup order elsewhere.
 Do not scan the whole repo by default.
+Read other docs only if the current task truly requires them.
 
 ---
 
 ## Repo workflow rules
-- Work only on the current task described in `docs/now.md`
-- Do not restart old investigations unless the current task requires it
-- Protect already working features
-- Make small, safe, isolated changes
-- Verify important fixes with runtime evidence when practical
-- Update workflow docs before ending the session
+- Work only on the current task described in `docs/now.md`.
+- Do not restart old investigations unless the current task requires it.
+- Protect already working features.
+- Make small, safe, isolated changes.
+- Verify important fixes with runtime evidence when practical.
+- Update workflow docs before ending the session.
 
 ---
 
 ## Code management rule
-- Keep code files small and focused
-- Preferred maximum size is **150 to 200 lines per code file**
-- If a file grows beyond that, split it into focused modules/files
-- Do not keep stuffing more logic into long monolithic files
+- Keep code files small and focused.
+- Preferred maximum size is **150 to 200 lines per code file**.
+- If a file grows beyond that, split it into focused modules/files.
+- Do not keep stuffing more logic into long monolithic files.
 
 ---
 

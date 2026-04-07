@@ -13,9 +13,13 @@ import { createIosRegistration } from "./registrationIos.js";
 import { setupIosCallFlow } from "./callFlowIos.js?v=1773032001";
 import { setupIosPush } from "./pushIos.js";
 import { setupIosCallControls } from "./callControlsIos.js";
+import { setPlatformAdapter } from "../shared/platformAdapter.js";
+import { createPlatformAdapterIos } from "./platformAdapterIos.js";
 
 export function bootstrapIosApp(SIP = window.SIP) {
   bootLog();
+
+  setPlatformAdapter(createPlatformAdapterIos());
 
   const st = createAppState();
   const ui = createUi(st);

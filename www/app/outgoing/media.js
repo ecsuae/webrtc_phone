@@ -1,6 +1,7 @@
 import { nowISO } from "../config.js";
 import { logLine } from "../log.js";
 import { enforceCurrentAudioRoute } from "../ui/callControlAudioRoute.js?v=1773034001";
+import { requirePlatformAdapter } from "../runtime/shared/platformAdapter.js";
 
 export function attachRemoteAudio(session, ui) {
   try {
@@ -88,7 +89,15 @@ export function attachRemoteAudio(session, ui) {
     }
 
     // Lightweight diagnostics (Android): confirm inbound RTP is flowing.
-    if (/Android/i.test(navigator.userAgent || "") && !pc.__outboundInboundAudioStatsBound) {
+    const enableStats = (() => {
+      try {
+        const a = requirePlatformAdapter();
+        return !!a?.mediaDiag?.enableInboundAudioStats;
+      } catch {
+        return false;
+      }
+    })();
+    if (enableStats && !pc.__outboundInboundAudioStatsBound) {
       pc.__outboundInboundAudioStatsBound = true;
       let ticks = 0;
       const timer = setInterval(async () => {

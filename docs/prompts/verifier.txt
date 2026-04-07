@@ -1,0 +1,56 @@
+Verification only. Do not propose a new refactor. Do not invent new scope.
+
+Use Google Drive project folder webrtc-sbc as the source of truth.
+
+First read these files fully:
+1. docs/00-read-first.md
+2. docs/ai-working-rules.md
+3. docs/now.md
+4. docs/session-log.md
+5. docs/change-ledger.md
+6. docs/known-good-baseline.md
+
+Then read only the files directly relevant to the task and the files claimed as changed by the coding AI.
+
+Your job is only to verify whether the AI followed the workflow and whether the result is properly isolated.
+
+Check all of the following:
+1. Did the AI stay within task scope from docs/now.md?
+2. Did it avoid unrelated files?
+3. Did it keep protected behavior safe?
+4. Did it keep the change isolated by feature/platform/layer?
+5. Did it avoid risky shared-file edits unless necessary?
+6. Are touched code files <=200 lines, or safely split?
+7. Did it update required docs correctly?
+8. Is the folder/file structure still clean and manageable?
+9. Are there obvious signs of dead code, mixed ownership, or incomplete isolation?
+10. Is this the best safe version of the change, or only a partial patch?
+
+Output only these sections:
+
+1. TASK UNDER REVIEW
+2. FILES READ
+3. FILES CHANGED BY AI
+4. SCOPE VIOLATIONS
+5. ISOLATION VERDICT
+Choose one:
+- good isolation
+- acceptable but risky
+- not isolated
+6. DOCS VERDICT
+Choose one:
+- updated correctly
+- partially updated
+- stale/missing updates
+7. STRUCTURE VERDICT
+Choose one:
+- clean
+- manageable
+- messy
+8. PROBLEMS FOUND
+9. EXACT NEXT SAFE STEP
+10. FINAL VERDICT
+Choose one:
+- accept
+- accept with caution
+- reject

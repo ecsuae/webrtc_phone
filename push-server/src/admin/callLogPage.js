@@ -6,12 +6,44 @@ const {
 } = require('../services/callClassification');
 
 const {
-  canonicalType,
-  getLatestMediaStatsByDir,
-  buildCallDiagnosis,
-  computeMissingLeg,
+  computeCallDiagnostics,
   computeProbableLteReceiveFailure,
 } = require('../services/callDiagnosis');
+
+const { formatTs, parseTsMs } = require('./timeFormat');
+const {
+  MEDIA_ERROR_DESCRIPTIONS,
+  SESSION_EVENT_TYPES,
+  SUMMARY_MILESTONE_TYPES,
+  PROBLEM_ROW_TYPES,
+  WARN_ROW_TYPES,
+} = require('./callLogCatalogs');
+const { escHtml } = require('./callLogHtmlEscape');
+const { corrKey } = require('./callLogCorrelationKey');
+const { modeLabel } = require('./callLogModeLabel');
+const {
+  buildQueryString,
+  buildToggleQsBase,
+  buildExportLinks,
+} = require('./callLogQueryHelpers');
+const { isConcreteCount } = require('./callLogConcreteCount');
+const { preflightOkFromCounts } = require('./callLogPreflightOkFromCounts');
+const { isPreflightFamily } = require('./callLogPreflightFamily');
+const { isSuspiciousStatsEvent } = require('./callLogSuspiciousStatsEvent');
+const { mergeIceErrorDetail } = require('./callLogMergeIceErrorDetail');
+const { pickBetterCounts } = require('./callLogPickBetterCounts');
+const { shouldShowCandSummary } = require('./callLogShouldShowCandSummary');
+const { stageLabel } = require('./callLogStageLabel');
+const { buildLegSummary } = require('./callLogLegSummary');
+const { deriveAsymmetricDirectionDiagnosis } = require('./callLogAsymmetricDirectionDiagnosis');
+const { buildTraceDiagHtml } = require('./callLogTraceDiagBlocks');
+const { deriveViewMode } = require('./callLogViewMode');
+const { fmtRenderProofSummary } = require('./callLogRenderProofSummary');
+const {
+  fmtPktBits,
+  renderRawPayloadDetails,
+  renderStatsAnnotation,
+} = require('./callLogDisplayHelpers');
 
 /**
  * callLogPage.js
@@ -26,568 +58,8 @@ const {
  * - MEDIA error codes highlighted in red
  */
 
-const MEDIA_ERROR_DESCRIPTIONS = {
-  'MEDIA-E001': 'Relay not found — TURN unreachable in relay-only mode',
-  'MEDIA-E002': 'ICE timeout — gathering timed out before relay candidate found',
-  'MEDIA-E003': 'Secure media failed — DTLS/SRTP negotiation did not complete',
-  'MEDIA-E004': 'No audio received — zero RTP packets on browser leg',
-};
-
-const ADMIN_TIMEZONE = 'Asia/Karachi';
-const ADMIN_TZ_LABEL = 'PKT';
-
-const SESSION_EVENT_TYPES = new Set([
-  'profile-selected',
-  'ua-ice-policy',
-  'profile-badge-rendered',
-  'profile-toggle-changed',
-]);
-
-const SUMMARY_MILESTONE_TYPES = new Set([
-  'profile-selected',
-  'ua-ice-policy',
-  'outbound-preflight-result',
-  'invite-sent',
-  'ice-complete',
-  'remote-audio-attached',
-  'remote-audio-play-ok',
-  'remote-audio-play-failed',
-  'no-remote-audio-play',
-  'receive-render-proof',
-  'call-established',
-  'call-ended',
-  'call-log-post-failed',
-  'preflight-icecandidateerror',
-  'no-inbound-rtp',
-  'no-outbound-rtp',
-  'dtls-connected-but-no-rtp',
-  'selected-pair-relay-mismatch',
-  'one-way-audio-suspected',
-  'incomplete-observability',
-  'outbound-post-establish-probe',
-  'outbound-receive-health-2s',
-  'outbound-receive-health-5s',
-  'outbound-receive-health-10s',
-  'outbound-inbound-rtp-zero',
-  'outbound-inbound-rtp-present',
-  'outbound-selected-pair-details',
-  'outbound-dtls-state',
-  'outbound-connection-state',
-  'outbound-ice-connection-state',
-  'probable-lte-receive-path-failure',
-]);
-
-function escHtml(v) {
-  if (v === undefined || v === null) return '';
-  return String(v)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function corrKey(ev) {
-  return ev?.corrId || ev?.callId || '';
-}
-
-function buildLegSummary(events, dir) {
-  const evs = Array.isArray(events) ? events : [];
-  const leg = evs.filter((e) => (e.dir || '') === dir);
-  const any = leg.length > 0;
-  const established = leg.some((e) => canonicalType(e) === 'call-established');
-  const remoteTrack = leg.some((e) => canonicalType(e) === 'remote-audio-track-added');
-  const remoteAudioPlayOk = leg.some((e) => canonicalType(e) === 'remote-audio-play-ok');
-  const remoteAudioPlayFail = leg.some((e) => canonicalType(e) === 'remote-audio-play-failed');
-
-  const latestStats = (() => {
-    const stats = getLatestMediaStatsByDir(leg);
-    return dir === 'outbound' ? stats.outbound : stats.inbound;
-  })();
-
-  const inboundRtp = typeof latestStats?.inboundAudioPacketsReceived === 'number'
-    ? latestStats.inboundAudioPacketsReceived > 0
-    : null;
-  const outboundRtp = typeof latestStats?.outboundAudioPacketsSent === 'number'
-    ? latestStats.outboundAudioPacketsSent > 0
-    : null;
-  const latestStatsTs = latestStats?.ts || latestStats?._serverTs || null;
-
-  return {
-    any,
-    username: leg[0]?.username,
-    aor: leg[0]?.aor,
-    established,
-    remoteTrack,
-    remoteAudioPlayOk,
-    remoteAudioPlayFail,
-    inboundRtp,
-    outboundRtp,
-    latestStatsTs,
-  };
-}
-
-function renderLegSummaryBlock(events) {
-  const callClass = inferCallClass(events).class;
-  const caller = buildLegSummary(events, 'outbound');
-  const callee = buildLegSummary(events, 'inbound');
-
-  const boolCell = (v) => {
-    if (v === true) return 'yes';
-    if (v === false) return 'no';
-    return 'unknown';
-  };
-
-  const shouldWarnMissingLeg = callClassAllowsMissingLeg(callClass);
-  const warn = shouldWarnMissingLeg && (!caller.any || !callee.any)
-    ? `<div class="legend" style="margin-top: 0; margin-bottom: 12px; border-color: rgba(224,90,90,.45);">
-  <h3 style="color: var(--red);">WARNING: ${!caller.any ? 'caller leg logs missing' : ''}${(!caller.any && !callee.any) ? ' and ' : ''}${!callee.any ? 'callee leg logs missing' : ''}</h3>
-  <div style="margin-top: 6px;">PROBLEM: incomplete observability for ${!caller.any ? 'caller' : 'callee'} leg</div>
-</div>`
-    : '';
-
-  const asym = shouldWarnMissingLeg ? deriveAsymmetricDirectionDiagnosis(events) : null;
-  const asymHtml = asym
-    ? `<div class="legend" style="margin-top: 0; margin-bottom: 12px; border-color: rgba(224,90,90,.45);">
-  <h3 style="color: var(--red);">${escHtml(asym.problem)}</h3>
-  <pre style="white-space: pre-wrap; font-family: var(--mono); color: var(--dim); font-size: 12px; line-height: 1.4;">${escHtml(asym.lines.join('\n'))}</pre>
-</div>`
-    : '';
-
-  const row = (title, s) => {
-    return `<div class="legend" style="margin-top: 0; margin-bottom: 12px;">
-  <h3>${escHtml(title)}</h3>
-  <pre style="white-space: pre-wrap; font-family: var(--mono); color: var(--dim); font-size: 12px; line-height: 1.4;">${escHtml(
-    `established: ${boolCell(s.established)}\n`
-    + `remote track: ${boolCell(s.remoteTrack)}\n`
-    + `remote audio play: ${s.remoteAudioPlayOk ? 'yes' : (s.remoteAudioPlayFail ? 'failed' : 'no/unknown')}\n`
-    + `inbound RTP: ${boolCell(s.inboundRtp)}\n`
-    + `outbound RTP: ${boolCell(s.outboundRtp)}\n`
-    + `latest stats ts: ${s.latestStatsTs ? formatTs(s.latestStatsTs) : '—'}`
-  )}</pre>
-</div>`;
-  };
-
-  return `${asymHtml}${warn}${row(`Caller leg (outbound)${caller.username ? ` — ${caller.username}` : ''}`, caller)}${row(`Callee leg (inbound)${callee.username ? ` — ${callee.username}` : ''}`, callee)}`;
-}
-
-function buildQueryString(params) {
-  const usp = new URLSearchParams();
-  for (const [k, v] of Object.entries(params || {})) {
-    if (v === undefined || v === null) continue;
-    const s = String(v);
-    if (!s) continue;
-    usp.set(k, s);
-  }
-  const qs = usp.toString();
-  return qs ? `?${qs}` : '';
-}
-
-function buildExportLinks(filter, { isTraceView } = {}) {
-  const base = { ...(filter || {}) };
-  const viewMode = String(base.view || 'raw');
-
-  const qsFiltered = buildQueryString({
-    ...base,
-    limit: 1000,
-  });
-
-  const filteredJson = `/admin/calllogs/export.json${qsFiltered}`;
-  const filteredCsv = `/admin/calllogs/export.csv${qsFiltered}`;
-
-  const traceKeyQs = (() => {
-    if (!isTraceView) return '';
-    const corrId = base.corrId || '';
-    const callId = base.callId || '';
-    return buildQueryString({ corrId: corrId || undefined, callId: (!corrId && callId) ? callId : undefined });
-  })();
-
-  const traceJson = isTraceView ? `/admin/calllogs/trace/export.json${traceKeyQs}` : '';
-  const traceCsv = isTraceView ? `/admin/calllogs/trace/export.csv${traceKeyQs}` : '';
-
-  const latestByCallerQs = (() => {
-    const username = base.username || '';
-    if (!username) return '';
-    return buildQueryString({ username });
-  })();
-  const latestByCallerJson = latestByCallerQs ? `/admin/calllogs/latest/export.json${latestByCallerQs}` : '';
-  const latestByCallerCsv = latestByCallerQs ? `/admin/calllogs/latest/export.csv${latestByCallerQs}` : '';
-
-  const exportCaller = base.exportCaller || '';
-  const exportReceiver = base.exportReceiver || '';
-
-  const latestCallerQs = exportCaller ? buildQueryString({ caller: exportCaller }) : '';
-  const latestCallerJson = latestCallerQs ? `/admin/calllogs/latest-caller/export.json${latestCallerQs}` : '';
-  const latestCallerCsv = latestCallerQs ? `/admin/calllogs/latest-caller/export.csv${latestCallerQs}` : '';
-  const latestCallerPdf = latestCallerQs ? `/admin/calllogs/latest-caller/export.pdf${latestCallerQs}` : '';
-
-  const latestReceiverQs = exportReceiver ? buildQueryString({ receiver: exportReceiver }) : '';
-  const latestReceiverJson = latestReceiverQs ? `/admin/calllogs/latest-receiver/export.json${latestReceiverQs}` : '';
-  const latestReceiverCsv = latestReceiverQs ? `/admin/calllogs/latest-receiver/export.csv${latestReceiverQs}` : '';
-  const latestReceiverPdf = latestReceiverQs ? `/admin/calllogs/latest-receiver/export.pdf${latestReceiverQs}` : '';
-
-  const latestPairQs = (exportCaller && exportReceiver) ? buildQueryString({ caller: exportCaller, receiver: exportReceiver }) : '';
-  const latestPairJson = latestPairQs ? `/admin/calllogs/latest-pair/export.json${latestPairQs}` : '';
-  const latestPairCsv = latestPairQs ? `/admin/calllogs/latest-pair/export.csv${latestPairQs}` : '';
-  const latestPairPdf = latestPairQs ? `/admin/calllogs/latest-pair/export.pdf${latestPairQs}` : '';
-
-  return {
-    viewMode,
-    filteredJson,
-    filteredCsv,
-    traceJson,
-    traceCsv,
-    latestByCallerJson,
-    latestByCallerCsv,
-    latestCallerJson,
-    latestCallerCsv,
-    latestCallerPdf,
-    latestReceiverJson,
-    latestReceiverCsv,
-    latestReceiverPdf,
-    latestPairJson,
-    latestPairCsv,
-    latestPairPdf,
-  };
-}
-
-function modeLabel(ev) {
-  if (ev.selectedProfile) return String(ev.selectedProfile);
-  if (ev.mode) return String(ev.mode);
-  if (ev.lteMode === true) return 'lte';
-  if (ev.lteMode === false) return 'wifi';
-  return '';
-}
-
-function formatTs(ts) {
-  const v = ts || '';
-  if (!v) return '';
-  try {
-    const d = new Date(v);
-    if (!Number.isFinite(d.getTime())) throw new Error('invalid-date');
-    const s = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: ADMIN_TIMEZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
-    }).format(d);
-    return `${s} ${ADMIN_TZ_LABEL}`;
-  } catch {
-    return String(v).replace('T', ' ').slice(0, 19);
-  }
-}
-
-function parseTsMs(ts) {
-  const d = new Date(ts);
-  const t = d.getTime();
-  return Number.isFinite(t) ? t : null;
-}
-
-function stageLabel(ev) {
-  if ((ev.code || '').startsWith('MEDIA-E')) return 'Error';
-
-  const t = canonicalType(ev);
-  switch (t) {
-    case 'profile-selected': return 'CLIENT';
-    case 'ua-ice-policy': return 'CLIENT';
-    case 'outbound-preflight-start': return 'Preflight';
-    case 'outbound-preflight-result': {
-      if (typeof ev.relay === 'number') return ev.relay > 0 ? 'Preflight OK' : 'Preflight FAIL';
-      return 'Preflight result';
-    }
-    case 'invite-sent': return 'CALL';
-    case 'ice-complete': return 'ICE';
-    case 'preflight-icecandidateerror': return 'ICE';
-    case 'selected-pair-relay-mismatch': return 'ICE';
-    case 'outbound-selected-pair-details': return 'ICE';
-    case 'outbound-dtls-state': return 'ICE';
-    case 'outbound-connection-state': return 'ICE';
-    case 'outbound-ice-connection-state': return 'ICE';
-    case 'remote-audio-attached': return 'AUDIO';
-    case 'remote-audio-play-ok': return 'AUDIO';
-    case 'remote-audio-play-failed': return 'AUDIO';
-    case 'no-remote-audio-play': return 'AUDIO';
-    case 'receive-render-proof': return 'AUDIO';
-    case 'call-established': return 'CALL';
-    case 'call-ended': return 'CALL';
-    case 'call-log-post-failed': return 'POST';
-    case 'no-inbound-rtp': return 'AUDIO';
-    case 'no-outbound-rtp': return 'AUDIO';
-    case 'dtls-connected-but-no-rtp': return 'ICE';
-    case 'one-way-audio-suspected': return 'AUDIO';
-    case 'incomplete-observability': return 'AUDIO';
-    case 'probable-lte-receive-path-failure': return 'AUDIO';
-    case 'preflight-icecandidateerror': return (ev._aggCount > 1)
-      ? `Preflight ICE error x${ev._aggCount}`
-      : 'Preflight ICE error';
-    default: return 'Event';
-  }
-}
-
-function deriveAsymmetricDirectionDiagnosis(events) {
-  const caller = buildLegSummary(events, 'outbound');
-  const callee = buildLegSummary(events, 'inbound');
-
-  const wifi = callee;
-  const lteMissing = !caller.any;
-
-  const wifiSendingOk = wifi.any && wifi.outboundRtp === true;
-  const wifiReceivingNo = wifi.any && wifi.inboundRtp === false;
-
-  if (wifiSendingOk && wifiReceivingNo && lteMissing) {
-    return {
-      lines: [
-        'Wi-Fi leg sending OK',
-        'Wi-Fi leg receiving NO',
-        'LTE leg logs missing',
-      ],
-      problem: 'PROBLEM: LTE receive-leg observability missing; current evidence suggests LTE is not receiving RTP',
-    };
-  }
-
-  return null;
-}
-
-function shouldShowCandSummary(ev, viewMode) {
-  if (viewMode !== 'summary') return true;
-  if ((ev.code || '').startsWith('MEDIA-E')) return false;
-  const t = canonicalType(ev);
-  return t === 'outbound-preflight-result'
-    || t === 'ice-complete'
-    || t === 'preflight-icecandidateerror'
-    || t === 'outbound-selected-pair-details'
-    || t.startsWith('media-stats-');
-}
-
-function isSuspiciousStatsEvent(ev) {
-  if (!ev || typeof ev !== 'object') return false;
-  const inP = typeof ev.inboundAudioPacketsReceived === 'number' ? ev.inboundAudioPacketsReceived : null;
-  const outP = typeof ev.outboundAudioPacketsSent === 'number' ? ev.outboundAudioPacketsSent : null;
-  if (inP === null && outP === null) return false;
-  if (inP === 0 && outP > 0) return true;
-  if (outP === 0 && inP > 0) return true;
-  return false;
-}
-
-function renderMediaDiagnosisBlock(events) {
-  const callClass = inferCallClass(events).class;
-  const diag = buildCallDiagnosis(events, callClass);
-  const setup = diag.hasEstablished ? 'OK' : 'UNKNOWN';
-  const ice = diag.hasIceComplete ? 'OK' : 'UNKNOWN';
-  const dtls = (diag.stats.outbound?.dtlsState || diag.stats.inbound?.dtlsState) ? 'OK' : 'UNKNOWN';
-
-  const lines = [
-    `setup: ${setup}`,
-    `ICE: ${ice}`,
-    `DTLS: ${dtls}`,
-    `caller outbound RTP: ${typeof diag.stats.outbound?.outboundAudioPacketsSent === 'number' ? (diag.stats.outbound.outboundAudioPacketsSent > 0 ? 'yes' : 'no') : 'unknown'}`,
-    `caller inbound RTP: ${typeof diag.stats.outbound?.inboundAudioPacketsReceived === 'number' ? (diag.stats.outbound.inboundAudioPacketsReceived > 0 ? 'yes' : 'no') : 'unknown'}`,
-    `callee outbound RTP: ${typeof diag.stats.inbound?.outboundAudioPacketsSent === 'number' ? (diag.stats.inbound.outboundAudioPacketsSent > 0 ? 'yes' : 'no') : 'unknown'}`,
-    `callee inbound RTP: ${typeof diag.stats.inbound?.inboundAudioPacketsReceived === 'number' ? (diag.stats.inbound.inboundAudioPacketsReceived > 0 ? 'yes' : 'no') : 'unknown'}`,
-    `suspected issue: ${diag.oneWaySuspected ? 'one-way audio' : 'none detected'}`,
-  ];
-
-  const details = diag.oneWaySuspected ? `\n${escHtml(diag.suspectedMsg)}` : '';
-
-  return `<div class="legend" style="margin-top: 0; margin-bottom: 16px;">
-  <h3>Media diagnosis (derived)</h3>
-  <pre style="white-space: pre-wrap; font-family: var(--mono); color: var(--dim); font-size: 12px; line-height: 1.4;">${escHtml(lines.join('\n'))}${details}</pre>
-</div>`;
-}
-
-function isConcreteCount(v) {
-  return typeof v === 'number' && Number.isFinite(v) && v >= 0;
-}
-
-function pickBetterCounts(best, ev) {
-  const next = { ...best };
-  for (const k of ['relay', 'host', 'srflx', 'total']) {
-    const cur = next[k];
-    const cand = ev[k];
-    if (!isConcreteCount(cur) && isConcreteCount(cand)) next[k] = cand;
-    if (isConcreteCount(cur) && isConcreteCount(cand) && cand > cur) next[k] = cand;
-  }
-  if (next.icePolicy === undefined && typeof ev.icePolicy === 'string') next.icePolicy = ev.icePolicy;
-  if (next.timedOut === undefined && typeof ev.timedOut === 'boolean') next.timedOut = ev.timedOut;
-  if (next.selectedPair === undefined && typeof ev.selectedPair === 'string') next.selectedPair = ev.selectedPair;
-  if (next.candSummary === undefined && typeof ev.candSummary === 'string') next.candSummary = ev.candSummary;
-  return next;
-}
-
-function isPreflightFamily(ev) {
-  const t = (ev.type || '');
-  return t === 'outbound-preflight-start'
-    || t === 'outbound-preflight-complete'
-    || t === 'outbound-preflight-result'
-    || t === 'preflight-complete'
-    || t === 'preflight-ok'
-    || t === 'preflight-fail';
-}
-
-function preflightOkFromCounts(ev) {
-  if (typeof ev.relay === 'number') return ev.relay > 0;
-  if (typeof ev.total === 'number') return ev.total > 0;
-  return null;
-}
-
-function mergeIceErrorDetail(best, ev) {
-  const out = { ...best };
-  const msg = ev.msg || '';
-  if (!out.msg && msg) out.msg = msg;
-  if (out.msg && msg && msg.length > out.msg.length) out.msg = msg;
-
-  // Try to preserve useful single-line details if present
-  for (const k of ['code', 'url', 'transport', 'error', 'errorText']) {
-    if (out[k] === undefined && ev[k] !== undefined) out[k] = ev[k];
-  }
-
-  return out;
-}
-
 function applySummaryTransforms(events, { includeSession } = {}) {
   const input = Array.isArray(events) ? events : [];
-
-  const fmtPktBits = (stats, label) => {
-    if (!stats || typeof stats !== 'object') return '';
-    const recv = (typeof stats.inboundAudioPacketsReceived === 'number' && Number.isFinite(stats.inboundAudioPacketsReceived))
-      ? stats.inboundAudioPacketsReceived
-      : null;
-    const sent = (typeof stats.outboundAudioPacketsSent === 'number' && Number.isFinite(stats.outboundAudioPacketsSent))
-      ? stats.outboundAudioPacketsSent
-      : null;
-    if (recv === null && sent === null) return '';
-    const parts = [];
-    if (recv !== null) parts.push(`recv=${recv}`);
-    if (sent !== null) parts.push(`sent=${sent}`);
-    return `${label} ${parts.join(' ')}`;
-  };
-
-  const fmtRenderProofSummary = (ev) => {
-    if (!ev) return '';
-    const parts = [];
-    const msg = (typeof ev.msg === 'string' ? ev.msg : '') || '';
-    const stage = (() => {
-      if (/\b10s\b/i.test(msg)) return '10s';
-      if (/\b5s\b/i.test(msg)) return '5s';
-      if (/\bearly\b/i.test(msg)) return 'early';
-      // Heuristic: early proof usually lacks RTP/energy fields.
-      const hasAnyStats = (ev.inboundAudioPacketsReceived !== undefined)
-        || (ev.outboundAudioPacketsSent !== undefined)
-        || (ev.audioLevel !== undefined)
-        || (ev.totalAudioEnergy !== undefined);
-      return hasAnyStats ? '?' : 'early';
-    })();
-
-    const fmtBool = (v) => (typeof v === 'boolean' ? String(v) : '?');
-    const fmtNum = (v, { digits } = {}) => {
-      if (typeof v !== 'number' || !Number.isFinite(v)) return '?';
-      const s = String(v);
-      return (typeof digits === 'number') ? s.slice(0, digits) : s;
-    };
-
-    const paused = (typeof ev.audioElPaused === 'boolean') ? ev.audioElPaused : null;
-    const muted = (typeof ev.audioElMuted === 'boolean') ? ev.audioElMuted : null;
-    const volume = (typeof ev.audioElVolume === 'number' && Number.isFinite(ev.audioElVolume)) ? ev.audioElVolume : null;
-    const readyState = (typeof ev.audioElReadyState === 'number' && Number.isFinite(ev.audioElReadyState)) ? ev.audioElReadyState : null;
-    const currentTime = (typeof ev.audioElCurrentTime === 'number' && Number.isFinite(ev.audioElCurrentTime)) ? ev.audioElCurrentTime : null;
-
-    const elParts = [
-      `paused=${fmtBool(paused)}`,
-      `muted=${fmtBool(muted)}`,
-      `volume=${fmtNum(volume, { digits: 6 })}`,
-      `readyState=${readyState !== null ? String(readyState) : '?'}`,
-      `currentTime=${(currentTime !== null) ? (currentTime > 0 ? '>0' : '0') : '?'}`,
-    ];
-
-    const recv = (typeof ev.inboundAudioPacketsReceived === 'number' && Number.isFinite(ev.inboundAudioPacketsReceived))
-      ? ev.inboundAudioPacketsReceived
-      : null;
-    const sent = (typeof ev.outboundAudioPacketsSent === 'number' && Number.isFinite(ev.outboundAudioPacketsSent))
-      ? ev.outboundAudioPacketsSent
-      : null;
-    const audioLevel = (typeof ev.audioLevel === 'number' && Number.isFinite(ev.audioLevel)) ? ev.audioLevel : null;
-    const totalAudioEnergy = (typeof ev.totalAudioEnergy === 'number' && Number.isFinite(ev.totalAudioEnergy)) ? ev.totalAudioEnergy : null;
-    const sParts = [
-      `recv=${recv !== null ? String(recv) : '?'}`,
-      `sent=${sent !== null ? String(sent) : '?'}`,
-      `audioLevel=${fmtNum(audioLevel, { digits: 8 })}`,
-      `totalAudioEnergy=${fmtNum(totalAudioEnergy, { digits: 10 })}`,
-    ];
-
-    const trackEnabled = (typeof ev.trackEnabled === 'boolean') ? ev.trackEnabled : null;
-    const trackMuted = (typeof ev.trackMuted === 'boolean') ? ev.trackMuted : null;
-    const trackReadyState = (typeof ev.trackReadyState === 'string' && ev.trackReadyState.trim()) ? ev.trackReadyState.trim() : null;
-    const tParts = [
-      `track=${trackReadyState || '?'}`,
-      `track.muted=${fmtBool(trackMuted)}`,
-      `track.enabled=${fmtBool(trackEnabled)}`,
-    ];
-
-    const codec = (typeof ev.inboundCodecMimeType === 'string' && ev.inboundCodecMimeType.trim())
-      ? ev.inboundCodecMimeType.trim()
-      : null;
-    const pt = (typeof ev.inboundCodecPayloadType === 'number' && Number.isFinite(ev.inboundCodecPayloadType))
-      ? ev.inboundCodecPayloadType
-      : null;
-    const decImpl = (typeof ev.decoderImplementation === 'string' && ev.decoderImplementation.trim())
-      ? ev.decoderImplementation.trim()
-      : null;
-    const decoded = (typeof ev.totalSamplesDecoded === 'number' && Number.isFinite(ev.totalSamplesDecoded))
-      ? ev.totalSamplesDecoded
-      : null;
-    const concealed = (typeof ev.concealedSamples === 'number' && Number.isFinite(ev.concealedSamples))
-      ? ev.concealedSamples
-      : null;
-    const discarded = (typeof ev.packetsDiscarded === 'number' && Number.isFinite(ev.packetsDiscarded))
-      ? ev.packetsDiscarded
-      : null;
-    const repaired = (typeof ev.packetsRepaired === 'number' && Number.isFinite(ev.packetsRepaired))
-      ? ev.packetsRepaired
-      : null;
-    const jbDelay = (typeof ev.jitterBufferDelay === 'number' && Number.isFinite(ev.jitterBufferDelay))
-      ? ev.jitterBufferDelay
-      : null;
-    const jbEmit = (typeof ev.jitterBufferEmittedCount === 'number' && Number.isFinite(ev.jitterBufferEmittedCount))
-      ? ev.jitterBufferEmittedCount
-      : null;
-    const cParts = [];
-    if (codec) cParts.push(`codec=${codec}${pt !== null ? ` pt=${pt}` : ''}`);
-    if (decImpl) cParts.push(`dec=${decImpl}`);
-    if (decoded !== null) cParts.push(`decoded=${decoded}`);
-    if (concealed !== null) cParts.push(`concealed=${concealed}`);
-    if (discarded !== null) cParts.push(`discarded=${discarded}`);
-    if (repaired !== null) cParts.push(`repaired=${repaired}`);
-    if (jbDelay !== null) cParts.push(`jbDelay=${fmtNum(jbDelay, { digits: 10 })}`);
-    if (jbEmit !== null) cParts.push(`jbEmit=${jbEmit}`);
-
-    parts.push(`Render[${stage}]: ${elParts.join(' ')}`);
-    parts.push(`${tParts.join(' ')}`);
-    parts.push(`${sParts.join(' ')}`);
-    if (cParts.length) parts.push(`${cParts.join(' ')}`);
-
-    const hasRtp = (recv !== null && recv > 0);
-    const hasEnergy = ((typeof totalAudioEnergy === 'number' && totalAudioEnergy > 0) || (typeof audioLevel === 'number' && audioLevel > 0));
-
-    // Mismatch evidence: only emit when strongly supported.
-    if (hasRtp && !hasEnergy) {
-      parts.push('MISMATCH: RTP present but no energy');
-    }
-    if (hasRtp && trackMuted === true) {
-      parts.push('MISMATCH: RTP present but track muted');
-    }
-    const looksStuck = (paused === false)
-      && (readyState !== null && readyState >= 3)
-      && (currentTime !== null && currentTime === 0)
-      && (trackMuted === true || hasRtp);
-    if (looksStuck) {
-      parts.push('MISMATCH: play ok but render stuck');
-    }
-
-    return parts.join(' | ');
-  };
 
   // Pre-compute call-level diagnosis for synthetic PROBLEM rows.
   const byCorr = new Map();
@@ -969,21 +441,6 @@ function applySummaryTransforms(events, { includeSession } = {}) {
   return out;
 }
 
-const PROBLEM_ROW_TYPES = new Set([
-  'one-way-audio-suspected',
-  'probable-lte-receive-path-failure',
-  'incomplete-observability',
-]);
-
-const WARN_ROW_TYPES = new Set([
-  'no-inbound-rtp',
-  'no-outbound-rtp',
-  'dtls-connected-but-no-rtp',
-  'remote-audio-play-failed',
-  'no-remote-audio-play',
-  'selected-pair-relay-mismatch',
-]);
-
 function renderEventRow(ev, viewMode) {
   const isError = (ev.code || '').startsWith('MEDIA-E');
   const ct = canonicalType(ev);
@@ -1047,56 +504,7 @@ function renderEventRow(ev, viewMode) {
     ? `<span class="rtp-problem">${escHtml(ev.msg || '—')}</span>`
     : escHtml(ev.msg || '—');
 
-  // For stats rows in summary, annotate zero RTP counts inline so they stand out.
-  const statsAnnotation = (() => {
-    if (viewMode !== 'summary') return '';
-    const inP = ev.inboundAudioPacketsReceived;
-    const outP = ev.outboundAudioPacketsSent;
-    const hasPackets = (typeof inP === 'number') || (typeof outP === 'number');
-    const codec = (typeof ev.inboundCodecMimeType === 'string' && ev.inboundCodecMimeType.trim())
-      ? ev.inboundCodecMimeType.trim()
-      : '';
-    const pt = (typeof ev.inboundCodecPayloadType === 'number' && Number.isFinite(ev.inboundCodecPayloadType))
-      ? ev.inboundCodecPayloadType
-      : null;
-    const dec = (typeof ev.decoderImplementation === 'string' && ev.decoderImplementation.trim())
-      ? ev.decoderImplementation.trim()
-      : '';
-    const decoded = (typeof ev.totalSamplesDecoded === 'number' && Number.isFinite(ev.totalSamplesDecoded))
-      ? ev.totalSamplesDecoded
-      : null;
-    const concealed = (typeof ev.concealedSamples === 'number' && Number.isFinite(ev.concealedSamples))
-      ? ev.concealedSamples
-      : null;
-    const discarded = (typeof ev.packetsDiscarded === 'number' && Number.isFinite(ev.packetsDiscarded))
-      ? ev.packetsDiscarded
-      : null;
-
-    const hasCodec = !!(codec || dec || decoded !== null || concealed !== null || discarded !== null);
-    if (!hasPackets && !hasCodec) return '';
-    const fmt = (label, v) => {
-      if (typeof v !== 'number') return `${label}: ?`;
-      const cls = v === 0 ? ' class="rtp-problem"' : '';
-      return `${label}: <span${cls}>${v}</span>`;
-    };
-
-    const pktLine = hasPackets
-      ? `${fmt('recv', inP)} | ${fmt('sent', outP)}`
-      : '';
-
-    const codecBits = [];
-    if (codec) codecBits.push(`codec=${escHtml(codec)}${pt !== null ? ` pt=${pt}` : ''}`);
-    if (dec) codecBits.push(`dec=${escHtml(dec)}`);
-    if (decoded !== null) codecBits.push(`decoded=${decoded}`);
-    if (concealed !== null) codecBits.push(`concealed=${concealed}`);
-    if (discarded !== null) codecBits.push(`discarded=${discarded}`);
-    const codecLine = codecBits.length ? codecBits.join(' ') : '';
-
-    const lines = [pktLine, codecLine].filter(Boolean);
-    return lines.length
-      ? `<br><span style="font-family: var(--mono); font-size: 11px;">${lines.join('<br>')}</span>`
-      : '';
-  })();
+  const statsAnnotation = renderStatsAnnotation(ev, { viewMode });
 
   const msgProof = (viewMode === 'raw')
     ? (() => {
@@ -1109,25 +517,7 @@ function renderEventRow(ev, viewMode) {
     })()
     : '';
 
-  const rawPayload = (viewMode === 'raw')
-    ? (() => {
-      try {
-        const json = JSON.stringify(ev, null, 2);
-        const labelBits = [];
-        if (ev.type) labelBits.push(String(ev.type));
-        if (ev.dir) labelBits.push(String(ev.dir));
-        if (ev._seq !== undefined) labelBits.push(`#${String(ev._seq)}`);
-        const ts0 = ev.ts || ev._serverTs;
-        if (ts0) labelBits.push(String(ts0));
-        const label = labelBits.length ? `payload ${labelBits.join(' ')}` : 'payload';
-        return json
-          ? `<details style="margin-top: 6px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">${escHtml(label)}</summary><div style="margin-top: 6px; border: 1px solid rgba(160,160,160,.25); border-radius: 6px; background: rgba(0,0,0,.08); padding: 8px;"><pre style="white-space: pre; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 0; color: var(--dim);">${escHtml(json)}</pre></div></details>`
-          : '';
-      } catch {
-        return '';
-      }
-    })()
-    : '';
+  const rawPayload = renderRawPayloadDetails(ev, { viewMode });
 
   const msgCellHtml = [
     msgMain,
@@ -1160,13 +550,11 @@ function renderEventRow(ev, viewMode) {
 
 function renderCallLogPage(events, stats, filter) {
   const isTraceView = !!(filter && (filter.callId || filter.corrId));
-  const viewMode = isTraceView
-    ? 'raw'
-    : ((filter && String(filter.view).toLowerCase() === 'raw') ? 'raw' : 'summary');
+  const viewMode = deriveViewMode(filter, { isTraceView });
 
   const includeSession = !!(filter && filter.includeSession);
 
-  const traceDiagHtml = isTraceView ? (renderLegSummaryBlock(events) + renderMediaDiagnosisBlock(events)) : '';
+  const traceDiagHtml = buildTraceDiagHtml(events, { isTraceView });
 
   const pageEvents = viewMode === 'summary'
     ? applySummaryTransforms(events, { includeSession })
@@ -1177,11 +565,7 @@ function renderCallLogPage(events, stats, filter) {
     ? pageEvents.map((ev) => renderEventRow(ev, viewMode)).join('\n')
     : `<tr><td colspan="${emptyColspan}" class="no-results">No events match the current filter.</td></tr>`;
 
-  const toggleQsBase = {
-    ...filter,
-    view: undefined,
-    includeSession: includeSession ? '1' : undefined,
-  };
+  const toggleQsBase = buildToggleQsBase(filter, { includeSession });
   const summaryHref = `/admin/calllogs${buildQueryString({ ...toggleQsBase, view: 'summary' })}`;
   const rawHref = `/admin/calllogs${buildQueryString({ ...toggleQsBase, view: 'raw' })}`;
 

@@ -1,59 +1,66 @@
 # NOW
 
 ## Current task
-TASK-025 — Admin call logs summary: restore missing inbound AUDIO compact row, macOS CLIENT row, and enhance decode/RCA visibility.
+TASK-028 — push-server service isolation: isolate push-server code/config/service ownership safely and incrementally.
 
 ## Why this matters
-The admin call logs summary is a critical diagnostic tool for troubleshooting media issues. Currently missing inbound AUDIO compact row and macOS CLIENT row limit observability. Incomplete decode/RCA fields (decoderImplementation, totalSamplesDecoded, packetsRepaired, jitterBufferDelay, jitterBufferEmittedCount) hinder root cause analysis of Android decode/render/output quality issues.
+push-server owns push notifications, WireGuard-only admin tooling, and routing-config management. Clear code/config ownership boundaries reduce split-brain risk, keep isolation reversible, and prevent push/admin changes from accidentally coupling into other services.
 
 ## Already proven
-- CALL rows, ICE rows, outbound AUDIO rows, receive-render-proof rows (Render[early], Render[5s], Render[10s]) are working.
-- Outbound selected-pair compact ICE detail and outbound RTP/render RCA fields are visible (recv/sent, audioLevel, totalAudioEnergy, codec, concealed).
-- Hidden rows (call-log-post-buffered, profile-badge-rendered) stay hidden as intended.
-- Android/outbound receives RTP, ICE/DTLS healthy, playback element active, codec visible, concealment high, energy tiny.
+- push-server is repo-contained under `push-server/` with its own `Dockerfile`, `package.json`, `server.js`, and `src/` modules.
+- push-server composes routes via `src/routes/*` and centralizes config reads in `src/config.js`.
+- push-server has an explicit admin boundary:
+  - a second listener binds `ADMIN_BIND_HOST:ADMIN_BIND_PORT`
+  - admin routes are guarded by `requireWireGuardAccess`.
+- Isolation step 1 complete: extracted admin timestamp formatting helpers into `push-server/src/admin/timeFormat.js` and updated `callLogPage.js` to import them.
+- Isolation step 2 complete: extracted `MEDIA_ERROR_DESCRIPTIONS` into `push-server/src/admin/callLogErrorCatalog.js` and updated `callLogPage.js` to import it.
+- Isolation step 3 complete: extracted `SESSION_EVENT_TYPES` into `push-server/src/admin/callLogEventTypeSets.js` and updated `callLogPage.js` to import it.
+- Isolation step 4 complete: extracted `SUMMARY_MILESTONE_TYPES` into `push-server/src/admin/callLogMilestoneTypeSets.js` and updated `callLogPage.js` to import it.
+- Isolation step 5 complete: extracted `escHtml` into `push-server/src/admin/callLogHtmlEscape.js` and updated `callLogPage.js` to import it.
+- Isolation step 6 complete: extracted `corrKey` into `push-server/src/admin/callLogCorrelationKey.js` and updated `callLogPage.js` to import it.
+- Isolation step 7 complete: extracted `modeLabel` into `push-server/src/admin/callLogModeLabel.js` and updated `callLogPage.js` to import it.
+- Isolation step 8 complete: extracted `buildQueryString` into `push-server/src/admin/callLogQueryString.js` and updated `callLogPage.js` to import it.
+- Isolation step 9 complete: extracted `isConcreteCount` into `push-server/src/admin/callLogConcreteCount.js` and updated `callLogPage.js` to import it.
+- Isolation step 10 complete: extracted `preflightOkFromCounts` into `push-server/src/admin/callLogPreflightOkFromCounts.js` and updated `callLogPage.js` to import it.
+- Isolation step 11 complete: extracted `isPreflightFamily` into `push-server/src/admin/callLogPreflightFamily.js` and updated `callLogPage.js` to import it.
+- Isolation step 12 complete: extracted `isSuspiciousStatsEvent` into `push-server/src/admin/callLogSuspiciousStatsEvent.js` and updated `callLogPage.js` to import it.
+- Isolation step 13 complete: extracted `mergeIceErrorDetail` into `push-server/src/admin/callLogMergeIceErrorDetail.js` and updated `callLogPage.js` to import it.
+- Isolation step 14 complete: extracted `pickBetterCounts` into `push-server/src/admin/callLogPickBetterCounts.js` and updated `callLogPage.js` to import it.
+- Isolation step 15 complete: extracted `shouldShowCandSummary` into `push-server/src/admin/callLogShouldShowCandSummary.js` and updated `callLogPage.js` to import it.
+- Isolation step 16 complete: extracted `stageLabel` into `push-server/src/admin/callLogStageLabel.js` and updated `callLogPage.js` to import it.
+- Isolation step 17 complete: extracted `buildExportLinks` into `push-server/src/admin/callLogExportLinks.js` and updated `callLogPage.js` to import it.
+- Isolation step 18 complete: extracted `buildLegSummary` into `push-server/src/admin/callLogLegSummary.js` and updated `callLogPage.js` to import it.
+- Isolation step 19 complete: extracted `deriveAsymmetricDirectionDiagnosis` into `push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js` and updated `callLogPage.js` to import it.
+- Isolation step 20 complete: extracted `PROBLEM_ROW_TYPES` and `WARN_ROW_TYPES` into `push-server/src/admin/callLogRowTypeSets.js` and updated `callLogPage.js` to import them.
+- Isolation step 21 complete: extracted `renderLegSummaryBlock` into `push-server/src/admin/callLogLegSummaryBlock.js` and updated `callLogPage.js` to import it. (Later consolidated.)
+- Isolation step 22 complete: extracted `renderMediaDiagnosisBlock` into `push-server/src/admin/callLogMediaDiagnosisBlock.js` and updated `callLogPage.js` to import it. (Later consolidated.)
+- Isolation step 23 complete: extracted `buildToggleQsBase` into `push-server/src/admin/callLogToggleQsBase.js` and updated `callLogPage.js` to import it.
+- Isolation step 24 complete: extracted `buildTraceDiagHtml` into `push-server/src/admin/callLogTraceDiagHtml.js` and updated `callLogPage.js` to import it. (Later consolidated.)
+- Isolation step 25 complete: extracted `deriveViewMode` into `push-server/src/admin/callLogViewMode.js` and updated `callLogPage.js` to import it.
+- Isolation step 26 complete: extracted `fmtRenderProofSummary` into `push-server/src/admin/callLogRenderProofSummary.js` and updated `callLogPage.js` to import it.
+- Isolation step 27 complete: extracted `fmtPktBits` into `push-server/src/admin/callLogPktBits.js` and updated `callLogPage.js` to import it.
+- Isolation step 28 complete: extracted `renderRawPayloadDetails` into `push-server/src/admin/callLogRawPayloadDetails.js` and updated `callLogPage.js` to import it.
+- Isolation step 29 complete: extracted `renderStatsAnnotation` into `push-server/src/admin/callLogStatsAnnotation.js` and updated `callLogPage.js` to import it.
+- Isolation step 30 complete: consolidated `fmtPktBits`, `renderRawPayloadDetails`, and `renderStatsAnnotation` into `push-server/src/admin/callLogDisplayHelpers.js` and updated `callLogPage.js` imports.
+- Isolation step 31 complete: consolidated query/export helpers into `push-server/src/admin/callLogQueryHelpers.js` and updated `callLogPage.js` imports.
+- Isolation step 32 complete: consolidated call-log catalogs/type sets into `push-server/src/admin/callLogCatalogs.js` and updated `callLogPage.js` imports.
+- Isolation step 33 complete: consolidated trace diagnosis blocks into `push-server/src/admin/callLogTraceDiagBlocks.js` and updated `callLogPage.js` imports.
 
 ## Current blocker
-1. macOS CLIENT row is missing.
-2. Decode/RCA visibility partial: confirm decoderImplementation/totalSamplesDecoded/packetsRepaired/jitterBufferDelay/jitterBufferEmittedCount appear on Render rows after latest receive-render-proof payload enrichment.
-3. Logging reliability if call-log-post-failed is still involved.
+- `push-server/src/admin/callLogPage.js` is oversized (~1653 lines) and likely mixes responsibilities, increasing coupling and change risk.
 
-## Required focus
-- Restore missing existing rows only (inbound AUDIO compact, macOS CLIENT).
-- Enhance decode/RCA visibility only if already emitted or safely ingestible.
-- Logging reliability only after A/B are understood.
-- Do not refactor summary pipeline, rewrite from backup, change raw-view behavior, remove existing working summary rows.
-- Do not mix logging work with speaker/earpiece/render/binding/registration/bootstrap/module-loading changes.
-
-## Latest proven improvement
-- Inbound AUDIO compact row is restored in summary via summary-only synthesis from inbound media-stats RTP evidence when explicit inbound AUDIO milestones are missing.
-- RAW view now shows per-row expandable full stored JSON payload inline; raw-only layout widened for practical inspection.
-- receive-render-proof now carries additional RCA fields (repaired/jbDelay/jbEmit) when available so Render rows can surface them.
-
-## Do not touch
-- Registration logic
-- Outgoing/incoming signaling flow (except logging events)
-- Media negotiation
-- Speakerphone, earpiece, remote audio binding
-- Bootstrap, module loading
-- Currently working summary rows (CALL, ICE, outbound AUDIO, receive-render-proof, outbound selected-pair compact ICE detail, outbound RTP/render RCA fields)
-- Hidden rows (call-log-post-buffered, profile-badge-rendered)
+## What must not change
+- Wi-Fi ↔ Wi-Fi calling
+- Registration flow
+- Push behavior
+- Kamailio ↔ RTPEngine integration
 
 ## Files most likely involved
-- `push-server/src/admin/callLogPage.js` (summary rendering)
-- `push-server/src/services/callLogStore.js` (event ingestion)
-- `www/app/features/callMediaLog.js` (frontend media log events)
-- `www/app/pc/stats.js` (WebRTC stats collection)
-- `www/app/pc/bind.js` (stats binding)
-- `www/app/ui/appUi.js` (UI events)
+- `push-server/server.js`
+- `push-server/src/config.js`
+- `push-server/src/middleware/accessControl.js`
+- `push-server/src/routes/*`
+- `push-server/src/admin/*`
 
 ## Exact next safe step
-1. Inspect current summary rendering logic to identify why inbound AUDIO compact row is missing.
-2. Determine if macOS CLIENT row emission is missing from frontend or filtered out in summary.
-3. Check if decode/RCA fields are being collected in stats but not included in summary.
-4. Apply smallest patch to restore missing rows only, ensuring all currently working summary rows remain unchanged.
-
-## Verification rule
-For this logging/backend-storage/dashboard change, verify on:
-- Existing call logs that show outbound AUDIO rows but missing inbound AUDIO rows.
-- macOS client logs (if available) to confirm CLIENT row appears after fix.
-- Android decode stats to confirm new fields appear in summary when available.
+1. Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js`, then rebuild/restart push-server for runtime verification.

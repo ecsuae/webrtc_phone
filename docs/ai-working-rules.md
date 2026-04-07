@@ -1,8 +1,18 @@
 # AI Working Rules
 
-# STOP — READ THIS FILE FIRST IN EVERY SESSION
+# STOP — READ THIS FILE IN EVERY SESSION
 
 This file is the standing instruction set for any AI working on this WebRTC SIP softphone project.
+
+## Read-order rule
+- Do not define a separate startup order here.
+- The mandatory startup/read order is defined only in `docs/00-read-first.md`.
+- Follow `docs/00-read-first.md` exactly.
+- Do not invent a new read order.
+- Do not scan the whole repo by default.
+- Read other docs only if the current task truly needs them.
+
+---
 
 ## Docker/runtime verification rule
 - This project runs inside Docker containers.
@@ -19,27 +29,18 @@ This file is the standing instruction set for any AI working on this WebRTC SIP 
   - via browser/runtime
   - or only by code inspection
 
+---
+
 ## Protected working behavior
 - Wi-Fi ↔ Wi-Fi calling is currently working and must not be broken.
 - Any media-path fix must avoid regressing the already-working Wi-Fi ↔ Wi-Fi path.
 - Prefer fixes scoped only to LTE ↔ Wi-Fi or other failing paths.
 
-## 1. Mandatory read order for every new session
-Read these files first, in this exact order:
-1. `docs/00-read-first.md`
-2. `docs/now.md`
-3. `docs/session-log.md`
-4. `docs/change-ledger.md`
-5. `docs/known-good-baseline.md`
-
-Do not scan the whole repo by default.
-
-Read other docs only if the current task truly needs them.
-
 ---
 
-## 2. Core workflow rules
+## Core workflow rules
 - Work only within the current task scope.
+- Work only on the active task in `docs/now.md` unless the user explicitly changes scope.
 - Do not restart old investigations unless the current task requires it.
 - Protect already working features.
 - Prefer small, safe, incremental, reversible changes.
@@ -48,7 +49,7 @@ Read other docs only if the current task truly needs them.
 
 ---
 
-## 3. Protected working areas
+## Protected working areas
 Do not break or casually refactor these areas:
 - registration
 - outgoing calls
@@ -68,7 +69,7 @@ If a new change is risky, isolate it behind:
 
 ---
 
-## 4. Code size and split rule
+## Code size and split rule
 - Keep every code file small and focused.
 - Target maximum file size: **150 to 200 lines** for normal code files.
 - If a file grows beyond that range, split it into smaller focused modules/files.
@@ -86,7 +87,7 @@ If a new change is risky, isolate it behind:
 
 ---
 
-## 5. Architecture and separation rules
+## Architecture and separation rules
 Maintain clean separation between:
 - frontend app
 - registration/auth flow
@@ -103,7 +104,7 @@ Do not mix unfinished logic into stable production flows.
 
 ---
 
-## 6. Runtime verification rule
+## Runtime verification rule
 Always verify important fixes against live behavior when practical.
 
 For SIP/WebRTC/media issues, prefer real runtime evidence such as:
@@ -121,7 +122,7 @@ If runtime evidence and docs disagree:
 
 ---
 
-## 7. Deployment and config rules
+## Deployment and config rules
 - Keep the project container-based and deployment-friendly.
 - Keep config env-driven when practical.
 - Do not hardcode domains, IPs, usernames, passwords, ports, or environment-specific values unless explicitly required.
@@ -130,7 +131,7 @@ If runtime evidence and docs disagree:
 
 ---
 
-## 8. Documentation rules
+## Documentation rules
 Documentation is mandatory.
 
 Before ending every session:
@@ -143,7 +144,7 @@ Do not finish a task with code changed but workflow docs stale.
 
 ---
 
-## 9. now.md rule
+## now.md rule
 `docs/now.md` is the single source of truth for the current active task.
 
 It must stay short and current.
@@ -161,7 +162,7 @@ Do not turn `now.md` into a long history file.
 
 ---
 
-## 10. session-log.md rule
+## session-log.md rule
 `docs/session-log.md` is mandatory and append-only.
 
 Every AI session must add:
@@ -184,7 +185,7 @@ Keep entries short and factual.
 
 ---
 
-## 11. Task-ID rule
+## Task-ID rule
 Every task must have a stable task ID:
 - `TASK-001`
 - `TASK-002`
@@ -199,7 +200,7 @@ Example:
 
 ---
 
-## 12. change-ledger.md rule
+## change-ledger.md rule
 `docs/change-ledger.md` is only for actual changes.
 
 Do not use it for guesses, plans, or thoughts.
@@ -217,7 +218,7 @@ If nothing changed, do not create a fake ledger entry.
 
 ---
 
-## 13. known-good-baseline.md rule
+## known-good-baseline.md rule
 Update `docs/known-good-baseline.md` only when a baseline was actually verified.
 
 Do not update it based on assumptions.
@@ -233,7 +234,7 @@ Baseline entries should record:
 
 ---
 
-## 14. Handoff rule
+## Handoff rule
 A new AI must be able to continue by reading only:
 1. `docs/00-read-first.md`
 2. `docs/ai-working-rules.md`
@@ -246,7 +247,7 @@ Do not force new AIs to scan the whole repository blindly.
 
 ---
 
-## 15. Archive and weekly rotation rule
+## Archive and weekly rotation rule
 To prevent workflow files from becoming too large:
 
 Rotate weekly on Monday, or earlier if large:
@@ -267,7 +268,7 @@ Rules:
 
 ---
 
-## 16. Non-negotiable reminders
+## Non-negotiable reminders
 - Do not reintroduce known-bad fixes.
 - Do not undo verified working behavior without explicit need.
 - Do not switch to broad refactors during a focused bug task.
@@ -277,7 +278,7 @@ Rules:
 
 ---
 
-## 17. End-of-session rule
+## End-of-session rule
 A session is not complete until all applicable steps are done:
 - `docs/session-log.md` updated
 - `docs/change-ledger.md` updated if files changed

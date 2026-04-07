@@ -1,9 +1,21 @@
+import { setRuntimeEnv } from "./runtime/shared/runtimeEnv.js";
+
+function computeRuntimeEnv() {
+  const ua = navigator.userAgent || "";
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isChromeIOS = /CriOS/i.test(ua);
+  return { userAgent: ua, isAndroid, isIOS, isChromeIOS };
+}
+
+setRuntimeEnv(computeRuntimeEnv());
+
 function isAndroidClient() {
-  return /Android/i.test(navigator.userAgent || "");
+  return computeRuntimeEnv().isAndroid;
 }
 
 function isIosClient() {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  return computeRuntimeEnv().isIOS;
 }
 
 const cb = (() => {

@@ -35,19 +35,18 @@ services:
     network_mode: host
     environment:
       - TZ=Asia/Karachi
+    volumes:
+      - ./rtpengine/rtpengine.conf:/config/rtpengine.conf:ro
+      - ./rtpengine/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+    entrypoint:
+      - /bin/sh
+      - /entrypoint-wrapper.sh
     cap_add:
       - NET_ADMIN
       - SYS_NICE
     privileged: true
     command:
       - rtpengine
-      - --foreground
-      - --log-stderr
-      - --log-level=7
-      - --listen-ng=127.0.0.1:2223
-      - --interface=eth0!${PUBLIC_IP}
-      - --port-min=30000
-      - --port-max=31000
 
   kamailio:
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
