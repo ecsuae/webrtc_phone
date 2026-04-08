@@ -5,6 +5,7 @@ import { stopIncomingAlert } from "../alert.js";
 import { attachIncomingRemoteAudio } from "../media.js?v=1773032001";
 import { dualSessionManager } from "../../features/dualSessionManager.js";
 import { sendCallMediaEvent } from "../../features/callMediaLog.js";
+import { readAppAudioRouteDiagSnapshot } from "../../ui/callControlAudioRoute.js?v=1773034001";
 import { scheduleMediaStatsSnapshots } from "./pcStats.js";
 import { getInboundDiagContext } from "./diag.js";
 import { observeRemoteAudioPlay } from "./observeRemoteAudioPlay.js";
@@ -26,6 +27,47 @@ export function onIncomingEstablished(SIP, st, ui, invitation, callerUser, calle
 
   const _ctx = getInboundDiagContext(st, invitation);
   invitation.__callMediaDiag = _ctx;
+
+  try {
+    const audioEl = ui?.remoteAudio?.();
+    if (audioEl) {
+      try {
+        audioEl.__callMediaDiagContext = _ctx;
+      } catch {}
+      try {
+        window.__callMediaRemoteAudioEl = audioEl;
+      } catch {}
+
+      sendCallMediaEvent({
+        type: "inbound-audio-element-state",
+        ..._ctx,
+        audioElMuted: typeof audioEl.muted === "boolean" ? audioEl.muted : undefined,
+        audioElVolume: typeof audioEl.volume === "number" ? audioEl.volume : undefined,
+        audioElReadyState: typeof audioEl.readyState === "number" ? audioEl.readyState : undefined,
+        audioElPaused: typeof audioEl.paused === "boolean" ? audioEl.paused : undefined,
+        audioElCurrentTime: typeof audioEl.currentTime === "number" ? audioEl.currentTime : undefined,
+        msg: "Inbound remoteAudio state snapshot (onEstablished)",
+      });
+      sendCallMediaEvent({
+        type: "inbound-play-attempt",
+        ..._ctx,
+        audioElMuted: typeof audioEl.muted === "boolean" ? audioEl.muted : undefined,
+        audioElVolume: typeof audioEl.volume === "number" ? audioEl.volume : undefined,
+        audioElReadyState: typeof audioEl.readyState === "number" ? audioEl.readyState : undefined,
+        audioElPaused: typeof audioEl.paused === "boolean" ? audioEl.paused : undefined,
+        msg: "Inbound playback attempt marker (onEstablished)",
+      });
+    }
+  } catch {}
+
+  try {
+    sendCallMediaEvent({
+      type: "inbound-audio-route-snapshot",
+      ..._ctx,
+      ...readAppAudioRouteDiagSnapshot(),
+      msg: "Inbound audio route snapshot (onEstablished)",
+    });
+  } catch {}
 
   observeRemoteAudioPlay(ui, _ctx);
   attachIncomingRemoteAudio(invitation, ui);

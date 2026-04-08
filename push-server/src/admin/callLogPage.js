@@ -6,7 +6,9 @@ const {
 } = require('../services/callClassification');
 
 const {
-  computeCallDiagnostics,
+  canonicalType,
+  buildCallDiagnosis,
+  computeMissingLeg,
   computeProbableLteReceiveFailure,
 } = require('../services/callDiagnosis');
 
@@ -38,6 +40,7 @@ const { buildLegSummary } = require('./callLogLegSummary');
 const { deriveAsymmetricDirectionDiagnosis } = require('./callLogAsymmetricDirectionDiagnosis');
 const { buildTraceDiagHtml } = require('./callLogTraceDiagBlocks');
 const { deriveViewMode } = require('./callLogViewMode');
+const { applySummaryTransforms: applySummaryTransforms2 } = require('./callLogSummaryTransforms');
 const { fmtRenderProofSummary } = require('./callLogRenderProofSummary');
 const {
   fmtPktBits,
@@ -557,7 +560,7 @@ function renderCallLogPage(events, stats, filter) {
   const traceDiagHtml = buildTraceDiagHtml(events, { isTraceView });
 
   const pageEvents = viewMode === 'summary'
-    ? applySummaryTransforms(events, { includeSession })
+    ? applySummaryTransforms2(events, { includeSession })
     : (Array.isArray(events) ? events : []);
 
   const emptyColspan = viewMode === 'summary' ? 12 : 11;

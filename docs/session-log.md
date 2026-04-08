@@ -311,3 +311,101 @@ Examples:
 2026-04-07 23:23 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogTraceDiagBlocks.js, updated callLogPage.js to import buildTraceDiagHtml from it, and removed now-redundant trace diagnosis helper files (no behavior change intended) | AI: Cascade
 2026-04-07 23:24 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports buildTraceDiagHtml from callLogTraceDiagBlocks.js; node syntax check passed | AI: Cascade
 2026-04-07 23:25 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-07 23:31 PKT | START  | TASK-028 | Push-server isolation step 34: consolidate call-log label/mode helpers into one themed module | AI: Cascade
+2026-04-07 23:33 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogLabels.js, updated callLogPage.js to import modeLabel/stageLabel/deriveViewMode from it, and removed now-redundant tiny label/mode helper files (no behavior change intended) | AI: Cascade
+2026-04-07 23:34 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports modeLabel/stageLabel/deriveViewMode from callLogLabels.js; node syntax check passed | AI: Cascade
+2026-04-07 23:35 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-07 23:38 PKT | START  | TASK-028 | Push-server isolation step 35: consolidate call-log stats/preflight helpers into one themed module | AI: Cascade
+2026-04-07 23:41 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogStatsHelpers.js, updated callLogPage.js to import stats/preflight helpers from it, and removed now-redundant tiny stats/preflight helper files (no behavior change intended) | AI: Cascade
+2026-04-07 23:42 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports stats/preflight helpers from callLogStatsHelpers.js; node syntax check passed | AI: Cascade
+2026-04-07 23:43 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-08 00:11 PKT | START  | TASK-028 | Push-server isolation step 36: consolidate call-log diagnosis helpers into one themed module | AI: Cascade
+2026-04-08 00:14 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogDiagnosisHelpers.js, updated callLogPage.js and callLogTraceDiagBlocks.js to import from it, and removed now-redundant diagnosis helper files (no behavior change intended) | AI: Cascade
+2026-04-08 00:15 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js/callLogTraceDiagBlocks.js now import diagnosis helpers from callLogDiagnosisHelpers.js; node syntax check passed | AI: Cascade
+2026-04-08 00:16 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-08 00:19 PKT | START  | TASK-028 | Push-server isolation step 37: consolidate trace diagnosis + diagnosis-logic helpers into one themed module | AI: Cascade
+2026-04-08 00:22 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogTraceDiagnosis.js, updated callLogPage.js to import buildTraceDiagHtml from it, and removed now-redundant trace diagnosis helper modules (no behavior change intended) | AI: Cascade
+2026-04-08 00:23 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports buildTraceDiagHtml from callLogTraceDiagnosis.js; node syntax check passed | AI: Cascade
+2026-04-08 00:24 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-08 03:14 PKT | START  | TASK-028 | Push-server isolation step 38: consolidate call-log core utilities into one themed module | AI: Cascade
+2026-04-08 03:17 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogCoreUtils.js, updated call-log admin modules to import time/escape/correlation helpers from it, and removed now-redundant tiny utility helper files (no behavior change intended) | AI: Cascade
+2026-04-08 03:18 PKT | VERIFY | TASK-028 | Code inspection: call-log admin modules now import from callLogCoreUtils.js; node syntax check passed | AI: Cascade
+2026-04-08 03:19 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-08 03:22 PKT | START  | TASK-028 | Push-server isolation step 39: consolidate call-log display/render helpers into one themed module | AI: Cascade
+2026-04-08 03:26 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogRenderHelpers.js, updated callLogPage.js to import display/render helpers from it, and removed now-redundant display/render helper files (no behavior change intended) | AI: Cascade
+2026-04-08 03:27 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now imports display/render helpers from callLogRenderHelpers.js; node syntax check passed | AI: Cascade
+2026-04-08 03:28 PKT | STOP   | TASK-028 | Session end | worked 6m | AI: Cascade
+2026-04-08 03:31 PKT | START  | TASK-028 | Push-server isolation step 40: extract call-log page client-side script into themed module | AI: Cascade
+2026-04-08 03:35 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogClientScript.js, updated callLogPage.js to use buildCallLogClientScriptHtml(), and removed the inline <script> block (no behavior change intended) | AI: Cascade
+2026-04-08 03:36 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now delegates client-side script block to callLogClientScript.js; node syntax check passed | AI: Cascade
+2026-04-08 03:37 PKT | STOP   | TASK-028 | Session end | worked 6m | AI: Cascade
+2026-04-08 03:39 PKT | START  | TASK-028 | Push-server isolation step 41: extract call-log event row + table rendering pipeline into themed module | AI: Cascade
+2026-04-08 03:44 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogEventTableRender.js, updated callLogPage.js to delegate event row rendering and table/legend HTML to it (no behavior change intended) | AI: Cascade
+2026-04-08 03:45 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now uses callLogEventTableRender.js; node syntax check passed | AI: Cascade
+2026-04-08 03:46 PKT | STOP   | TASK-028 | Session end | worked 7m | AI: Cascade
+2026-04-08 03:49 PKT | START  | TASK-028 | Push-server isolation step 42: extract call-log summary transform pipeline into themed modules | AI: Cascade
+2026-04-08 03:58 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogSummaryPrecompute.js and callLogSummaryTransforms.js, updated callLogPage.js to import applySummaryTransforms from the new module, and removed the in-file summary transform pipeline (no behavior change intended) | AI: Cascade
+2026-04-08 03:59 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js delegates summary transforms to callLogSummaryTransforms.js; node syntax check passed | AI: Cascade
+2026-04-08 04:00 PKT | STOP   | TASK-028 | Session end | worked 11m | AI: Cascade
+2026-04-08 04:03 PKT | START  | TASK-028 | Push-server isolation step 43: consolidate call-log catalogs + label helpers into one themed module | AI: Cascade
+2026-04-08 04:07 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPresentationCatalogs.js, updated call-log admin modules to import catalogs/labels from it, and removed now-redundant callLogCatalogs.js and callLogLabels.js (no behavior change intended) | AI: Cascade
+2026-04-08 04:08 PKT | VERIFY | TASK-028 | Code inspection: call-log admin modules now import from callLogPresentationCatalogs.js; node syntax check passed | AI: Cascade
+2026-04-08 04:09 PKT | STOP   | TASK-028 | Session end | worked 6m | AI: Cascade
+2026-04-08 04:13 PKT | START  | TASK-028 | Push-server isolation step 44: extract call-log page layout/filter/header rendering into themed modules | AI: Cascade
+2026-04-08 04:20 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogPageHead.js and callLogPageControls.js, updated callLogPage.js to assemble the page using these builders, and removed the in-file page layout/filter/header HTML (no behavior change intended) | AI: Cascade
+2026-04-08 04:21 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js now delegates page chrome/controls rendering to callLogPageHead.js + callLogPageControls.js; node syntax check passed | AI: Cascade
+2026-04-08 04:22 PKT | STOP   | TASK-028 | Session end | worked 9m | AI: Cascade
+2026-04-08 04:27 PKT | START  | TASK-028 | Verification-only: container/live-route check of /admin/calllogs after step 44 | AI: Cascade
+2026-04-08 04:28 PKT | VERIFY | TASK-028 | /admin/calllogs fetch from inside push-server container succeeded (container: yes, live route: yes, runtime/browser: no) | AI: Cascade
+2026-04-08 04:29 PKT | STOP   | TASK-028 | Session end | worked 2m | AI: Cascade
+2026-04-08 04:57 PKT | START  | TASK-028 | Audit callLogPage.js for remaining feature-level extraction targets | AI: Cascade
+2026-04-08 04:59 PKT | BLOCKED| TASK-028 | callLogPage.js is now a small coherent root; no remaining feature-level block can be extracted cleanly without forcing incoherent moves | AI: Cascade
+2026-04-08 05:02 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
+2026-04-08 06:21 PKT | START  | TASK-028 | Attempt runtime/browser verification of /admin/calllogs | AI: Cascade
+2026-04-08 06:22 PKT | BLOCKED| TASK-028 | Runtime/browser verification not possible in this session environment; recorded limitation (no code changes) | AI: Cascade
+2026-04-08 06:24 PKT | STOP   | TASK-028 | Session end | worked 3m | AI: Cascade
+2026-04-08 06:48 PKT | START  | TASK-028 | Add synthesized summary rows for one-way-audio troubleshooting (operator-facing) | AI: Cascade
+2026-04-08 07:07 PKT | CHANGE | TASK-028 | Added themed media-verdict + anomaly synthesis modules and wired them into summary transform pipeline for /admin/calllogs summary view (no raw-view changes intended) | AI: Cascade
+2026-04-08 07:09 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-08 07:10 PKT | STOP   | TASK-028 | Session end | worked 22m | AI: Cascade
+2026-04-08 07:18 PKT | START  | TASK-028 | Fix summary verdict correctness for merged calls: merged-parent precedence + stable verdict enums + orphan synthesized suppression | AI: Cascade
+2026-04-08 07:34 PKT | CHANGE | TASK-028 | Tightened call-level verdict enums (two-way-audio-proven only with reciprocal render proof) and suppressed duplicate/orphan call-level synthesized rows when a stronger merged parent exists (summary-only) | AI: Cascade
+2026-04-08 07:35 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-08 07:36 PKT | STOP   | TASK-028 | Session end | worked 18m | AI: Cascade
+2026-04-08 08:44 PKT | START  | TASK-028 | Follow-up summary-only semantics: operator-facing troubleshooting conclusion row + reciprocal-proof meaning + stronger child/orphan synthesized suppression | AI: Cascade
+2026-04-08 09:00 PKT | CHANGE | TASK-028 | Replaced contradictory internal diag text in one-way-audio-diagnosis with stable operator-facing conclusion, improved reciprocal-proof-missing messages to describe playback/render proof asymmetry, added call-troubleshooting-conclusion row, and suppressed low-signal per-leg synthesized rows for non-primary child/orphan correlations | AI: Cascade
+2026-04-08 09:01 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-08 09:02 PKT | STOP   | TASK-028 | Session end | worked 18m | AI: Cascade
+2026-04-08 09:08 PKT | START  | TASK-028 | Summary-only suppression fix: suppress all non-primary child/orphan per-leg synthesized verdict rows | AI: Cascade
+2026-04-08 09:10 PKT | CHANGE | TASK-028 | Updated synthesized summary suppression so non-primary child/orphan per-leg `media-leg-verdict` rows are always suppressed once a merged-parent primary summary exists (raw/native rows unchanged) | AI: Cascade
+2026-04-08 09:11 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-08 09:12 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-08 09:18 PKT | START  | TASK-028 | Runtime fix: resolve ReferenceError buildCallDiagnosis is not defined in /admin/calllogs | AI: Cascade
+2026-04-08 09:20 PKT | CHANGE | TASK-028 | Fixed callLogPage.js to import canonicalType/buildCallDiagnosis/computeMissingLeg from services/callDiagnosis (restores missing identifiers; no summary behavior change intended) | AI: Cascade
+2026-04-08 09:21 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js and node -c push-server/src/admin/callLogPage.js (pass) | AI: Cascade
+2026-04-08 09:22 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-08 09:30 PKT | START  | TASK-028 | Summary-only improvement: detect inbound playback proof missing when opposite leg has strong render proof | AI: Cascade
+2026-04-08 09:36 PKT | CHANGE | TASK-028 | Added synthesized WARN row inbound-playback-proof-missing and refined call-troubleshooting-conclusion for call-established+ICE-complete inbound legs missing play-ok+render-proof while opposite leg has strong media proof | AI: Cascade
+2026-04-08 09:37 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-08 09:38 PKT | STOP   | TASK-028 | Session end | worked 8m | AI: Cascade
+2026-04-08 09:44 PKT | START  | TASK-028 | Verification enablement: wire /admin/calllogs summary view to extracted summary transform pipeline | AI: Cascade
+2026-04-08 09:46 PKT | CHANGE | TASK-028 | Updated callLogPage.js summary view to use callLogSummaryTransforms.applySummaryTransforms so synthesized verdict/anomaly rows appear in /admin/calllogs?view=summary (raw view unchanged) | AI: Cascade
+2026-04-08 09:47 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js and node -c push-server/src/admin/callLogPage.js (pass) | AI: Cascade
+2026-04-08 09:48 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
+2026-04-09 07:12 PKT | START  | TASK-028 | Summary/instrumentation correction: prefer merged-parent corrId evidence + add inbound playback raw instrumentation | AI: Cascade
+2026-04-09 07:28 PKT | CHANGE | TASK-028 | push-server summary synthesis now groups callId-only events under merged-parent corrId when available (prevents stale child/orphan artifacts); verdict treats remote-audio-play-ok on both legs as sufficient to avoid false possible-playback-path-issue; frontend inbound emitters now refresh audioEl diag context and emit inbound play attempt/element-state even when audioEl.play() does not return a Promise and sets window.__callMediaRemoteAudioEl for inbound; receive-render-proof followup is now always enabled for inbound | AI: Cascade
+2026-04-09 07:29 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass). Frontend modules are ES modules and were not syntax-checked with node -c. | AI: Cascade
+2026-04-09 07:30 PKT | STOP   | TASK-028 | Session end | worked 18m | AI: Cascade
+2026-04-09 07:41 PKT | START  | TASK-028 | Frontend raw instrumentation fix: make missing inbound playback rows appear in real raw logs | AI: Cascade
+2026-04-09 07:50 PKT | CHANGE | TASK-028 | Fixed inbound playback observability gaps: observeRemoteAudioPlay no longer suppresses per-call instrumentation when audio element persists across calls (tracks corrId to detect new call); attachIncomingRemoteAudio now emits inbound play attempt/element-state even when audioEl.play() does not return a Promise and sets window.__callMediaRemoteAudioEl for inbound; receive-render-proof followup is now always enabled for inbound | AI: Cascade
+2026-04-09 07:51 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-09 07:52 PKT | STOP   | TASK-028 | Session end | worked 11m | AI: Cascade
+2026-04-09 08:01 PKT | START  | TASK-028 | Frontend raw instrumentation fix: guarantee inbound proof rows on real inbound path (onEstablished + attachIncomingRemoteAudio) | AI: Cascade
+2026-04-09 08:11 PKT | CHANGE | TASK-028 | Ensured inbound raw proof rows are emitted from a guaranteed handler: onIncomingEstablished now emits inbound-audio-route-snapshot + inbound-audio-element-state + inbound-play-attempt with current corrId/callId and refreshes window.__callMediaRemoteAudioEl; attachIncomingRemoteAudio now emits inbound remote-audio-play-ok and inbound-play-resolved on playing event to cover cases where observeRemoteAudioPlay was previously suppressed or bound to a prior call | AI: Cascade
+2026-04-09 08:12 PKT | VERIFY | TASK-028 | Node syntax check: node -c push-server/server.js (pass) | AI: Cascade
+2026-04-09 08:13 PKT | STOP   | TASK-028 | Session end | worked 12m | AI: Cascade
+2026-04-09 08:14 PKT | START  | TASK-028 | Close TASK-028: push-server isolation + /admin/calllogs summary diagnosis considered complete enough; defer remaining frontend raw inbound proof rows | AI: Cascade
+2026-04-09 08:18 PKT | CHANGE | TASK-028 | Created docs/tasks/TASK-028.md documenting completion decision: summary view is working/usable for operator diagnosis; remaining missing inbound raw proof rows are explicitly deferred to a new frontend-only task | AI: Cascade
+2026-04-09 08:19 PKT | CHANGE | TASK-029 | Created docs/tasks/TASK-029.md to track missing inbound raw proof rows (`inbound-play-*`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, inbound `remote-audio-play-ok`) confirmed still absent in runtime raw logs | AI: Cascade
+2026-04-09 08:20 PKT | CHANGE | TASK-028 | Updated docs/now.md + docs/change-ledger.md to mark TASK-028 complete and set TASK-029 as current work | AI: Cascade
+2026-04-09 08:21 PKT | STOP   | TASK-028 | Session end | worked 7m | AI: Cascade

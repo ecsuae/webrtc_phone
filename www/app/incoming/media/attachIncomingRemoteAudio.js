@@ -1,6 +1,7 @@
 import { nowISO } from "../../config.js";
 import { logLine } from "../../log.js";
 import { enforceCurrentAudioRoute } from "../../ui/callControlAudioRoute.js?v=1773034001";
+import { readAppAudioRouteDiagSnapshot } from "../../ui/callControlAudioRoute.js?v=1773034001";
 import { sendCallMediaEvent } from "../../features/callMediaLog.js";
 import { requirePlatformAdapter } from "../../runtime/shared/platformAdapter.js";
 
@@ -43,6 +44,39 @@ export function attachIncomingRemoteAudio(session, ui) {
           const ctx = (session && session.__callMediaDiag && typeof session.__callMediaDiag === "object")
             ? session.__callMediaDiag
             : {};
+
+          try {
+            const corrId = String(ctx?.corrId || '') || '';
+            const prev = String(audioEl.__callMediaInboundPlayListenerCorrId || '') || '';
+            const isNew = !!corrId && corrId !== prev;
+            if (isNew) audioEl.__callMediaInboundPlayListenerCorrId = corrId;
+            if (!audioEl.__callMediaInboundPlayListenerBound) {
+              audioEl.__callMediaInboundPlayListenerBound = true;
+              audioEl.addEventListener("playing", () => {
+                try {
+                  const c = audioEl.__callMediaDiagContext || ctx || {};
+                  sendCallMediaEvent({
+                    type: "remote-audio-play-ok",
+                    ...c,
+                    dir: "inbound",
+                    audioPlayOk: true,
+                    msg: "Inbound remoteAudio is playing (attachIncomingRemoteAudio listener)",
+                  });
+                  sendCallMediaEvent({
+                    type: "inbound-play-resolved",
+                    ...c,
+                    dir: "inbound",
+                    msg: "Inbound audioEl.play resolved (playing event)",
+                  });
+                } catch {}
+              }, { once: false });
+            }
+          } catch {}
+
+          try {
+            audioEl.__callMediaDiagContext = ctx;
+          } catch {}
+
           sendCallMediaEvent({
             type: "remote-audio-attached",
             ...ctx,
@@ -51,6 +85,16 @@ export function attachIncomingRemoteAudio(session, ui) {
             remoteAudioTrackCount: stream?.getAudioTracks?.()?.length,
             msg: `incoming/media bound ${trackKind} to audio element`,
           });
+
+          try {
+            sendCallMediaEvent({
+              type: "inbound-audio-route-snapshot",
+              ...ctx,
+              dir: "inbound",
+              ...readAppAudioRouteDiagSnapshot(),
+              msg: "Inbound audio route snapshot (at remote-audio-attached)",
+            });
+          } catch {}
         }
       } catch {}
 
@@ -69,12 +113,86 @@ export function attachIncomingRemoteAudio(session, ui) {
           `[${nowISO()}] [incoming:media] audioEl state paused=${audioEl.paused} muted=${audioEl.muted} volume=${audioEl.volume} hasSrc=${!!audioEl.srcObject}`
         );
       } catch {}
-      const playPromise = audioEl.play?.();
-      if (playPromise && typeof playPromise.catch === "function") {
+      try {
+        window.__callMediaRemoteAudioEl = audioEl;
+      } catch {}
+
+      const ctx = (() => {
+        try {
+          return (session && session.__callMediaDiag && typeof session.__callMediaDiag === "object")
+            ? session.__callMediaDiag
+            : {};
+        } catch {
+          return {};
+        }
+      })();
+
+      try {
+        sendCallMediaEvent({
+          type: "inbound-play-attempt",
+          ...ctx,
+          dir: "inbound",
+          audioElMuted: typeof audioEl.muted === "boolean" ? audioEl.muted : undefined,
+          audioElVolume: typeof audioEl.volume === "number" ? audioEl.volume : undefined,
+          audioElReadyState: typeof audioEl.readyState === "number" ? audioEl.readyState : undefined,
+          audioElPaused: typeof audioEl.paused === "boolean" ? audioEl.paused : undefined,
+          msg: "Inbound audioEl.play invoked",
+        });
+
+        sendCallMediaEvent({
+          type: "inbound-audio-element-state",
+          ...ctx,
+          dir: "inbound",
+          audioElMuted: typeof audioEl.muted === "boolean" ? audioEl.muted : undefined,
+          audioElVolume: typeof audioEl.volume === "number" ? audioEl.volume : undefined,
+          audioElReadyState: typeof audioEl.readyState === "number" ? audioEl.readyState : undefined,
+          audioElPaused: typeof audioEl.paused === "boolean" ? audioEl.paused : undefined,
+          audioElCurrentTime: typeof audioEl.currentTime === "number" ? audioEl.currentTime : undefined,
+          msg: "Inbound audio element state (at play attempt)",
+        });
+      } catch {}
+
+      let playPromise = null;
+      try {
+        playPromise = audioEl.play?.() || null;
+      } catch (err) {
+        try {
+          sendCallMediaEvent({
+            type: "inbound-play-rejected",
+            ...ctx,
+            dir: "inbound",
+            playErrorName: err?.name,
+            playErrorMessage: err?.message,
+            msg: "Inbound audioEl.play threw",
+          });
+        } catch {}
+      }
+
+      if (playPromise && typeof playPromise.then === "function") {
         playPromise
-          .then(() => logLine(`[${nowISO()}] [incoming:media] Audio playing`))
+          .then(() => {
+            logLine(`[${nowISO()}] [incoming:media] Audio playing`);
+            try {
+              sendCallMediaEvent({
+                type: "inbound-play-resolved",
+                ...ctx,
+                dir: "inbound",
+                msg: "Inbound audioEl.play resolved",
+              });
+            } catch {}
+          })
           .catch((err) => {
             logLine(`[${nowISO()}] [incoming:media] Play blocked: ${err?.name || err?.message || err}`);
+            try {
+              sendCallMediaEvent({
+                type: "inbound-play-rejected",
+                ...ctx,
+                dir: "inbound",
+                playErrorName: err?.name,
+                playErrorMessage: err?.message,
+                msg: "Inbound audioEl.play rejected",
+              });
+            } catch {}
             try {
               audioEl.muted = true;
               const p2 = audioEl.play?.();

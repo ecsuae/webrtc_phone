@@ -28,6 +28,539 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-09T03:21:00Z — TASK-028 closeout: summary/isolation complete enough; defer missing inbound raw proof rows to TASK-029
+- **AI**: Cascade
+- **Scope**: docs + task tracking only. No code behavior changes.
+- **Decision (truthful)**:
+  - Close TASK-028 because push-server isolation + `/admin/calllogs` summary diagnosis work is complete enough to support operator troubleshooting.
+  - Open TASK-029 as a dedicated frontend-only follow-up for missing inbound raw instrumentation proof rows.
+- **Correction note**:
+  - Runtime raw logs for fresh merged-parent calls still do **not** show inbound proof rows (`inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, inbound `remote-audio-play-ok`).
+  - Prior entries describing frontend raw instrumentation as “fixed” were **not** runtime-verified and are now known to be incomplete.
+- **Files changed**:
+  - `docs/tasks/TASK-028.md`
+  - `docs/tasks/TASK-029.md`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - Docs updated; no runtime behavior verified/changed by this entry.
+- **Next safe step**:
+  - Proceed under TASK-029 and use runtime evidence (raw logs) as acceptance criteria.
+
+### 2026-04-09T03:13:00Z — TASK-028: frontend-only guarantee of inbound playback proof raw rows (emit from onEstablished + playing listener)
+- **AI**: Cascade
+- **Scope**: frontend inbound call-log emitters only (raw-only observability; additive). No summary synthesis changes.
+- **Why raw rows were still absent**:
+  - `observeRemoteAudioPlay()` can be bypassed in real inbound calls when the same `<audio>` element persists across calls and `audioEl.__callMediaPlayObserved` is already set, suppressing per-call instrumentation.
+  - `audioEl.play()` resolution/rejection is not consistently observable via returned Promise across environments; relying on Promise-only hooks caused missing `inbound-play-*` rows.
+  - Inbound `receive-render-proof` needs a stable `window.__callMediaRemoteAudioEl` pointer and an allow gate; real calls showed stats rows but missing proof row, indicating the followup gate/pointer path was not reliably satisfied.
+- **Change**:
+  - Added guaranteed inbound emits to `onIncomingEstablished()` (a confirmed real-path handler that already emits `call-established`):
+    - `inbound-audio-route-snapshot`
+    - `inbound-audio-element-state`
+    - `inbound-play-attempt`
+    - refresh `audioEl.__callMediaDiagContext` and `window.__callMediaRemoteAudioEl` for current corrId
+  - Added an inbound `playing` listener in `attachIncomingRemoteAudio()` so when playback really happens we emit:
+    - `remote-audio-play-ok` with `dir=inbound`
+    - `inbound-play-resolved`
+- **Files changed**:
+  - `www/app/incoming/handlers/onEstablished.js`
+  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (frontend redeploy/reload required to pick up JS changes).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Place one fresh inbound call and confirm raw view for the merged-parent corrId shows the required inbound rows: `inbound-play-attempt`, `inbound-play-resolved`/`inbound-play-rejected` (as applicable), `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, and inbound `remote-audio-play-ok` when playback really happens.
+
+### 2026-04-09T02:52:00Z — TASK-028: frontend-only fix to make missing inbound playback raw rows appear (per-call, current corrId)
+- **AI**: Cascade
+- **Scope**: frontend inbound call-log emitters only (raw-only observability; additive). No summary synthesis changes.
+- **Why**:
+  - `observeRemoteAudioPlay()` previously returned early when `audioEl.__callMediaPlayObserved` was already set (audio element can persist across calls), which suppressed inbound instrumentation for subsequent inbound calls.
+  - `attachIncomingRemoteAudio()` emitted `inbound-play-*` only when `audioEl.play()` returned a Promise; in some environments `play()` may return `undefined` or throw.
+  - Inbound `receive-render-proof` emission was gated and/or lacked a stable inbound audioEl pointer.
+- **Change**:
+  - `observeRemoteAudioPlay()` now tracks `audioEl.__callMediaObservedCorrId` to detect a new call and emits `inbound-play-attempt` + `inbound-audio-element-state` for each new inbound corrId even if listeners were already bound.
+  - `attachIncomingRemoteAudio()` now always emits `inbound-play-attempt` + `inbound-audio-element-state` before calling `audioEl.play()`, emits `inbound-play-rejected` if `play()` throws or rejects, and keeps `window.__callMediaRemoteAudioEl` set for inbound.
+  - `receive-render-proof` followup is now always enabled for inbound stats ticks.
+- **Files changed**:
+  - `www/app/incoming/handlers/observeRemoteAudioPlay.js`
+  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
+  - `www/app/pc/stats/schedule/helpers.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (frontend redeploy/reload required to pick up JS changes; push-server restart not strictly required for this change, but typical deployments may restart together).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Run a fresh inbound test call and confirm raw logs contain: `inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected` (as applicable), `inbound-audio-route-snapshot`, `inbound-audio-element-state`, and inbound `receive-render-proof`, all tagged with the current corrId/callId.
+
+### 2026-04-09T02:30:00Z — TASK-028: fix merged-parent summary correctness against stale callId-only artifacts + add inbound playback raw instrumentation
+- **AI**: Cascade
+- **Scope**: push-server admin summary synthesis + minimal inbound frontend call-log emitters (additive only).
+- **Change**:
+  - push-server summary synthesis now groups callId-only events under the merged-parent corrId when available, so current merged-parent evidence wins over stale/child artifacts when building synthesized verdicts.
+  - If the current call has `remote-audio-play-ok` on both legs, synthesized verdict no longer emits `possible-playback-path-issue`.
+  - Added inbound playback-path raw instrumentation (additive): `inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, and enabled inbound `receive-render-proof` emission when render diagnostics are enabled.
+  - Fixed inbound audio element observers to refresh diag context so playback-related rows use the current call corrId/callId (prevents stale correlation tagging).
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
+  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
+  - `www/app/incoming/handlers/observeRemoteAudioPlay.js`
+  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
+  - `www/app/pc/stats/schedule/helpers.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server container/service + web frontend deploy/reload to pick up JS changes).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Restart push-server and load `/admin/calllogs?view=summary` for a fresh merged-parent call where both legs emit `remote-audio-play-ok`, then confirm summary shows `OK: two-way-audio-proven` (not `possible-playback-path-issue`) and the new inbound raw instrumentation rows appear with the current corrId.
+
+### 2026-04-08T04:48:00Z — TASK-028: wire /admin/calllogs summary view to extracted summary transform pipeline (emit synthesized rows)
+- **AI**: Cascade
+- **Scope**: push-server admin call-log page summary wiring only (raw view unchanged).
+- **Change**:
+  - Updated `push-server/src/admin/callLogPage.js` so `view=summary` delegates to `push-server/src/admin/callLogSummaryTransforms.js` (this is required for synthesized rows like `call-media-verdict`, `call-troubleshooting-conclusion`, and `inbound-playback-proof-missing` to appear in the summary view).
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (to pick up the change in the running container/service).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js` and `node -c push-server/src/admin/callLogPage.js`.
+- **Next safe step**:
+  - Restart the running push-server container/service, load `/admin/calllogs?view=summary`, and confirm the synthesized rows for the known playback-path issue call pattern are present and child/orphan synthesized per-leg rows are suppressed.
+
+### 2026-04-08T04:38:00Z — TASK-028: add inbound-playback-proof-missing synthesized row for playback-path suspicion when opposite leg has strong render proof
+- **AI**: Cascade
+- **Scope**: push-server admin summary synthesis only (raw view unchanged).
+- **Change**:
+  - Detected the specific pattern: outbound leg has strong receive+render proof, while inbound leg has `remote-audio-attached` + `call-established` + `ice-complete` but is missing both `remote-audio-play-ok` and `receive-render-proof`.
+  - Classified this as `WARN: possible-playback-path-issue` (not generic insufficient-proof) and refined the operator-facing `call-troubleshooting-conclusion` wording for this pattern.
+  - Added a new synthesized WARN row: `inbound-playback-proof-missing` with an explicit operator message describing the missing proof items.
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
+  - `push-server/src/admin/callLogPresentationCatalogs.js`
+  - `push-server/src/admin/callLogSummarySynthSuppression.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (syntax check only).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Runtime/browser verify `/admin/calllogs` on a call showing this pattern to confirm `inbound-playback-proof-missing` appears as WARN and the call-level verdict remains `possible-playback-path-issue` when the opposite leg has strong render proof.
+
+### 2026-04-08T04:22:00Z — TASK-028: fix /admin/calllogs runtime crash (buildCallDiagnosis undefined)
+- **AI**: Cascade
+- **Scope**: push-server admin call-log page runtime fix only.
+- **Change**:
+  - Fixed `push-server/src/admin/callLogPage.js` to import `canonicalType`, `buildCallDiagnosis`, and `computeMissingLeg` from `push-server/src/services/callDiagnosis.js` (restores missing identifiers used by the in-file summary transform pipeline).
+- **Files changed**:
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (to pick up the code change in the running container/service).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js` and `node -c push-server/src/admin/callLogPage.js`.
+- **Next safe step**:
+  - Restart the running push-server container/service and re-load `/admin/calllogs` to confirm the ReferenceError is gone.
+
+### 2026-04-08T04:12:00Z — TASK-028: suppress child/orphan synthesized per-leg media-leg-verdict rows after merged-parent summary exists
+- **AI**: Cascade
+- **Scope**: push-server admin summary synthesis suppression only (raw view unchanged).
+- **Change**:
+  - Strengthened synthesized summary suppression so that once a merged-parent primary correlation exists for a callId, all non-primary child/orphan synthesized per-leg `media-leg-verdict` rows are suppressed (removes duplicate low-value synthesized rows for child-only correlations).
+- **Files changed**:
+  - `push-server/src/admin/callLogSummarySynthSuppression.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (syntax check only).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Runtime/browser verify `/admin/calllogs` on a merged-parent sample to confirm child/orphan synthesized `media-leg-verdict` rows no longer clutter the merged summary and the operator-facing `call-troubleshooting-conclusion` row is visible.
+
+### 2026-04-08T04:02:00Z — TASK-028: summary-only semantics follow-up (operator-facing conclusion + reciprocal-proof meaning + stronger child/orphan suppression)
+- **AI**: Cascade
+- **Scope**: push-server admin summary synthesis only (raw view unchanged).
+- **Change**:
+  - Replaced contradictory internal `diag=` output in `one-way-audio-diagnosis` with a stable operator-facing conclusion string (no more `diag=two-way-audio-proven` when verdict is `possible-playback-path-issue`).
+  - Improved `reciprocal-proof-missing` to describe playback/render proof asymmetry (e.g. “strong render proof on outbound; inbound shows media arrival but missing play-ok”), instead of presenting it as a confidence mismatch.
+  - Added a single operator-facing `call-troubleshooting-conclusion` synthesized row to act as the primary takeaway.
+  - Strengthened suppression so low-signal synthesized per-leg rows for non-primary child/orphan correlations are suppressed once a stronger merged parent exists.
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
+  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
+  - `push-server/src/admin/callLogSummarySynthSuppression.js`
+  - `push-server/src/admin/callLogPresentationCatalogs.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (syntax check only).
+- **Verified result**:
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Runtime/browser verify `/admin/calllogs` summary view on a real merged-parent + child/orphan sample to confirm the new conclusion row reads well, reciprocal-proof messaging matches the actual proof gap, and non-primary per-leg synthesized rows no longer clutter the merged summary.
+
+### 2026-04-08T02:36:00Z — TASK-028: fix merged-call summary verdict correctness + suppress orphan synthesized call-level rows
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Implemented merged-parent precedence for synthesized call-level summary rows (prefer merged parent corrId over child/orphan callId-only keys) and suppressed duplicate/orphan synthesized call-level rows once a stronger merged parent exists.
+  - Tightened call-level verdict logic to stable enums; `two-way-audio-proven` is only emitted when both legs have reciprocal strong playback/render proof.
+  - Ensured `android-playback-path-suspect` and `reciprocal-proof-missing` remain explicit synthesized rows for partial-proof cases.
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
+  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
+  - `push-server/src/admin/callLogSummarySynthSuppression.js`
+  - `push-server/src/admin/callLogSummaryTransforms.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (syntax check only).
+- **Verified result**:
+  - Code inspection only.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Runtime/browser verify `/admin/calllogs` summary view on a real merged-parent + child/orphan sample to confirm call-level synthesized rows are emitted only for the merged parent and the top-level verdict is downgraded when reciprocal render proof is missing.
+
+### 2026-04-08T02:10:00Z — TASK-028: add synthesized /admin/calllogs summary rows for one-way-audio troubleshooting
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Added operator-facing synthesized summary rows (per-leg media verdict, one-way diagnosis, confidence, network-path interpretation, android playback suspicion, audio quality anomaly, reciprocal proof missing, top-level call verdict) derived from existing raw events.
+  - Wired synthesis into `applySummaryTransforms()` (summary-only; raw view unchanged).
+- **Files changed**:
+  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
+  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
+  - `push-server/src/admin/callLogSummaryPrecompute.js`
+  - `push-server/src/admin/callLogSummaryTransforms.js`
+  - `push-server/src/admin/callLogPresentationCatalogs.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (syntax check only).
+- **Verified result**:
+  - Code inspection only.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Do runtime/browser verification of `/admin/calllogs` summary view to confirm synthesized rows are readable and useful, then continue TASK-028 only if verified.
+
+### 2026-04-08T01:24:00Z — TASK-028: docs-only — runtime/browser verification not possible in this session environment
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Change**:
+  - Recorded that runtime/browser verification of `/admin/calllogs` is not possible in this session environment.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - code inspection: yes
+  - container: yes
+  - live route: yes
+  - runtime/browser: no
+- **Next safe step**:
+  - Perform runtime/browser verification of `/admin/calllogs` when an environment with browser-level access is available; otherwise keep TASK-028 active-but-blocked by verification limits.
+
+### 2026-04-08T00:02:00Z — TASK-028: docs-only — callLogPage.js extraction blocked by coherence constraints
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Change**:
+  - Recorded that `push-server/src/admin/callLogPage.js` is now a small coherent root and has no remaining feature-level extraction target.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Do runtime/browser verification of `/admin/calllogs`, then keep TASK-028 active-but-blocked unless a new coherent themed extraction/consolidation target is identified.
+
+### 2026-04-07T23:29:00Z — TASK-028: verification-only — container/live-route check of /admin/calllogs after step 44
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Change**:
+  - Recorded container/live-route verification of `/admin/calllogs` rendering after the step-44 extraction.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - container: yes
+  - live route: yes
+  - runtime/browser: no
+- **Next safe step**:
+  - Continue one coherent consolidation step among under-100 call-log helper families, then re-verify `/admin/calllogs` in container.
+
+### 2026-04-07T23:22:00Z — TASK-028: push-server isolation step 44 — extract call-log page layout/filter/header rendering into themed modules
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted the call-log page HTML chrome (head/style/nav/view header) and controls (export bar/panel, stats bar, filter form) out of `callLogPage.js` into two coherent themed modules.
+- **Files changed**:
+  - `push-server/src/admin/callLogPageHead.js`
+  - `push-server/src/admin/callLogPageControls.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` uses `buildCallLogPageHeadHtml()` and the `callLogPageControls.js` builders.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Do container/runtime verification of `/admin/calllogs` rendering, then continue consolidations where coherent.
+
+### 2026-04-07T23:09:00Z — TASK-028: push-server isolation step 43 — consolidate call-log catalogs + labels into callLogPresentationCatalogs.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated call-log presentation catalogs (type sets + error descriptions) and label helpers (mode/stage/view-mode) into one themed module.
+- **Files changed**:
+  - `push-server/src/admin/callLogPresentationCatalogs.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/admin/callLogSummaryPrecompute.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogCatalogs.js`
+  - `push-server/src/admin/callLogLabels.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: call-log admin modules import catalogs/labels from `callLogPresentationCatalogs.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining under-100 line call-log helper families into coherent themed modules where it reduces fragmentation without behavior changes.
+
+### 2026-04-07T23:00:00Z — TASK-028: push-server isolation step 42 — extract call-log summary transform pipeline into themed modules
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted the call-log summary transform pipeline (summary dedupe/aggregation/synthetic rows) out of `callLogPage.js` into two coherent themed modules.
+- **Files changed**:
+  - `push-server/src/admin/callLogSummaryPrecompute.js`
+  - `push-server/src/admin/callLogSummaryTransforms.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` imports `applySummaryTransforms` from `callLogSummaryTransforms.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract the page layout / filter / header rendering block from `callLogPage.js`, then do container/runtime verification.
+
+### 2026-04-07T22:46:00Z — TASK-028: push-server isolation step 41 — extract call-log event row + table rendering into callLogEventTableRender.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted the call-log event row rendering pipeline and the table/legend HTML block out of `callLogPage.js` into a themed module.
+- **Files changed**:
+  - `push-server/src/admin/callLogEventTableRender.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` delegates row+table rendering to `callLogEventTableRender.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional large coherent feature block from `callLogPage.js` (summary transform pipeline or page/header/form rendering), then do container/runtime verification.
+
+### 2026-04-07T22:37:00Z — TASK-028: push-server isolation step 40 — extract call-log client-side script into callLogClientScript.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Extracted the call-log page inline client-side `<script>` block into a themed module to reduce `callLogPage.js` size.
+- **Files changed**:
+  - `push-server/src/admin/callLogClientScript.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` uses `buildCallLogClientScriptHtml()` from `callLogClientScript.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Extract one additional feature-level rendering/assembly block from `callLogPage.js` into a 150–200 line themed module.
+
+### 2026-04-07T22:28:00Z — TASK-028: push-server isolation step 39 — consolidate display/render helpers into callLogRenderHelpers.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated call-log display/render helpers into one themed module to reduce helper fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogRenderHelpers.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogDisplayHelpers.js`
+  - `push-server/src/admin/callLogRenderProofSummary.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` imports display/render helpers from `callLogRenderHelpers.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue extracting one additional pure helper/constant group from `callLogPage.js` into a themed module, then do container/runtime verification.
+
+### 2026-04-07T22:19:00Z — TASK-028: push-server isolation step 38 — consolidate core call-log utilities into callLogCoreUtils.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated call-log core utilities (time formatting, HTML escaping, correlation key) into one themed module to reduce tiny helper fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogCoreUtils.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `push-server/src/admin/callLogTraceDiagnosis.js`
+  - `push-server/src/admin/callLogDisplayHelpers.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/timeFormat.js`
+  - `push-server/src/admin/callLogHtmlEscape.js`
+  - `push-server/src/admin/callLogCorrelationKey.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: call-log admin modules import from `callLogCoreUtils.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining call-log rendering helpers into themed modules in the 100–200 line range without behavior changes.
+
+### 2026-04-07T19:24:00Z — TASK-028: push-server isolation step 37 — consolidate trace diagnosis helpers into callLogTraceDiagnosis.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated trace diagnosis HTML helpers and their related diagnosis logic into one themed module to reduce helper fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogTraceDiagnosis.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogTraceDiagBlocks.js`
+  - `push-server/src/admin/callLogDiagnosisHelpers.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagnosis.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
+
+### 2026-04-07T19:16:00Z — TASK-028: push-server isolation step 36 — consolidate diagnosis helpers into callLogDiagnosisHelpers.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated call-log diagnosis helpers into one themed module to reduce helper file fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogDiagnosisHelpers.js`
+  - `push-server/src/admin/callLogTraceDiagBlocks.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogLegSummary.js`
+  - `push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` and `callLogTraceDiagBlocks.js` now import diagnosis helpers from `callLogDiagnosisHelpers.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
+
+### 2026-04-07T18:43:00Z — TASK-028: push-server isolation step 35 — consolidate stats/preflight helpers into callLogStatsHelpers.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated closely related call-log stats/preflight helpers into one themed module to reduce helper file fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogStatsHelpers.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogConcreteCount.js`
+  - `push-server/src/admin/callLogPreflightOkFromCounts.js`
+  - `push-server/src/admin/callLogPreflightFamily.js`
+  - `push-server/src/admin/callLogSuspiciousStatsEvent.js`
+  - `push-server/src/admin/callLogMergeIceErrorDetail.js`
+  - `push-server/src/admin/callLogPickBetterCounts.js`
+  - `push-server/src/admin/callLogShouldShowCandSummary.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports stats/preflight helpers from `callLogStatsHelpers.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
+
+### 2026-04-07T18:35:00Z — TASK-028: push-server isolation step 34 — consolidate label/mode helpers into callLogLabels.js
+- **AI**: Cascade
+- **Scope**: push-server only.
+- **Change**:
+  - Consolidated three closely related label/mode helpers into one themed module to reduce helper file fragmentation.
+- **Files changed**:
+  - `push-server/src/admin/callLogLabels.js`
+  - `push-server/src/admin/callLogPage.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Files removed**:
+  - `push-server/src/admin/callLogModeLabel.js`
+  - `push-server/src/admin/callLogStageLabel.js`
+  - `push-server/src/admin/callLogViewMode.js`
+- **Restart required**:
+  - No (code inspection only).
+- **Verified result**:
+  - Code inspection: `callLogPage.js` now imports `modeLabel`, `stageLabel`, and `deriveViewMode` from `callLogLabels.js`.
+  - Node syntax check: `node -c push-server/server.js`.
+- **Next safe step**:
+  - Consolidate another small family of call-log helpers into a themed module (100–200 lines) without behavior changes.
+
 ### 2026-04-07T18:25:00Z — TASK-028: push-server isolation step 33 — consolidate trace diagnosis HTML helpers into callLogTraceDiagBlocks.js
 - **AI**: Cascade
 - **Scope**: push-server only.

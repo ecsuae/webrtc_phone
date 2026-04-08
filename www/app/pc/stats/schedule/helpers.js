@@ -79,6 +79,7 @@ export function emitAnomaliesFromSnapshot(snapshot, base) {
 
 export function enableReceiveRenderProofFollowup(base) {
   try {
+    if (base?.dir === "inbound") return true;
     const a = requirePlatformAdapter();
     return !!a?.mediaDiag?.enableRenderDiag && base?.dir === "outbound";
   } catch {
