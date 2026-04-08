@@ -28,6 +28,77 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-09T03:48:00Z — TASK-030 docs-only correction: now.md reconciled with already-verified results
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Change**:
+  - Updated `docs/now.md` to remove stale “pending verification” wording and align with the recorded verified results.
+  - Marked TASK-030 as complete enough to close; optional `/ws` websocket Upgrade probe deferred.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - Docs updated only; no runtime behavior changed/verified by this entry.
+- **Next safe step**:
+  - If needed, do a dedicated nginx-only websocket Upgrade probe for `/ws` (verification-only).
+
+### 2026-04-09T03:43:00Z — TASK-030: nginx runtime config now template-driven via repo-owned wrapper
+- **AI**: Cascade
+- **Scope**: nginx service/config isolation only.
+- **Change**:
+  - nginx no longer mounts a concrete per-domain config as the runtime source of truth.
+  - nginx now renders `nginx/phone.srve.cc.conf.template` into `/etc/nginx/conf.d/default.conf` at container start via `nginx/entrypoint-wrapper.sh`.
+- **Files changed**:
+  - `nginx/entrypoint-wrapper.sh`
+  - `docker-compose.yml`
+  - `docs/now.md`
+  - `docs/tasks/TASK-030.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (nginx service/container).
+- **Verified result**:
+  - Container: wrapper rendered `default.conf` with DOMAIN substituted; `nginx -t` successful.
+  - Live route: `http://127.0.0.1/` and `http://127.0.0.1/ws` returned 301; `https://127.0.0.1/index.html` returned 200.
+- **Next safe step**:
+  - Optional: add a websocket Upgrade probe for `/ws` to validate upgrade semantics.
+
+### 2026-04-09T03:36:00Z — TASK-030 docs-only: nginx inventory + behavior-preserving isolation plan recorded
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-030.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - Code inspection only: documented current nginx mounts (compose), config sources (template vs concrete), and a behavior-preserving isolation plan.
+- **Next safe step**:
+  - Implement the first nginx-only isolation step by switching the nginx container to generate `default.conf` from `nginx/phone.srve.cc.conf.template` at startup (envsubst), keeping routing behavior identical and rollback trivial.
+
+### 2026-04-09T03:25:00Z — TASK-030 open: nginx isolation task created; TASK-029 remains pending; TASK-028 remains closed
+- **AI**: Cascade
+- **Scope**: docs + task tracking only. No code behavior changes.
+- **Decision (truthful)**:
+  - Keep TASK-029 pending as the dedicated follow-up for missing inbound raw proof rows in `/admin/calllogs` raw traces.
+  - Create TASK-030 as a separate isolation-first task to refactor/isolate nginx service/config.
+  - Do not reopen or modify TASK-028 (it remains closed as complete enough).
+- **Files changed**:
+  - `docs/tasks/TASK-030.md`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No.
+- **Verified result**:
+  - Docs updated; no runtime behavior verified/changed by this entry.
+- **Next safe step**:
+  - Proceed under TASK-030 by inventorying nginx config/service ownership (`nginx/` + `docker-compose.yml`) and drafting a behavior-preserving isolation plan.
+
 ### 2026-04-09T03:21:00Z — TASK-028 closeout: summary/isolation complete enough; defer missing inbound raw proof rows to TASK-029
 - **AI**: Cascade
 - **Scope**: docs + task tracking only. No code behavior changes.

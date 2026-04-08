@@ -409,3 +409,14 @@ Examples:
 2026-04-09 08:19 PKT | CHANGE | TASK-029 | Created docs/tasks/TASK-029.md to track missing inbound raw proof rows (`inbound-play-*`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, inbound `remote-audio-play-ok`) confirmed still absent in runtime raw logs | AI: Cascade
 2026-04-09 08:20 PKT | CHANGE | TASK-028 | Updated docs/now.md + docs/change-ledger.md to mark TASK-028 complete and set TASK-029 as current work | AI: Cascade
 2026-04-09 08:21 PKT | STOP   | TASK-028 | Session end | worked 7m | AI: Cascade
+2026-04-09 08:25 PKT | CHANGE | TASK-030 | Docs-only task management: created TASK-030 (nginx isolation) and set docs/now.md current task to TASK-030; TASK-029 remains pending | AI: Cascade
+2026-04-09 08:35 PKT | START  | TASK-030 | Nginx isolation: document current ownership/mounts and a behavior-preserving plan (docs-only) | AI: Cascade
+2026-04-09 08:36 PKT | CHANGE | TASK-030 | Recorded nginx inventory (current mounts + template vs concrete config) and isolation-first plan in docs/tasks/TASK-030.md; no compose/runtime changes | AI: Cascade
+2026-04-09 08:37 PKT | STOP   | TASK-030 | Session end | worked 2m | AI: Cascade
+2026-04-09 08:41 PKT | START  | TASK-030 | Implement nginx template-driven runtime config (wrapper renders template at container start) | AI: Cascade
+2026-04-09 08:42 PKT | CHANGE | TASK-030 | Added nginx/entrypoint-wrapper.sh and wired nginx service in docker-compose.yml to render phone.srve.cc.conf.template at startup; concrete config kept for rollback but no longer mounted as runtime source of truth | AI: Cascade
+2026-04-09 08:43 PKT | VERIFY | TASK-030 | Container: nginx started; wrapper rendered /etc/nginx/conf.d/default.conf with DOMAIN substituted; nginx -t ok. Live route: http / and /ws return 301; https /index.html returns 200 | AI: Cascade
+2026-04-09 08:44 PKT | STOP   | TASK-030 | Session end | worked 3m | AI: Cascade
+2026-04-09 08:47 PKT | START  | TASK-030 | Docs correction-only: reconcile docs/now.md with already-recorded TASK-030 verification | AI: Cascade
+2026-04-09 08:48 PKT | CHANGE | TASK-030 | Updated docs/now.md to reflect completed container + live-route verification and mark TASK-030 complete enough to close (optional /ws Upgrade probe deferred) | AI: Cascade
+2026-04-09 08:49 PKT | STOP   | TASK-030 | Session end | worked 2m | AI: Cascade

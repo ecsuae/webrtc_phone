@@ -127,12 +127,17 @@ services:
     container_name: phone-nginx
     restart: unless-stopped
     network_mode: host
+    env_file: .env
     environment:
       - TZ=Asia/Karachi
     depends_on:
       - kamailio
       - push-server
+    entrypoint:
+      - /bin/sh
+      - /entrypoint-wrapper.sh
     volumes:
-      - ./nginx/phone.srve.cc.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/phone.srve.cc.conf.template:/config/phone.srve.cc.conf.template:ro
+      - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
       - ./www:/var/www/phone:ro
       - ./certs:/certs:ro
