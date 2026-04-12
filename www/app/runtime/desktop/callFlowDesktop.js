@@ -1,4 +1,4 @@
-import { bindControlHandlers } from "../shared/controlBindingsCore.js";
+import { bindDesktopControlHandlers } from "../../desktop/bindings/desktopControlBindings.js";
 import { bindDesktopAudioUnlock } from "./audioUnlockDesktop.js";
 
 export function setupDesktopCallFlow({
@@ -11,7 +11,7 @@ export function setupDesktopCallFlow({
   stopAndUnregister,
   releaseWakeLock,
 }) {
-  bindControlHandlers({
+  bindDesktopControlHandlers({
     el,
     st,
     ui,

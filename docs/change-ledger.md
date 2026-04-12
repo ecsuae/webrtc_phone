@@ -26,2232 +26,961 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ---
 
+
+## Live index (keep this file small)
+
+### Task histories (authoritative)
+- TASK-027: `docs/tasks/TASK-027.md`
+- TASK-028: `docs/tasks/TASK-028.md`
+- TASK-029: `docs/tasks/TASK-029.md`
+- TASK-030: `docs/tasks/TASK-030.md`
+- TASK-031: `docs/tasks/TASK-031.md`
+
+### Archives
+- April 2026 archive (verbatim ledger snapshot): `docs/archive/change-ledger-2026-04.md`
+
+### Recent activity pointers
+- TASK-031 Step 5 progress (desktop isolation): see `docs/tasks/TASK-031.md`
+
 ## Current week entries
 
-### 2026-04-09T03:48:00Z — TASK-030 docs-only correction: now.md reconciled with already-verified results
+### 2026-04-12T10:23:00Z — TASK-031: uplink regression restore (re-acquire mic if cached track not live; emit outbound audio level/energy)
 - **AI**: Cascade
-- **Scope**: docs/workflow only.
-- **Change**:
-  - Updated `docs/now.md` to remove stale “pending verification” wording and align with the recorded verified results.
-  - Marked TASK-030 as complete enough to close; optional `/ws` websocket Upgrade probe deferred.
+- **Scope**: desktop-first uplink stability; shared media/stats modules adjusted to restore reliable fresh mic track and improve evidence.
 - **Files changed**:
+  - `www/app/media.js`
+  - `www/app/pc/stats/audioSnapshot.js`
+  - `www/app/pc/stats/schedule/tick.js`
+  - `www/app/pc/stats/schedule/tickOutbound.js`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/outgoing/call/diagContext.js`
+  - `push-server/src/services/callLogExport.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Not yet (runtime required).
+- **Next safe step**:
+  - Runtime/browser: outbound call; confirm remote hears desktop; confirm senderTrackId/senderTrackReadyState and outboundAudioLevel/outboundTotalAudioEnergy fields in `outbound-stats-2s/5s/10s`.
+
+### 2026-04-12T10:12:00Z — TASK-031: regression restore (remove sender hard-stop mutations; simplify mic release to stopLocalAudioStream-only)
+- **AI**: Cascade
+- **Scope**: desktop-only rollback toward previously documented working media lifecycle.
+- **Files changed**:
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No.
-- **Verified result**:
-  - Docs updated only; no runtime behavior changed/verified by this entry.
-- **Next safe step**:
-  - If needed, do a dedicated nginx-only websocket Upgrade probe for `/ws` (verification-only).
-
-### 2026-04-09T03:43:00Z — TASK-030: nginx runtime config now template-driven via repo-owned wrapper
-- **AI**: Cascade
-- **Scope**: nginx service/config isolation only.
-- **Change**:
-  - nginx no longer mounts a concrete per-domain config as the runtime source of truth.
-  - nginx now renders `nginx/phone.srve.cc.conf.template` into `/etc/nginx/conf.d/default.conf` at container start via `nginx/entrypoint-wrapper.sh`.
-- **Files changed**:
-  - `nginx/entrypoint-wrapper.sh`
-  - `docker-compose.yml`
-  - `docs/now.md`
-  - `docs/tasks/TASK-030.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (nginx service/container).
-- **Verified result**:
-  - Container: wrapper rendered `default.conf` with DOMAIN substituted; `nginx -t` successful.
-  - Live route: `http://127.0.0.1/` and `http://127.0.0.1/ws` returned 301; `https://127.0.0.1/index.html` returned 200.
-- **Next safe step**:
-  - Optional: add a websocket Upgrade probe for `/ws` to validate upgrade semantics.
-
-### 2026-04-09T03:36:00Z — TASK-030 docs-only: nginx inventory + behavior-preserving isolation plan recorded
-- **AI**: Cascade
-- **Scope**: docs/workflow only.
-- **Files changed**:
-  - `docs/tasks/TASK-030.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No.
-- **Verified result**:
-  - Code inspection only: documented current nginx mounts (compose), config sources (template vs concrete), and a behavior-preserving isolation plan.
-- **Next safe step**:
-  - Implement the first nginx-only isolation step by switching the nginx container to generate `default.conf` from `nginx/phone.srve.cc.conf.template` at startup (envsubst), keeping routing behavior identical and rollback trivial.
-
-### 2026-04-09T03:25:00Z — TASK-030 open: nginx isolation task created; TASK-029 remains pending; TASK-028 remains closed
-- **AI**: Cascade
-- **Scope**: docs + task tracking only. No code behavior changes.
-- **Decision (truthful)**:
-  - Keep TASK-029 pending as the dedicated follow-up for missing inbound raw proof rows in `/admin/calllogs` raw traces.
-  - Create TASK-030 as a separate isolation-first task to refactor/isolate nginx service/config.
-  - Do not reopen or modify TASK-028 (it remains closed as complete enough).
-- **Files changed**:
-  - `docs/tasks/TASK-030.md`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No.
-- **Verified result**:
-  - Docs updated; no runtime behavior verified/changed by this entry.
-- **Next safe step**:
-  - Proceed under TASK-030 by inventorying nginx config/service ownership (`nginx/` + `docker-compose.yml`) and drafting a behavior-preserving isolation plan.
-
-### 2026-04-09T03:21:00Z — TASK-028 closeout: summary/isolation complete enough; defer missing inbound raw proof rows to TASK-029
-- **AI**: Cascade
-- **Scope**: docs + task tracking only. No code behavior changes.
-- **Decision (truthful)**:
-  - Close TASK-028 because push-server isolation + `/admin/calllogs` summary diagnosis work is complete enough to support operator troubleshooting.
-  - Open TASK-029 as a dedicated frontend-only follow-up for missing inbound raw instrumentation proof rows.
-- **Correction note**:
-  - Runtime raw logs for fresh merged-parent calls still do **not** show inbound proof rows (`inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, inbound `remote-audio-play-ok`).
-  - Prior entries describing frontend raw instrumentation as “fixed” were **not** runtime-verified and are now known to be incomplete.
-- **Files changed**:
-  - `docs/tasks/TASK-028.md`
-  - `docs/tasks/TASK-029.md`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No.
-- **Verified result**:
-  - Docs updated; no runtime behavior verified/changed by this entry.
-- **Next safe step**:
-  - Proceed under TASK-029 and use runtime evidence (raw logs) as acceptance criteria.
-
-### 2026-04-09T03:13:00Z — TASK-028: frontend-only guarantee of inbound playback proof raw rows (emit from onEstablished + playing listener)
-- **AI**: Cascade
-- **Scope**: frontend inbound call-log emitters only (raw-only observability; additive). No summary synthesis changes.
-- **Why raw rows were still absent**:
-  - `observeRemoteAudioPlay()` can be bypassed in real inbound calls when the same `<audio>` element persists across calls and `audioEl.__callMediaPlayObserved` is already set, suppressing per-call instrumentation.
-  - `audioEl.play()` resolution/rejection is not consistently observable via returned Promise across environments; relying on Promise-only hooks caused missing `inbound-play-*` rows.
-  - Inbound `receive-render-proof` needs a stable `window.__callMediaRemoteAudioEl` pointer and an allow gate; real calls showed stats rows but missing proof row, indicating the followup gate/pointer path was not reliably satisfied.
-- **Change**:
-  - Added guaranteed inbound emits to `onIncomingEstablished()` (a confirmed real-path handler that already emits `call-established`):
-    - `inbound-audio-route-snapshot`
-    - `inbound-audio-element-state`
-    - `inbound-play-attempt`
-    - refresh `audioEl.__callMediaDiagContext` and `window.__callMediaRemoteAudioEl` for current corrId
-  - Added an inbound `playing` listener in `attachIncomingRemoteAudio()` so when playback really happens we emit:
-    - `remote-audio-play-ok` with `dir=inbound`
-    - `inbound-play-resolved`
-- **Files changed**:
-  - `www/app/incoming/handlers/onEstablished.js`
-  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (frontend redeploy/reload required to pick up JS changes).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Place one fresh inbound call and confirm raw view for the merged-parent corrId shows the required inbound rows: `inbound-play-attempt`, `inbound-play-resolved`/`inbound-play-rejected` (as applicable), `inbound-audio-route-snapshot`, `inbound-audio-element-state`, inbound `receive-render-proof`, and inbound `remote-audio-play-ok` when playback really happens.
-
-### 2026-04-09T02:52:00Z — TASK-028: frontend-only fix to make missing inbound playback raw rows appear (per-call, current corrId)
-- **AI**: Cascade
-- **Scope**: frontend inbound call-log emitters only (raw-only observability; additive). No summary synthesis changes.
-- **Why**:
-  - `observeRemoteAudioPlay()` previously returned early when `audioEl.__callMediaPlayObserved` was already set (audio element can persist across calls), which suppressed inbound instrumentation for subsequent inbound calls.
-  - `attachIncomingRemoteAudio()` emitted `inbound-play-*` only when `audioEl.play()` returned a Promise; in some environments `play()` may return `undefined` or throw.
-  - Inbound `receive-render-proof` emission was gated and/or lacked a stable inbound audioEl pointer.
-- **Change**:
-  - `observeRemoteAudioPlay()` now tracks `audioEl.__callMediaObservedCorrId` to detect a new call and emits `inbound-play-attempt` + `inbound-audio-element-state` for each new inbound corrId even if listeners were already bound.
-  - `attachIncomingRemoteAudio()` now always emits `inbound-play-attempt` + `inbound-audio-element-state` before calling `audioEl.play()`, emits `inbound-play-rejected` if `play()` throws or rejects, and keeps `window.__callMediaRemoteAudioEl` set for inbound.
-  - `receive-render-proof` followup is now always enabled for inbound stats ticks.
-- **Files changed**:
-  - `www/app/incoming/handlers/observeRemoteAudioPlay.js`
-  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
-  - `www/app/pc/stats/schedule/helpers.js`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (frontend redeploy/reload required to pick up JS changes; push-server restart not strictly required for this change, but typical deployments may restart together).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Run a fresh inbound test call and confirm raw logs contain: `inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected` (as applicable), `inbound-audio-route-snapshot`, `inbound-audio-element-state`, and inbound `receive-render-proof`, all tagged with the current corrId/callId.
-
-### 2026-04-09T02:30:00Z — TASK-028: fix merged-parent summary correctness against stale callId-only artifacts + add inbound playback raw instrumentation
-- **AI**: Cascade
-- **Scope**: push-server admin summary synthesis + minimal inbound frontend call-log emitters (additive only).
-- **Change**:
-  - push-server summary synthesis now groups callId-only events under the merged-parent corrId when available, so current merged-parent evidence wins over stale/child artifacts when building synthesized verdicts.
-  - If the current call has `remote-audio-play-ok` on both legs, synthesized verdict no longer emits `possible-playback-path-issue`.
-  - Added inbound playback-path raw instrumentation (additive): `inbound-play-attempt`, `inbound-play-resolved`, `inbound-play-rejected`, `inbound-audio-route-snapshot`, `inbound-audio-element-state`, and enabled inbound `receive-render-proof` emission when render diagnostics are enabled.
-  - Fixed inbound audio element observers to refresh diag context so playback-related rows use the current call corrId/callId (prevents stale correlation tagging).
-- **Files changed**:
-  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
-  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
-  - `www/app/incoming/handlers/observeRemoteAudioPlay.js`
-  - `www/app/incoming/media/attachIncomingRemoteAudio.js`
-  - `www/app/pc/stats/schedule/helpers.js`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (push-server container/service + web frontend deploy/reload to pick up JS changes).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Restart push-server and load `/admin/calllogs?view=summary` for a fresh merged-parent call where both legs emit `remote-audio-play-ok`, then confirm summary shows `OK: two-way-audio-proven` (not `possible-playback-path-issue`) and the new inbound raw instrumentation rows appear with the current corrId.
-
-### 2026-04-08T04:48:00Z — TASK-028: wire /admin/calllogs summary view to extracted summary transform pipeline (emit synthesized rows)
-- **AI**: Cascade
-- **Scope**: push-server admin call-log page summary wiring only (raw view unchanged).
-- **Change**:
-  - Updated `push-server/src/admin/callLogPage.js` so `view=summary` delegates to `push-server/src/admin/callLogSummaryTransforms.js` (this is required for synthesized rows like `call-media-verdict`, `call-troubleshooting-conclusion`, and `inbound-playback-proof-missing` to appear in the summary view).
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (to pick up the change in the running container/service).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js` and `node -c push-server/src/admin/callLogPage.js`.
-- **Next safe step**:
-  - Restart the running push-server container/service, load `/admin/calllogs?view=summary`, and confirm the synthesized rows for the known playback-path issue call pattern are present and child/orphan synthesized per-leg rows are suppressed.
-
-### 2026-04-08T04:38:00Z — TASK-028: add inbound-playback-proof-missing synthesized row for playback-path suspicion when opposite leg has strong render proof
-- **AI**: Cascade
-- **Scope**: push-server admin summary synthesis only (raw view unchanged).
-- **Change**:
-  - Detected the specific pattern: outbound leg has strong receive+render proof, while inbound leg has `remote-audio-attached` + `call-established` + `ice-complete` but is missing both `remote-audio-play-ok` and `receive-render-proof`.
-  - Classified this as `WARN: possible-playback-path-issue` (not generic insufficient-proof) and refined the operator-facing `call-troubleshooting-conclusion` wording for this pattern.
-  - Added a new synthesized WARN row: `inbound-playback-proof-missing` with an explicit operator message describing the missing proof items.
-- **Files changed**:
-  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
-  - `push-server/src/admin/callLogPresentationCatalogs.js`
-  - `push-server/src/admin/callLogSummarySynthSuppression.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (syntax check only).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Runtime/browser verify `/admin/calllogs` on a call showing this pattern to confirm `inbound-playback-proof-missing` appears as WARN and the call-level verdict remains `possible-playback-path-issue` when the opposite leg has strong render proof.
-
-### 2026-04-08T04:22:00Z — TASK-028: fix /admin/calllogs runtime crash (buildCallDiagnosis undefined)
-- **AI**: Cascade
-- **Scope**: push-server admin call-log page runtime fix only.
-- **Change**:
-  - Fixed `push-server/src/admin/callLogPage.js` to import `canonicalType`, `buildCallDiagnosis`, and `computeMissingLeg` from `push-server/src/services/callDiagnosis.js` (restores missing identifiers used by the in-file summary transform pipeline).
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - Yes (to pick up the code change in the running container/service).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js` and `node -c push-server/src/admin/callLogPage.js`.
-- **Next safe step**:
-  - Restart the running push-server container/service and re-load `/admin/calllogs` to confirm the ReferenceError is gone.
-
-### 2026-04-08T04:12:00Z — TASK-028: suppress child/orphan synthesized per-leg media-leg-verdict rows after merged-parent summary exists
-- **AI**: Cascade
-- **Scope**: push-server admin summary synthesis suppression only (raw view unchanged).
-- **Change**:
-  - Strengthened synthesized summary suppression so that once a merged-parent primary correlation exists for a callId, all non-primary child/orphan synthesized per-leg `media-leg-verdict` rows are suppressed (removes duplicate low-value synthesized rows for child-only correlations).
-- **Files changed**:
-  - `push-server/src/admin/callLogSummarySynthSuppression.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (syntax check only).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Runtime/browser verify `/admin/calllogs` on a merged-parent sample to confirm child/orphan synthesized `media-leg-verdict` rows no longer clutter the merged summary and the operator-facing `call-troubleshooting-conclusion` row is visible.
-
-### 2026-04-08T04:02:00Z — TASK-028: summary-only semantics follow-up (operator-facing conclusion + reciprocal-proof meaning + stronger child/orphan suppression)
-- **AI**: Cascade
-- **Scope**: push-server admin summary synthesis only (raw view unchanged).
-- **Change**:
-  - Replaced contradictory internal `diag=` output in `one-way-audio-diagnosis` with a stable operator-facing conclusion string (no more `diag=two-way-audio-proven` when verdict is `possible-playback-path-issue`).
-  - Improved `reciprocal-proof-missing` to describe playback/render proof asymmetry (e.g. “strong render proof on outbound; inbound shows media arrival but missing play-ok”), instead of presenting it as a confidence mismatch.
-  - Added a single operator-facing `call-troubleshooting-conclusion` synthesized row to act as the primary takeaway.
-  - Strengthened suppression so low-signal synthesized per-leg rows for non-primary child/orphan correlations are suppressed once a stronger merged parent exists.
-- **Files changed**:
-  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
-  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
-  - `push-server/src/admin/callLogSummarySynthSuppression.js`
-  - `push-server/src/admin/callLogPresentationCatalogs.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (syntax check only).
-- **Verified result**:
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Runtime/browser verify `/admin/calllogs` summary view on a real merged-parent + child/orphan sample to confirm the new conclusion row reads well, reciprocal-proof messaging matches the actual proof gap, and non-primary per-leg synthesized rows no longer clutter the merged summary.
-
-### 2026-04-08T02:36:00Z — TASK-028: fix merged-call summary verdict correctness + suppress orphan synthesized call-level rows
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Implemented merged-parent precedence for synthesized call-level summary rows (prefer merged parent corrId over child/orphan callId-only keys) and suppressed duplicate/orphan synthesized call-level rows once a stronger merged parent exists.
-  - Tightened call-level verdict logic to stable enums; `two-way-audio-proven` is only emitted when both legs have reciprocal strong playback/render proof.
-  - Ensured `android-playback-path-suspect` and `reciprocal-proof-missing` remain explicit synthesized rows for partial-proof cases.
-- **Files changed**:
-  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
-  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
-  - `push-server/src/admin/callLogSummarySynthSuppression.js`
-  - `push-server/src/admin/callLogSummaryTransforms.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (syntax check only).
-- **Verified result**:
-  - Code inspection only.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Runtime/browser verify `/admin/calllogs` summary view on a real merged-parent + child/orphan sample to confirm call-level synthesized rows are emitted only for the merged parent and the top-level verdict is downgraded when reciprocal render proof is missing.
-
-### 2026-04-08T02:10:00Z — TASK-028: add synthesized /admin/calllogs summary rows for one-way-audio troubleshooting
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Added operator-facing synthesized summary rows (per-leg media verdict, one-way diagnosis, confidence, network-path interpretation, android playback suspicion, audio quality anomaly, reciprocal proof missing, top-level call verdict) derived from existing raw events.
-  - Wired synthesis into `applySummaryTransforms()` (summary-only; raw view unchanged).
-- **Files changed**:
-  - `push-server/src/admin/callLogMediaVerdictSynthesis.js`
-  - `push-server/src/admin/callLogMediaAnomalySynthesis.js`
-  - `push-server/src/admin/callLogSummaryPrecompute.js`
-  - `push-server/src/admin/callLogSummaryTransforms.js`
-  - `push-server/src/admin/callLogPresentationCatalogs.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (syntax check only).
-- **Verified result**:
-  - Code inspection only.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Do runtime/browser verification of `/admin/calllogs` summary view to confirm synthesized rows are readable and useful, then continue TASK-028 only if verified.
-
-### 2026-04-08T01:24:00Z — TASK-028: docs-only — runtime/browser verification not possible in this session environment
-- **AI**: Cascade
-- **Scope**: docs/workflow only.
-- **Change**:
-  - Recorded that runtime/browser verification of `/admin/calllogs` is not possible in this session environment.
-- **Files changed**:
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No.
-- **Verified result**:
-  - code inspection: yes
-  - container: yes
-  - live route: yes
-  - runtime/browser: no
-- **Next safe step**:
-  - Perform runtime/browser verification of `/admin/calllogs` when an environment with browser-level access is available; otherwise keep TASK-028 active-but-blocked by verification limits.
-
-### 2026-04-08T00:02:00Z — TASK-028: docs-only — callLogPage.js extraction blocked by coherence constraints
-- **AI**: Cascade
-- **Scope**: docs/workflow only.
-- **Change**:
-  - Recorded that `push-server/src/admin/callLogPage.js` is now a small coherent root and has no remaining feature-level extraction target.
-- **Files changed**:
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No.
+  - Yes (reload web app/desktop client).
 - **Verified result**:
   - Code inspection only.
 - **Next safe step**:
-  - Do runtime/browser verification of `/admin/calllogs`, then keep TASK-028 active-but-blocked unless a new coherent themed extraction/consolidation target is identified.
+  - Runtime/browser: verify inbound + outbound two-way audio; if remote BYE still occurs, capture `[desktop:term-diag]` and `[desktop:mic]` logs.
 
-### 2026-04-07T23:29:00Z — TASK-028: verification-only — container/live-route check of /admin/calllogs after step 44
+### 2026-04-12T09:44:00Z — TASK-031: regression restore (remove manual post-invite/post-accept mic attach; rely on SIP.js localMediaStream)
 - **AI**: Cascade
-- **Scope**: docs/workflow only.
-- **Change**:
-  - Recorded container/live-route verification of `/admin/calllogs` rendering after the step-44 extraction.
+- **Scope**: desktop-only rollback toward known-good attachment behavior. No recovery loops.
 - **Files changed**:
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No.
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - container: yes
-  - live route: yes
-  - runtime/browser: no
+  - Code inspection only.
 - **Next safe step**:
-  - Continue one coherent consolidation step among under-100 call-log helper families, then re-verify `/admin/calllogs` in container.
+  - Runtime/browser: place outbound call and confirm whether remote can hear desktop again (two-way audio). If still fails, capture `[desktop:mic]` acquire/release logs and `[desktop:term-diag]` snapshots.
 
-### 2026-04-07T23:22:00Z — TASK-028: push-server isolation step 44 — extract call-log page layout/filter/header rendering into themed modules
+### 2026-04-12T09:28:00Z — TASK-031: desktop mic lifecycle diagnostics (corrId + micId; acquire/attach/release + post-term checks)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted the call-log page HTML chrome (head/style/nav/view header) and controls (export bar/panel, stats bar, filter form) out of `callLogPage.js` into two coherent themed modules.
+- **Scope**: desktop-only runtime diagnostics; no recovery behavior added.
 - **Files changed**:
-  - `push-server/src/admin/callLogPageHead.js`
-  - `push-server/src/admin/callLogPageControls.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/outgoing/desktopHangupCall.js`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` uses `buildCallLogPageHeadHtml()` and the `callLogPageControls.js` builders.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Do container/runtime verification of `/admin/calllogs` rendering, then continue consolidations where coherent.
+  - Runtime/browser: place outbound call; capture `[desktop:mic] acquire/attach/release/post-term-check` logs and confirm whether localStream is cleared and sender track is detached after termination.
 
-### 2026-04-07T23:09:00Z — TASK-028: push-server isolation step 43 — consolidate call-log catalogs + labels into callLogPresentationCatalogs.js
+### 2026-04-12T08:52:00Z — TASK-031: mic silent warning probe reliability (resume AudioContext; re-assert status)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated call-log presentation catalogs (type sets + error descriptions) and label helpers (mode/stage/view-mode) into one themed module.
+- **Scope**: desktop-only UI warning tweak.
 - **Files changed**:
-  - `push-server/src/admin/callLogPresentationCatalogs.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/admin/callLogSummaryPrecompute.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogCatalogs.js`
-  - `push-server/src/admin/callLogLabels.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: call-log admin modules import catalogs/labels from `callLogPresentationCatalogs.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining under-100 line call-log helper families into coherent themed modules where it reduces fragmentation without behavior changes.
-
-### 2026-04-07T23:00:00Z — TASK-028: push-server isolation step 42 — extract call-log summary transform pipeline into themed modules
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted the call-log summary transform pipeline (summary dedupe/aggregation/synthetic rows) out of `callLogPage.js` into two coherent themed modules.
-- **Files changed**:
-  - `push-server/src/admin/callLogSummaryPrecompute.js`
-  - `push-server/src/admin/callLogSummaryTransforms.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` imports `applySummaryTransforms` from `callLogSummaryTransforms.js`.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract the page layout / filter / header rendering block from `callLogPage.js`, then do container/runtime verification.
+  - Runtime/browser: confirm warning remains visible when RMS is low and capture the warning log line.
 
-### 2026-04-07T22:46:00Z — TASK-028: push-server isolation step 41 — extract call-log event row + table rendering into callLogEventTableRender.js
+### 2026-04-12T08:39:00Z — TASK-031: desktop mic silent warning (one-shot probe after attach)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted the call-log event row rendering pipeline and the table/legend HTML block out of `callLogPage.js` into a themed module.
+- **Scope**: desktop-only UI warning. No recovery logic.
 - **Files changed**:
-  - `push-server/src/admin/callLogEventTableRender.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` delegates row+table rendering to `callLogEventTableRender.js`.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional large coherent feature block from `callLogPage.js` (summary transform pipeline or page/header/form rendering), then do container/runtime verification.
+  - Runtime/browser: place a call and confirm a warning appears if mic is muted/silent; capture RMS warning log if present.
 
-### 2026-04-07T22:37:00Z — TASK-028: push-server isolation step 40 — extract call-log client-side script into callLogClientScript.js
+### 2026-04-12T08:23:00Z — TASK-031: regression restore (simplify outbound mic cleanup to single release path)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted the call-log page inline client-side `<script>` block into a themed module to reduce `callLogPage.js` size.
+- **Scope**: desktop-only rollback/simplification. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogClientScript.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` uses `buildCallLogClientScriptHtml()` from `callLogClientScript.js`.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional feature-level rendering/assembly block from `callLogPage.js` into a 150–200 line themed module.
+  - Runtime/browser: verify remote BYE and local hangup both release mic reliably (no stuck mic) and re-test two-way audio.
 
-### 2026-04-07T22:28:00Z — TASK-028: push-server isolation step 39 — consolidate display/render helpers into callLogRenderHelpers.js
+### 2026-04-12T08:07:00Z — TASK-031: regression restore follow-up (detach uplink diagnostics module from outbound termination)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated call-log display/render helpers into one themed module to reduce helper fragmentation.
+- **Scope**: desktop-only rollback. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogRenderHelpers.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogDisplayHelpers.js`
-  - `push-server/src/admin/callLogRenderProofSummary.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` imports display/render helpers from `callLogRenderHelpers.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue extracting one additional pure helper/constant group from `callLogPage.js` into a themed module, then do container/runtime verification.
-
-### 2026-04-07T22:19:00Z — TASK-028: push-server isolation step 38 — consolidate core call-log utilities into callLogCoreUtils.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated call-log core utilities (time formatting, HTML escaping, correlation key) into one themed module to reduce tiny helper fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogCoreUtils.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/admin/callLogTraceDiagnosis.js`
-  - `push-server/src/admin/callLogDisplayHelpers.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/timeFormat.js`
-  - `push-server/src/admin/callLogHtmlEscape.js`
-  - `push-server/src/admin/callLogCorrelationKey.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: call-log admin modules import from `callLogCoreUtils.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining call-log rendering helpers into themed modules in the 100–200 line range without behavior changes.
-
-### 2026-04-07T19:24:00Z — TASK-028: push-server isolation step 37 — consolidate trace diagnosis helpers into callLogTraceDiagnosis.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated trace diagnosis HTML helpers and their related diagnosis logic into one themed module to reduce helper fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogTraceDiagnosis.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogTraceDiagBlocks.js`
-  - `push-server/src/admin/callLogDiagnosisHelpers.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagnosis.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
-
-### 2026-04-07T19:16:00Z — TASK-028: push-server isolation step 36 — consolidate diagnosis helpers into callLogDiagnosisHelpers.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated call-log diagnosis helpers into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogDiagnosisHelpers.js`
-  - `push-server/src/admin/callLogTraceDiagBlocks.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogLegSummary.js`
-  - `push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` and `callLogTraceDiagBlocks.js` now import diagnosis helpers from `callLogDiagnosisHelpers.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
-
-### 2026-04-07T18:43:00Z — TASK-028: push-server isolation step 35 — consolidate stats/preflight helpers into callLogStatsHelpers.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated closely related call-log stats/preflight helpers into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogStatsHelpers.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogConcreteCount.js`
-  - `push-server/src/admin/callLogPreflightOkFromCounts.js`
-  - `push-server/src/admin/callLogPreflightFamily.js`
-  - `push-server/src/admin/callLogSuspiciousStatsEvent.js`
-  - `push-server/src/admin/callLogMergeIceErrorDetail.js`
-  - `push-server/src/admin/callLogPickBetterCounts.js`
-  - `push-server/src/admin/callLogShouldShowCandSummary.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports stats/preflight helpers from `callLogStatsHelpers.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
-
-### 2026-04-07T18:35:00Z — TASK-028: push-server isolation step 34 — consolidate label/mode helpers into callLogLabels.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated three closely related label/mode helpers into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogLabels.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogModeLabel.js`
-  - `push-server/src/admin/callLogStageLabel.js`
-  - `push-server/src/admin/callLogViewMode.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `modeLabel`, `stageLabel`, and `deriveViewMode` from `callLogLabels.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Consolidate another small family of call-log helpers into a themed module (100–200 lines) without behavior changes.
-
-### 2026-04-07T18:25:00Z — TASK-028: push-server isolation step 33 — consolidate trace diagnosis HTML helpers into callLogTraceDiagBlocks.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated trace diagnosis HTML helpers into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogTraceDiagBlocks.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogTraceDiagHtml.js`
-  - `push-server/src/admin/callLogLegSummaryBlock.js`
-  - `push-server/src/admin/callLogMediaDiagnosisBlock.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagBlocks.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Consolidate another small family of call-log helpers into a themed module (100–200 lines) without behavior changes.
-
-### 2026-04-07T18:14:00Z — TASK-028: push-server isolation step 32 — consolidate call-log catalogs/type sets into callLogCatalogs.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated call-log constant catalogs and type sets into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogCatalogs.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogErrorCatalog.js`
-  - `push-server/src/admin/callLogEventTypeSets.js`
-  - `push-server/src/admin/callLogMilestoneTypeSets.js`
-  - `push-server/src/admin/callLogRowTypeSets.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `MEDIA_ERROR_DESCRIPTIONS`, `SESSION_EVENT_TYPES`, `SUMMARY_MILESTONE_TYPES`, `PROBLEM_ROW_TYPES`, and `WARN_ROW_TYPES` from `callLogCatalogs.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating remaining small call-log helpers into themed modules (100–200 lines) without behavior changes.
-
-### 2026-04-07T18:05:00Z — TASK-028: push-server isolation step 31 — consolidate call-log query/export helpers into callLogQueryHelpers.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated three closely related call-log query/export helpers into one themed module to reduce helper file fragmentation.
-  - Updated `docs/prompts/builder.txt` to allow using a `CONSOLIDATION PLAN` section for consolidation steps.
-- **Files changed**:
-  - `push-server/src/admin/callLogQueryHelpers.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/prompts/builder.txt`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogQueryString.js`
-  - `push-server/src/admin/callLogToggleQsBase.js`
-  - `push-server/src/admin/callLogExportLinks.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildQueryString`, `buildToggleQsBase`, and `buildExportLinks` from `callLogQueryHelpers.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidating related call-log helpers into a small number of themed modules (100–200 lines) without changing behavior.
-
-### 2026-04-07T17:52:00Z — TASK-028: push-server isolation step 30 — consolidate call-log display helpers into callLogDisplayHelpers.js
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Consolidated three closely related call-log display helpers into one themed module to reduce helper file fragmentation.
-- **Files changed**:
-  - `push-server/src/admin/callLogDisplayHelpers.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Files removed**:
-  - `push-server/src/admin/callLogPktBits.js`
-  - `push-server/src/admin/callLogRawPayloadDetails.js`
-  - `push-server/src/admin/callLogStatsAnnotation.js`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `fmtPktBits`, `renderRawPayloadDetails`, and `renderStatsAnnotation` from `callLogDisplayHelpers.js`.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Continue consolidation into a small number of themed admin modules (100–200 lines) and reduce `callLogPage.js` size with isolated, reversible moves.
-
-### 2026-04-07T17:42:00Z — TASK-028: push-server isolation step 29 — extract renderStatsAnnotation into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `renderStatsAnnotation` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogStatsAnnotation.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `renderStatsAnnotation` from `callLogStatsAnnotation.js` and no longer builds the stats annotation inline.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: re-test outbound call against the last known-good scenario (2026-04-12 02:31 PKT PASS) and confirm mic releases on remote BYE/hangup.
 
-### 2026-04-07T17:36:00Z — TASK-028: push-server isolation step 28 — extract renderRawPayloadDetails into dedicated admin helper module
+### 2026-04-12T07:52:00Z — TASK-031: regression restore (disable uplink diag hook + remove post-Established reattach; fix null SessionState crash)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `renderRawPayloadDetails` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only rollback/fix. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogRawPayloadDetails.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/media/desktopCallAudioUplinkDiagnostics.js`
+  - `www/app/desktop/outgoing/desktopCallAudioPostAccept.js`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `renderRawPayloadDetails` from `callLogRawPayloadDetails.js` and no longer builds raw payload details inline.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: place call and confirm no termination exception occurs; re-test two-way audio against the last known-good scenario logged at 2026-04-12 02:31 PKT.
 
-### 2026-04-07T17:30:00Z — TASK-028: push-server isolation step 27 — extract fmtPktBits into dedicated admin helper module
+### 2026-04-12T07:30:00Z — TASK-031: desktop termination diagnostics (Established / remote BYE / Terminated snapshots)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `fmtPktBits` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only runtime diagnostics. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogPktBits.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/outgoing/desktopTerminationDiagnostics.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/media/desktopCallAudioUplinkDiagnostics.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `fmtPktBits` from `callLogPktBits.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: place outbound call and capture [desktop:term-diag] lines at established, remote-bye, terminated; confirm ICE selected pair + RTP stats + transceiver state are healthy immediately before remote clear.
 
-### 2026-04-07T17:25:00Z — TASK-028: push-server isolation step 26 — extract fmtRenderProofSummary into dedicated admin helper module
+### 2026-04-12T07:05:00Z — TASK-031: desktop uplink diagnostics (sender stats + audio energy/level) + one-shot recovery
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `fmtRenderProofSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only media path. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogRenderProofSummary.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/media/desktopCallAudioUplinkDiagnostics.js` (new)
+  - `www/app/desktop/media/desktopCallAudioRecovery.js` (new)
+  - `www/app/desktop/outgoing/desktopCallAudioPostAccept.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `fmtRenderProofSummary` from `callLogRenderProofSummary.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: place call and capture [desktop:uplink:diag] tick logs; confirm whether lvl/eng increases; if recovery runs, capture [desktop:uplink:recovery] logs and confirm remote can hear desktop.
 
-### 2026-04-07T17:15:00Z — TASK-028: push-server isolation step 25 — extract deriveViewMode into dedicated admin helper module
+### 2026-04-12T06:42:00Z — TASK-031: desktop post-Established uplink sync (transceiver direction + re-attach) + keyboard icon focus
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `deriveViewMode` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only media path + dialer input affordance. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogViewMode.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/outgoing/desktopCallAudioPostAccept.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `www/app/desktop/ui/desktopDialpadInput.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `deriveViewMode` from `callLogViewMode.js` and no longer derives `viewMode` inline.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: place outbound + inbound call and confirm remote can hear desktop; capture [desktop:call-audio] post-accept before/after logs; click keyboard icon and confirm [desktop:dialpad] focus log.
 
-### 2026-04-07T17:06:00Z — TASK-028: push-server isolation step 24 — extract buildTraceDiagHtml into dedicated admin helper module
+### 2026-04-12T06:18:00Z — TASK-031: desktop call audio runtime boundary (attach via transceiver sender + unified release)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `buildTraceDiagHtml` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only media path. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogTraceDiagHtml.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/ui/desktopDialpadInput.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: outbound + inbound call and confirm remote can hear desktop; confirm mic releases on local hangup + remote BYE; confirm keyboard icon focuses #dial.
+
+### 2026-04-12T05:47:00Z — TASK-031: desktop keyboard dialing fixed (keydown capture)
+- **AI**: Cascade
+- **Scope**: desktop-only dialpad input. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopDialpadInput.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: type digits on physical keyboard; confirm #dial updates and Enter triggers Call.
+
+### 2026-04-12T05:37:00Z — TASK-031: desktop dialpad input fixed (keypad clicks + keyboard typing)
+- **AI**: Cascade
+- **Scope**: desktop-only UI input wiring. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopDialpadInput.js` (new)
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click keypad digits and type on keyboard; confirm #dial updates and Call button uses the entered number.
+
+### 2026-04-12T05:18:00Z — TASK-031: desktop hard refresh call history diagnostics (preserve/restore logs)
+- **AI**: Cascade
+- **Scope**: desktop-only hard refresh diagnostics. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click gear icon and capture HARD_REFRESH_PRESERVE/HARD_REFRESH_RESTORED logs; if lengths are 0, identify actual storage key used for history and preserve it.
+
+### 2026-04-12T05:06:00Z — TASK-031: desktop hard refresh button forced onclick binding (ensure click handler runs)
+- **AI**: Cascade
+- **Scope**: desktop-only runtime wiring. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click gear icon and confirm DESKTOP_HARD_REFRESH_CLICK (src=onclick) appears; after reload confirm DESKTOP_HARD_REFRESH_PREV_CLICK appears.
+
+### 2026-04-12T04:56:00Z — TASK-031: desktop hard refresh proof breadcrumb now uses window.name (survives storage clear)
+- **AI**: Cascade
+- **Scope**: desktop-only runtime diagnostics. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click gear icon; after reload confirm DESKTOP_HARD_REFRESH_PREV_CLICK appears on boot.
+
+### 2026-04-12T04:41:00Z — TASK-031: desktop cache-busted import for hard refresh module (force latest JS)
+- **AI**: Cascade
+- **Scope**: desktop-only module-load cache bust. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: reload desktop client and click gear icon; confirm DESKTOP_HARD_REFRESH_CLICK / HARD_REFRESH_BEGIN / CACHE logs appear.
+
+### 2026-04-12T04:31:00Z — TASK-031: desktop hard refresh breadcrumb logging (prove click across reload)
+- **AI**: Cascade
+- **Scope**: desktop-only runtime diagnostics for hard refresh. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click gear icon; after reload confirm DESKTOP_HARD_REFRESH_PREV_CLICK appears on boot.
+
+### 2026-04-12T04:21:00Z — TASK-031: desktop hard refresh click binding (emit click marker + run clear routine)
+- **AI**: Cascade
+- **Scope**: desktop-only runtime wiring. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click gear icon and confirm DESKTOP_HARD_REFRESH_CLICK then HARD_REFRESH_BEGIN + CACHE logs appear before reload.
+
+### 2026-04-12T04:09:00Z — TASK-031: desktop hard refresh button now runs advanced cache clear + reload
+- **AI**: Cascade
+- **Scope**: desktop-only runtime cache clear wiring. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/runtime/desktopCacheActions.js` (new)
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click the gear refresh button and confirm logs show HARD_REFRESH_BEGIN and that app reloads with a new cb= query param.
+
+### 2026-04-12T03:51:00Z — TASK-031: desktop local mic ownership boundary (fresh acquire + sender attach/replace + release)
+- **AI**: Cascade
+- **Scope**: desktop-only media path (local mic acquire/attach/release). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/media/desktopLocalAudioSession.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/now.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: verify two-way audio (desktop uplink) on outbound + inbound calls; confirm mic releases on hangup + remote hangup.
+
+### 2026-04-12T03:22:00Z — TASK-031: desktop outbound terminated now stops local mic stream (remote hangup cleanup)
+- **AI**: Cascade
+- **Scope**: desktop-only call end cleanup. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime: place outbound call, have remote hang up, confirm mic indicator turns off and next call has two-way audio.
+
+### 2026-04-12T03:05:00Z — TASK-031: desktop UI controls follow-up (logOffBtn sync in setStatus; keep earpiece hidden)
+- **AI**: Cascade
+- **Scope**: desktop-only UI controls. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopAppUi.js`
+  - `www/app/desktop/ui/desktopCallControls.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: after reload, confirm logOffBtn visible on dialer when registered; confirm earpiece/record remain hidden.
+
+### 2026-04-12T02:54:00Z — TASK-031: desktop UI controls fixed (Log Off icon on dialer; hide earpiece + record)
+- **AI**: Cascade
+- **Scope**: desktop-only UI controls. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopAppUi.js`
+  - `www/app/desktop/ui/desktopCallControls.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only (logOffBtn display toggled on registered; btnSpeaker/btnRecord forced hidden on desktop).
+- **Next safe step**:
+  - Runtime/browser: after reload, confirm Log Off icon visible on dialer when registered and confirm earpiece/record controls are hidden.
+
+### 2026-04-12T02:41:00Z — TASK-031: desktop UI regressions fixed (Log Off visibility + timer stop/reset on hangup)
+- **AI**: Cascade
+- **Scope**: desktop-only UI/state bugfix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopAppUi.js`
+  - `www/app/desktop/outgoing/desktopHangupCall.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only (btnStop display fixed; callTimer.stop invoked on call end paths).
+- **Next safe step**:
+  - Runtime/browser: re-test Log Off visibility + call timer stops after hangup on real desktop entrypoint path.
+
+### 2026-04-12T02:31:00Z — TASK-031: runtime/browser verification (partial) recorded; task remains active
+- **AI**: Cascade
+- **Scope**: verification-only; no code changes.
+- **Files changed**:
+  - `docs/session-log.md`
+  - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Runtime/browser evidence (user report): PASS — Enable Calls (one click), outbound INVITE, ringback audible, two-way audio after answer, hangup/end, incoming banner/ringtone on INVITE.
+  - NOT TESTED — Log Off (btnStop), History tab renders, History item dial+call, call timer start/stop.
+- **Next safe step**:
+  - Runtime/browser: verify the remaining untested items above; do not claim TASK-031 complete until they pass.
+
+### 2026-04-12T02:23:00Z — TASK-031: desktop outbound-call-start boundary; desktopStartCall no longer imports shared outgoing/call/*
+- **AI**: Cascade
+- **Scope**: desktop-only outbound-call-start ownership (remote audio config, outbound diag context, inviter creation, LTE preflight). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/desktopStartCallSupport.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCallPreflight.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection (grep confirms `www/app/desktop/outgoing/desktopStartCall.js` has no `outgoing/call/*` imports).
+- **Next safe step**:
+  - Continue Step 5: isolate next highest-value shared/common module still used by active desktop runtime path (prefer `www/app/incoming/handlers/*`).
+
+### 2026-04-12T02:07:00Z — TASK-031: desktop LTE relay readiness guard boundary; desktop no longer imports shared features/lteCallGuard.js
+- **AI**: Cascade
+- **Scope**: desktop-only LTE relay readiness guard ownership (outbound + inbound). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/desktopLteCallGuard.js` (new)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection (grep confirms no remaining `features/lteCallGuard.js` imports under `www/app/desktop`).
+- **Next safe step**:
+  - Continue Step 5: identify next highest-value shared/common import still used by active desktop runtime path (prefer outgoing/call/* or incoming/handlers/*).
+
+### 2026-04-12T01:54:00Z — TASK-031: desktop conference join boundary; no longer imports shared conference/join.js
+- **AI**: Cascade
+- **Scope**: desktop-only conference join ownership. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/conference/desktopJoinConference.js` (new - 164 lines)
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildTraceDiagHtml` from `callLogTraceDiagHtml.js` and no longer builds `traceDiagHtml` inline.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `conference/join.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: continue isolating remaining desktop shared imports.
 
-### 2026-04-07T17:00:00Z — TASK-028: push-server isolation step 23 — extract buildToggleQsBase into dedicated admin helper module
+### 2026-04-12T01:48:00Z — TASK-031: desktop incoming state cleanup boundary; no longer imports shared incoming/handlers/state.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `buildToggleQsBase` query/base helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only incoming state ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogToggleQsBase.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/incoming/desktopIncomingState.js` (new)
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildToggleQsBase` from `callLogToggleQsBase.js` and no longer builds `toggleQsBase` inline.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `incoming/handlers/state.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: continue isolating remaining desktop shared imports (conference/join.js, etc.).
 
-### 2026-04-07T06:00:00Z — TASK-028: push-server isolation step 22 — extract renderMediaDiagnosisBlock into dedicated admin helper module
+### 2026-04-12T01:42:00Z — TASK-031: desktop tab navigation boundary; no longer imports shared ui/tabNavigation.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `renderMediaDiagnosisBlock` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only tab navigation ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogMediaDiagnosisBlock.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/ui/desktopTabNavigation.js` (new)
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `renderMediaDiagnosisBlock` from `callLogMediaDiagnosisBlock.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `tabNavigation.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: continue isolating remaining desktop shared imports (conference/join.js, incoming/handlers/state.js, etc.).
 
-### 2026-04-07T05:55:00Z — TASK-028: push-server isolation step 21 — extract renderLegSummaryBlock into dedicated admin helper module
+### 2026-04-12T01:35:00Z — TASK-031: desktop incoming call reject boundary; no longer imports shared sipCallIncoming.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `renderLegSummaryBlock` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only incoming reject ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogLegSummaryBlock.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/incoming/desktopRejectIncomingCall.js` (new)
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `renderLegSummaryBlock` from `callLogLegSummaryBlock.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `sipCallIncoming.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: continue isolating remaining desktop shared imports (conference/join.js, ui/tabNavigation.js, incoming/handlers/state.js, etc.).
 
-### 2026-04-07T05:47:00Z — TASK-028: push-server isolation step 20 — extract PROBLEM_ROW_TYPES/WARN_ROW_TYPES into dedicated admin helper module
+### 2026-04-12T01:24:00Z — TASK-031: desktop remote logging wrapper; bootstrap no longer directly imports shared remoteLogs.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `PROBLEM_ROW_TYPES` and `WARN_ROW_TYPES` constant sets into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only remote logging wrapper ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogRowTypeSets.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/desktopRemoteLogs.js` (new)
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `PROBLEM_ROW_TYPES`/`WARN_ROW_TYPES` from `callLogRowTypeSets.js` and no longer defines them locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms bootstrapDesktopApp.js no longer directly imports shared remoteLogs.js).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - TASK-031 Step 5: continue isolating remaining desktop shared imports or perform runtime verification.
 
-### 2026-04-07T05:42:00Z — TASK-028: push-server isolation step 19 — extract deriveAsymmetricDirectionDiagnosis into dedicated admin helper module
+### 2026-04-12T00:30:00Z — TASK-031: desktop session recovery boundary; desktop no longer imports shared push/recoverySession.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `deriveAsymmetricDirectionDiagnosis` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only session recovery ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogAsymmetricDirectionDiagnosis.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/desktopRecoverySession.js` (new)
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `deriveAsymmetricDirectionDiagnosis` from `callLogAsymmetricDirectionDiagnosis.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `recoverySession.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: migrate remaining desktop shared imports (remoteLogs.js) if needed.
 
-### 2026-04-07T05:12:00Z — TASK-028: push-server isolation step 18 — extract buildLegSummary into dedicated admin helper module
+### 2026-04-12T00:20:00Z — TASK-031: desktop logging/timestamps fully isolated; 12 desktop modules now use desktop-owned desktopLogging.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `buildLegSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only logging/timestamps ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogLegSummary.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/desktopLogging.js` (existing)
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `www/app/desktop/incoming/desktopIncomingAlert.js`
+  - `www/app/desktop/outgoing/desktopHangupCall.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `www/app/desktop/incoming/desktopIncomingEstablished.js`
+  - `www/app/desktop/incoming/desktopOnIncomingEstablished.js`
+  - `www/app/desktop/ui/desktopCallControls.js`
+  - `www/app/desktop/incoming/desktopIncomingRemoteAudio.js`
+  - `www/app/desktop/incoming/desktopIncomingRemoteAudioSupport.js`
+  - `www/app/desktop/outgoing/desktopRingbackDelegate.js`
+  - `www/app/desktop/outgoing/desktopOutgoingMedia.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildLegSummary` from `callLogLegSummary.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection (grep confirms no remaining `config.js`/`log.js` imports in desktop path).
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Continue Step 5: migrate remaining desktop shared imports (remoteLogs.js, push/recoverySession.js) if needed.
 
-### 2026-04-07T05:07:00Z — TASK-028: push-server isolation step 17 — extract buildExportLinks into dedicated admin helper module
+### 2026-04-12T00:10:00Z — TASK-031: desktop logging + timestamps boundary; desktop bootstrap no longer imports shared log.js or config.js
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `buildExportLinks` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only logging/timestamps ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogExportLinks.js`
-  - `push-server/src/admin/callLogPage.js`
+  - `www/app/desktop/desktopLogging.js` (new)
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/tasks/TASK-031.md`
   - `docs/now.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Continue Step 5: migrate remaining desktop shared imports (remoteLogs.js, push/recoverySession.js) if needed.
+
+### 2026-04-11T18:46:00Z — TASK-031: desktop UI support boundary; desktop bootstrap no longer imports shared ui/historyActivity.js or ui/callTimer.js
+- **AI**: Cascade
+- **Scope**: desktop-only UI support module ownership (history + timer). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopUiSupport.js`
+  - `www/app/desktop/ui/desktopUiSupportState.js`
+  - `www/app/desktop/bootstrapDesktopApp.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildExportLinks` from `callLogExportLinks.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: open desktop client, confirm History tab renders and dialing from History fills `#dial` and triggers Call; confirm timer still starts/stops on call establish/end.
 
-### 2026-04-07T05:02:00Z — TASK-028: push-server isolation step 16 — extract stageLabel into dedicated admin helper module
+### 2026-04-11T18:29:00Z — TASK-031: desktop outbound call start fix; read dialed destination from desktopDomRefs (pre-inviter bailout)
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `stageLabel` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only outbound call start path. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogStageLabel.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `stageLabel` from `callLogStageLabel.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: place an outbound call and confirm SIP.js logs show an `INVITE` after `[ui] btnCall clicked...`.
 
-### 2026-04-07T04:57:00Z — TASK-028: push-server isolation step 15 — extract shouldShowCandSummary into dedicated admin helper module
+### 2026-04-11T18:11:00Z — TASK-031: desktop UI shell isolation; desktopAppLayout no longer imports shared header/status/log layout sections
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `shouldShowCandSummary` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
+- **Scope**: desktop-only UI shell sections ownership. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogShouldShowCandSummary.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
+  - `www/app/desktop/ui/desktopShellSections.js`
+  - `www/app/desktop/ui/desktopAppLayout.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `shouldShowCandSummary` from `callLogShouldShowCandSummary.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
+  - Runtime/browser: reload desktop client and confirm shell renders + controls still work; then continue isolating remaining shared UI module imports (appUi/historyActivity/callTimer/etc.) if required.
 
-### 2026-04-07T04:52:00Z — TASK-028: push-server isolation step 14 — extract pickBetterCounts into dedicated admin helper module
+### 2026-04-11T17:56:00Z — TASK-031: verification-only session; runtime/browser proof not captured; docs updated to keep blocker truthful
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `pickBetterCounts` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogPickBetterCounts.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `pickBetterCounts` from `callLogPickBetterCounts.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:47:00Z — TASK-028: push-server isolation step 13 — extract mergeIceErrorDetail into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `mergeIceErrorDetail` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogMergeIceErrorDetail.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `mergeIceErrorDetail` from `callLogMergeIceErrorDetail.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:40:00Z — TASK-028: push-server isolation step 12 — extract isSuspiciousStatsEvent into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `isSuspiciousStatsEvent` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogSuspiciousStatsEvent.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `isSuspiciousStatsEvent` from `callLogSuspiciousStatsEvent.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:29:00Z — TASK-028: push-server isolation step 11 — extract isPreflightFamily into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `isPreflightFamily` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogPreflightFamily.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `isPreflightFamily` from `callLogPreflightFamily.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:24:00Z — TASK-028: push-server isolation step 10 — extract preflightOkFromCounts into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `preflightOkFromCounts` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogPreflightOkFromCounts.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `preflightOkFromCounts` from `callLogPreflightOkFromCounts.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:18:00Z — TASK-028: push-server isolation step 9 — extract isConcreteCount into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `isConcreteCount` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogConcreteCount.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `isConcreteCount` from `callLogConcreteCount.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T04:11:00Z — TASK-028: push-server isolation step 8 — extract buildQueryString into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `buildQueryString` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogQueryString.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `buildQueryString` from `callLogQueryString.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T03:59:00Z — TASK-028: push-server isolation step 7 — extract modeLabel into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `modeLabel` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogModeLabel.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `modeLabel` from `callLogModeLabel.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T03:49:00Z — TASK-028: push-server isolation step 6 — extract corrKey into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `corrKey` helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogCorrelationKey.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `corrKey` from `callLogCorrelationKey.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T03:39:00Z — TASK-028: push-server isolation step 5 — extract escHtml into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `escHtml` HTML-escaping helper into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogHtmlEscape.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `escHtml` from `callLogHtmlEscape.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group from `push-server/src/admin/callLogPage.js` (single responsibility, minimal diff).
-
-### 2026-04-07T03:24:00Z — TASK-028: push-server isolation step 4 — extract SUMMARY_MILESTONE_TYPES into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `SUMMARY_MILESTONE_TYPES` Set constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogMilestoneTypeSets.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `SUMMARY_MILESTONE_TYPES` from `callLogMilestoneTypeSets.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure helper/constant group (e.g., `escHtml`) from `push-server/src/admin/callLogPage.js` in a single small step.
-
-### 2026-04-07T03:14:00Z — TASK-028: push-server isolation step 3 — extract SESSION_EVENT_TYPES into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `SESSION_EVENT_TYPES` Set constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogEventTypeSets.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `SESSION_EVENT_TYPES` from `callLogEventTypeSets.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure constant group (e.g., `SUMMARY_MILESTONE_TYPES`) from `push-server/src/admin/callLogPage.js` in a single small step.
-
-### 2026-04-07T03:03:00Z — TASK-028: push-server isolation step 2 — extract MEDIA_ERROR_DESCRIPTIONS into dedicated admin helper module
-- **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted `MEDIA_ERROR_DESCRIPTIONS` constant into a dedicated admin helper module to reduce coupling in the oversized call log page.
-- **Files changed**:
-  - `push-server/src/admin/callLogErrorCatalog.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No (code inspection only).
-- **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `MEDIA_ERROR_DESCRIPTIONS` from `callLogErrorCatalog.js` and no longer defines it locally.
-  - Node syntax check: `node -c push-server/server.js`.
-- **Next safe step**:
-  - Extract one additional pure constant group (e.g., one of the Set constants) from `push-server/src/admin/callLogPage.js` in a single small step.
-
-### 2026-04-07T02:48:00Z — TASK-028: docs reconciliation — now.md updated to reflect completed isolation step 1
-- **AI**: Cascade
-- **Scope**: docs/workflow only.
+- **Scope**: docs/workflow only (no code changes).
 - **Files changed**:
   - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
   - No
 - **Verified result**:
-  - Confirmed repo state: `push-server/src/admin/timeFormat.js` exists and `push-server/src/admin/callLogPage.js` imports it.
-  - `docs/now.md` now records isolation step 1 as complete and points to the next safe step.
+  - Code inspection only.
 - **Next safe step**:
-  - Push-server only: continue isolating the oversized admin surface by extracting one additional pure helper/constant group.
+  - Runtime/browser: perform the desktop reload + call tests and capture console evidence; then mark the boundary runtime-verified if it passes.
 
-### 2026-04-07T02:38:00Z — TASK-028: push-server isolation step 1 — extract timestamp formatting helpers from admin call log page
+### 2026-04-11T17:52:00Z — TASK-031: desktop DOM boundary; desktop-owned DOM refs module for registration+dialpad+incoming-alert area
 - **AI**: Cascade
-- **Scope**: push-server only.
-- **Change**:
-  - Extracted timestamp formatting helpers from the oversized admin call log page into a dedicated module.
+- **Scope**: desktop-only DOM refs ownership; shared `www/app/dom.js` unchanged. No Android/iOS changes.
 - **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/admin/timeFormat.js`
+  - `www/app/desktop/ui/desktopDomRefs.js`
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
   - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - No (code inspection only).
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Code inspection: `callLogPage.js` now imports `formatTs`/`parseTsMs` from `timeFormat.js`; no call sites changed.
-  - Node syntax check: `node -c push-server/server.js`.
+  - Code inspection only.
 - **Next safe step**:
-  - Continue isolating the admin surface by extracting one additional pure helper/constant group (keep each step small and reversible).
+  - Runtime/browser: reload desktop client and confirm registration, Log Off, incoming banner, and call controls still work; then identify next remaining shared import boundary in desktop tree.
 
-### 2026-04-07T02:32:00Z — TASK-028 activated: push-server service isolation (docs-only)
+### 2026-04-11T17:46:00Z — TASK-031: desktop UI/layout boundary; desktop bootstrap owns layout selection (remove desktop branching from shared bootstrapPage)
 - **AI**: Cascade
-- **Scope**: docs/workflow only (no code/runtime/config changes).
+- **Scope**: desktop-only layout selection ownership; shared bootstrap simplified (no desktop branching). No Android/iOS changes.
 - **Files changed**:
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No
-- **Verified result**:
-  - `docs/now.md` now sets the active task to TASK-028 and constrains scope to push-server isolation.
-- **Next safe step**:
-  - Push-server only: complete an audit of `push-server/src/admin/callLogPage.js` responsibilities and choose one minimal, reversible extraction/split step.
-
-### 2026-04-07T00:05:00Z — Ledger rotation + TASK-027 history file created
-- **AI**: Cascade
-- **Scope**: docs/workflow only (no code/runtime/config changes).
-- **Change**:
-  - Rotated the previous long-form ledger into an archive file.
-  - Created a task-specific history file for TASK-027.
-- **Files changed**:
-  - `docs/change-ledger.md`
-  - `docs/tasks/TASK-027.md`
-- **Files archived**:
-  - `Work_Flow/2026/04-Apr/2026-03-29_to_2026-04-07_change-ledger.md`
-- **Restart required**:
-  - No
-- **Verified result**:
-  - Historical ledger preserved in the archive; live `docs/change-ledger.md` is now a short global index.
-- **Next safe step**:
-  - Keep future ledger entries concise; store full task histories under `docs/tasks/<TASK-ID>.md`.
-
-### 2026-04-07T00:00:00Z — TASK-027 complete: RTPEngine CLI-owned flags migrated to repo config
-- **AI**: Cascade
-- **Scope**: RTPEngine isolation only.
-- **Files changed**:
-  - `docker-compose.yml`
-  - `rtpengine/rtpengine.conf`
-  - `rtpengine/entrypoint-wrapper.sh`
-  - `docs/now.md`
-  - `docs/session-log.md`
-- **Restart required**:
-  - RTPEngine: yes (during the migration steps)
-- **Verified result**:
-  - In-container `/proc/1/cmdline` contains no migrated RTPEngine CLI flags (uses `--config-file /etc/rtpengine.conf`).
-  - `/config/rtpengine.conf` matches `/etc/rtpengine.conf` for: `log-level`, `log-stderr`, `foreground`, `listen-ng`, `interface`, `port-min`, `port-max`.
-  - RTPEngine logs show `Startup complete` with no config parse errors.
-- **Final status**:
-  - Complete — full history: `docs/tasks/TASK-027.md`
-- **Next safe step**:
-  - None under TASK-027.
-
-### 2026-03-31T02:25:00Z — TASK-023: Call logs — classify short numeric service targets (e.g. 9196) as feature-code/service to suppress peer-only PROBLEM rows
-- **AI**: Cascade
-- **Scope**: Call classification/summary diagnosis only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF changes)
-- **Problem (runtime evidence)**:
-  - `*9196` echo calls still emitted peer-only `PROBLEM:` rows in summary when the peer target appeared as `9196` (numeric) instead of `*9196`.
-- **Fix**:
-  - `push-server/src/services/callClassification.js`: treat short numeric peer targets (`\d{2,5}`) as `feature-code/service` when the local username looks like an extension (`\d{6,}`), preventing misclassification as peer calls.
-- **Files changed**:
-  - `push-server/src/services/callClassification.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Not yet runtime-verified after rebuild.
-- **Next safe step**:
-  - Rebuild/restart push-server, place a fresh `900900` → `*9196` call, and confirm summary shows no peer-only PROBLEM rows.
-  - Then troubleshoot the real no-return-audio issue using FreeSWITCH runtime evidence (`show channels`, `uuid_debug_media`, RTP/siptrace).
-
-### 2026-03-31T02:11:00Z — TASK-023: Call logs — fix remaining false missing-leg emitter for feature-code/service calls
-- **AI**: Cascade
-- **Scope**: Admin call logs summary missing-leg derivation only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF changes)
-- **Problem (post-restart re-test)**:
-  - `*9196` feature-code/echo calls still showed `PROBLEM: missing leg` even after peer-only diagnosis isolation.
-- **Root cause**:
-  - `push-server/src/admin/callLogPage.js` `applySummaryTransforms(...)` still injected a synthetic `type: 'incomplete-observability'` row for any `callMissingLeg` key without re-checking call class at emission time.
-- **Fix**:
-  - Gate the incomplete-observability injection behind `callClassAllowsMissingLeg(callClass)` so only `callClass=peer` can emit missing-leg problems.
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Not yet runtime-verified after rebuild.
-- **Next safe step**:
-  - Rebuild/restart push-server, place a fresh `900900` → `*9196` call, and confirm summary no longer emits `PROBLEM: missing leg`.
-
-### 2026-03-31T02:05:00Z — TASK-023: Call logs — isolate call classification + diagnosis; suppress peer-only false PROBLEM rows for feature-code/service calls
-- **AI**: Cascade
-- **Scope**: Call logs classification/diagnosis isolation only (no raw ingestion/storage changes; no registration/call/media logic changes; no export/PDF format changes)
-- **Problem proven by logs**:
-  - Feature-code/echo call to `*9196` shows call established + ICE connected + DTLS connected + RTP flowing, but summary incorrectly emits:
-    - `PROBLEM: one-way audio`
-    - `PROBLEM: LTE no receive`
-    - `PROBLEM: missing leg`
-- **Fix**:
-  - Created dedicated call classification module to distinguish peer vs feature-code/service vs pbx/unknown.
-  - Created dedicated diagnosis module and gated peer-only rules (missing-leg / one-way-audio / probable LTE receive failure) to `callClass=peer`.
-  - Kept summary/UI rendering separate from diagnosis logic (UI calls into the diagnosis module).
-- **Files created**:
-  - `push-server/src/services/callClassification.js`
-  - `push-server/src/services/callDiagnosis.js`
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/services/callLogPdf.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Export the `*9196` echo trace (JSON) by corrId/callId and confirm summary/PDF no longer emits peer-only PROBLEM rows for that call class.
-
-### 2026-03-31T01:06:00Z — TASK-022: Registration cleanup pass — remove dead secondary SBC registration entrypoint
-- **AI**: Cascade
-- **Scope**: Registration-only cleanup (no behavior change intended; no outgoing/incoming/media/export/PDF changes)
-- **Dead code removed (proven unused)**:
-  - `www/app/registration/secondary.js`: removed `registerWithSBC(...)` (no remaining references)
-  - `www/app/sipRegister.js`: removed import/export and commented callsite for `registerWithSBC`
-- **Still used (kept)**:
-  - `www/app/registration/secondary.js`: `stopSecondaryRegistration(st)` is still called from `stopAndUnregister` and remains.
-- **Files changed**:
-  - `www/app/sipRegister.js`
-  - `www/app/registration/secondary.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Verify Enable Calls + Stop/Logoff on desktop Wi-Fi and Android (Wi-Fi + LTE), ensuring no auto-registration before explicit enable.
-
-### 2026-03-31T00:36:00Z — TASK-022: Thin Android registration bridge cleanup — call shared registration actions directly
-- **AI**: Cascade
-- **Scope**: Android registration wrapper only (no behavior redesign; preserve stale-module-chain protections; no outgoing/incoming/media/export/PDF changes)
-- **Android-specific logic locations (before)**:
-  - `www/app/runtime/android/registrationAndroid.js`:
-    - explicit-enable guard using `st._callsEnabled` and persisted `webrtc_calls_enabled`
-    - cb-safe dynamic import of `../registerFlow.js?cb=...`
-    - constructed flow via `createRegisterFlow(...)` then called `flow.runOneTapEnableFlow()`
-- **Duplicate/shared logic removed from Android wrapper**:
-  - Android wrapper no longer depends on the `registerFlow.js` wrapper module to reach shared enable logic.
-  - Enable Calls action flow ownership remains in `www/app/registration/registrationActions.js`.
-- **Fix**:
-  - Updated `www/app/runtime/android/registrationAndroid.js` to dynamically import `../../registration/registrationActions.js?cb=...` and call `actions.enableCalls()`.
-  - Guard + diagnostics + cb token logic preserved.
-- **Files changed**:
-  - `www/app/runtime/android/registrationAndroid.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only; Android may require hard refresh/clear site data due to cached module graphs)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - On Android and desktop, click **Enable Calls** and confirm registration completes and UI shows registered.
-
-### 2026-03-31T00:21:00Z — TASK-022: Registration isolation (step 6) — extract registration UI bindings
-- **AI**: Cascade
-- **Scope**: Registration UI bindings only (Enable Calls / Stop wiring). No UA/Registerer creation, no config building, no event bridge logic changes, no incoming/outgoing/media/export/PDF changes.
-- **Registration UI binding locations (before)**:
-  - `www/app/runtime/controlBindings.js`: directly wired Enable Calls click -> `runOneTapEnableFlow()` and Stop -> `releaseWakeLock()` + `stopAndUnregister()`.
-  - `www/app/ui/appUi.js`: registration form reads via `ui.account()/pass()/wss()` and button/status updates (kept unchanged in Step 6).
-- **Fix**:
-  - Added `www/app/registration/registrationUiBindings.js` exporting `bindRegistrationUiHandlers(...)`.
-  - Updated `www/app/runtime/controlBindings.js` to call `bindRegistrationUiHandlers(...)` and removed inline Enable/Stop wiring.
-- **Files changed**:
-  - `www/app/registration/registrationUiBindings.js` (new)
-  - `www/app/runtime/controlBindings.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T23:56:00Z — TASK-022: Registration isolation (step 5) — extract registration event bridge
-- **AI**: Cascade
-- **Scope**: Registration event normalization only (transport + registerer state/delegate normalization). No config building, no UA/Registerer creation changes, no Enable Calls logic changes, no incoming/outgoing/media/export/PDF changes.
-- **Scattered event/state update locations (before)**:
-  - `www/app/registration/primary.js`: transport `stateChange` handler with UI+diag behavior; registerer delegate `onAccept/onReject` directly mutating `st.registered/registering`; `st.reg.stateChange` listener toggling `st.registered` and updating buttons.
-- **Fix**:
-  - Added `www/app/registration/registrationEvents.js` owning:
-    - `attachTransportEvents(...)` (normalized transport state transitions)
-    - `createRegistererDelegate(...)` (normalized accept/reject bookkeeping)
-    - `attachRegistererStateEvents(...)` (normalized registerer state bookkeeping)
-  - Updated `www/app/registration/primary.js` to use these helpers while keeping UI updates and diagnostics in `primary.js` via callbacks.
-- **Files changed**:
-  - `www/app/registration/registrationEvents.js` (new)
-  - `www/app/registration/primary.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T23:41:00Z — TASK-022: Registration isolation (step 4) — extract Enable/Disable Calls actions
-- **AI**: Cascade
-- **Scope**: Enable/Disable Calls action flow only (no UA/Registerer creation; no config building; no incoming/outgoing/media/export/PDF changes)
-- **Enable Calls logic locations (before)**:
-  - `www/app/runtime/registerFlow.js`: set `st._callsEnabled`, persisted `webrtc_calls_enabled`, called `startAndRegister`, waited for `st.registered`, acquired wake lock.
-  - `www/app/runtime/controlBindings.js`: wired Enable Calls button to `runOneTapEnableFlow` and Stop to `stopAndUnregister`.
-  - `www/app/runtime/android/registrationAndroid.js`: Android wrapper loads `registerFlow.js` dynamically (cb token) and relies on `st._callsEnabled` for gating.
-- **Fix**:
-  - Added `www/app/registration/registrationActions.js` exporting `createRegistrationActions(...)` with:
-    - `enableCalls()` (explicit enable + persistence + start registration + wait + acquire wake lock)
-    - `disableCalls()` (explicit disable + persistence + optional stop)
-  - Updated `www/app/runtime/registerFlow.js` to delegate `runOneTapEnableFlow` to `actions.enableCalls` while keeping the same `createRegisterFlow` API.
-- **Files changed**:
-  - `www/app/registration/registrationActions.js` (new)
-  - `www/app/runtime/registerFlow.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T23:26:00Z — TASK-022: Registration isolation (step 3) — extract registration execution service
-- **AI**: Cascade
-- **Scope**: Registration execution only (UA/Registerer lifecycle); no config building changes; no outgoing/incoming/media/export/PDF changes
-- **Execution logic locations (before)**:
-  - `www/app/registration/primary.js`: created `SIP.UserAgent`, started UA (`ua.start()`), created `SIP.Registerer`, sent REGISTER.
-  - `www/app/sipRegister.js`: performed unregister/stop and cleared `st.ua`, `st.reg`, `st.account` during stop.
-- **Fix**:
-  - Added `www/app/registration/registrationService.js` owning:
-    - UA creation helper
-    - UA start
-    - Registerer creation helper
-    - sending REGISTER
-    - unregister + stop lifecycle
-    - normalized clearing of registration objects
-  - Wired `www/app/registration/primary.js` to call `createUserAgent()`, `startUserAgent()`, `createRegisterer()`, `sendRegister()`.
-  - Wired `www/app/sipRegister.js` stop path to call `stopRegistrationExecution({ st })` (timers/localStorage/UI/audio behavior unchanged).
-- **Files changed**:
-  - `www/app/registration/registrationService.js` (new)
-  - `www/app/registration/primary.js`
-  - `www/app/sipRegister.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T23:06:00Z — TASK-022: Registration isolation (step 2) — extract pure registration config builder
-- **AI**: Cascade
-- **Scope**: Registration config builder only (no UA/Registerer creation changes; no outgoing/incoming/media/export/PDF changes)
-- **Goal**: Make registration resilient by isolating pure SIP.js config building into a focused module without changing registration behavior.
-- **Config-building logic locations (before)**:
-  - `www/app/registration/primary.js`: built SIP URI, chose ICE policy/profile, assembled SIP.js `UserAgent` options and `Registerer` options inline.
-  - `www/app/config.js`: `ICE_SERVERS`, `ICE_TRANSPORT_POLICY`.
-- **Fix**:
-  - Added `www/app/registration/registrationConfig.js` exporting `buildRegistrationConfig({ SIP, account, pass, wss, mobileCompatMode })`.
-  - Updated `www/app/registration/primary.js` to call `buildRegistrationConfig()` and spread `config.userAgentOptions` into `new SIP.UserAgent(...)`.
-  - Updated `primary.js` registerer creation to spread `config.registererOptions` into `new SIP.Registerer(...)`.
-- **Files changed**:
-  - `www/app/registration/registrationConfig.js` (new)
-  - `www/app/registration/primary.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Run one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T22:51:00Z — TASK-022: Registration isolation (step 1) — centralize registration-owned state
-- **AI**: Cascade
-- **Scope**: Registration state only (no outgoing/incoming/media/export/PDF changes)
-- **Goal**: Make registration/login resilient by centralizing registration-owned state in a focused module without behavior redesign.
-- **Fix**:
-  - Added new `www/app/registration/registrationState.js` exporting `createRegistrationState()`.
-  - Updated `www/app/registration/state.js` (`createAppState`) to:
-    - add `st.registration`
-    - provide transparent accessors for `st.ua`, `st.reg`, `st.account`, `st.selectedProfile` so existing code continues to work.
-- **Registration-owned state items (now centralized defaults)**:
-  - `sipAccountRaw`, `username`, `domain`, `selectedProfile`, `iceTransportPolicy`
-  - `callsEnabled`, `callsEnabledPersisted`, `enableRequestedAt`
-  - `ua`, `registerer`
-  - `status`, `transportState`, `registrationState`
-  - `lastError`, `lastErrorAt`, `lastRegisterCallId`, `lastRegisterAttemptAt`, `lastRegisteredAt`, `lastUnregisteredAt`
-  - `platform`, `hasExplicitEnableForSession`, `hasEverRegisteredThisSession`, `isBootRecovered`
-- **Files changed**:
-  - `www/app/registration/registrationState.js` (new)
-  - `www/app/registration/state.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - None (frontend reload only)
-- **Verified result**:
-  - Not yet runtime-verified.
-- **Next safe step**:
-  - Do one desktop + Android Enable Calls login and confirm `REGISTER` completes and UI shows registered.
-
-### 2026-03-30T22:30:00Z — TASK-022: Slow/stuck Android registration — keep WS alive long enough to relay PBX REGISTER replies
-- **AI**: Cascade
-- **Scope**: Kamailio WebSocket signaling stability only (no media/export/PDF work)
-- **Proven symptom**:
-  - Android sends REGISTER; Kamailio receives it over WS and forwards to PBX.
-  - PBX replies with 401 challenge.
-  - Kamailio receives 401 but does not relay it promptly to the WS client; logs show `REG-RELAY-FAILED` / `relay_reply ... relay=0`.
-  - Client UI stays on login for a long time; dialer appears minutes later.
-- **Root cause (most likely, consistent with evidence)**:
-  - WS/TCP connection is being closed/invalidated before delayed PBX REGISTER replies can be relayed back to the browser, causing challenge/OK responses to be delayed/lost.
-- **Fix**:
-  - `kamailio/kamailio.cfg`: increased `modparam("websocket", "keepalive_timeout", ...)` from `20` to `90` seconds.
-- **Files changed**:
-  - `kamailio/kamailio.cfg`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - kamailio: `docker compose restart kamailio`
-- **Verified result**:
-  - Not yet runtime-verified after restart.
-- **Next safe step**:
-  - Restart kamailio, run one fresh Android registration attempt, then confirm in logs:
-    - 401 is relayed promptly
-    - no `REG-RELAY-FAILED` for the new REGISTER Call-ID
-
-### 2026-03-30T22:20:00Z — TASK-022: Android Enable Calls regression — prevent stale registerFlow module so explicit enable flag is applied
-- **AI**: Cascade
-- **Scope**: Android registration boot path only (no media/export/PDF changes; preserve stale-module-chain protections; no pinned `?v=` imports)
-- **Proven symptom**:
-  - Android click triggers `runOneTapEnableFlow`.
-  - Android wrapper logs show: `enabled_session=false enabled_prev=false hasUA=false`.
-  - Then wrapper blocks: “no UA, not explicitly enabled”.
-- **Root cause (most likely, consistent with evidence)**:
-  - Android wrapper was loading a stale/cached `registerFlow.js` module graph where `runOneTapEnableFlow()` did not set `st._callsEnabled` before invoking `startAndRegister`, so the Android guard rejected first registration.
-- **Fix**:
-  - `www/app/runtime/android/registrationAndroid.js`:
-    - removed static import of `../registerFlow.js`
-    - load `registerFlow.js` via dynamic import using the current runtime `cb` token (from `window.__BUILD_CB` or `import.meta.url`) to ensure Android runs the same build graph
-    - `runOneTapEnableFlow()` now constructs the flow from the loaded module and executes it
-- **Files changed**:
-  - `www/app/runtime/android/registrationAndroid.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No container restart required if `www/` is bind-mounted into nginx.
-  - Clients must hard refresh; Android/PWA may require clear site data to drop cached module graphs.
-- **Verified result**:
-  - Not yet verified in Android runtime logs in this session.
-- **Next safe step**:
-  - On Android, hard refresh/clear site data, click **Enable Calls**, then confirm wrapper log shows `enabled_session=true` and registration proceeds.
-
-### 2026-03-30T07:15:00Z — TASK-021: One-way audio LTE↔Wi-Fi — tighten ext-to-ext (WebRTC↔WebRTC) RTPEngine bridge negotiation
-- **AI**: Cascade
-- **Scope**: Kamailio RTPEngine flags for ext-to-ext WebRTC bridging only (no Android/runtime changes; no PBX conversion changes)
-- **Proven symptom**:
-  - LTE outbound leg shows ICE connected while DTLS remains `connecting`, and inbound RTP stays 0 (recv=0).
-  - Wi‑Fi inbound leg shows outbound RTP sent > 0 while inbound RTP stays 0.
-  - Both legs establish the call successfully.
-- **Root cause (most likely, constrained to evidence)**:
-  - ext-to-ext bridge path did not explicitly specify `RTP/SAVPF`/`rtcp-mux`/codec constraints, risking unstable DTLS/SRTP negotiation and payload-type mismatches through the anchored bridge.
-- **Fix**:
-  - `kamailio/routes/60-media.cfg`:
-    - ext-to-ext `rtpengine_offer(...)` and `rtpengine_answer(...)` now explicitly use:
-      - `RTP/SAVPF`
-      - `rtcp-mux=offer`
-      - `codec-mask=PCMA codec-mask=PCMU`
-      - existing `ICE=force DTLS=passive asymmetric media-address=$env(KAM_PUBLIC_IP)` preserved
-- **Files changed**:
-  - `kamailio/routes/60-media.cfg`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - kamailio: `docker compose restart kamailio`
-- **Verified result**:
-  - Not yet runtime-verified post-restart (must place a fresh LTE→Wi‑Fi call and confirm DTLS + inbound RTP).
-- **Next safe step**:
-  - Restart kamailio, place fresh `900900` (LTE) → `600600` (Wi‑Fi) call, then confirm:
-    - LTE `outbound-dtls-state` reaches `connected`
-    - LTE inbound RTP becomes non-zero
-    - Wi‑Fi inbound RTP becomes non-zero
-
-### 2026-03-30T06:55:00Z — TASK-020: Fix frontend bootstrap import/export mismatch (handleIncomingCallIsolated)
-- **AI**: Cascade
-- **Scope**: Frontend incoming-call compatibility export only (restore boot/login; no Android runtime import-chain changes)
-- **Root cause / limitation**:
-  - `www/app/sipCallIncoming.js` re-exported a named export `handleIncomingCallIsolated` from `./incoming/handlers.js`.
-  - `www/app/incoming/handlers.js` did not export `handleIncomingCallIsolated` (it exported `handleIncomingCall`), causing a hard ESM load failure:
-    - `SyntaxError: ... does not provide an export named 'handleIncomingCallIsolated'`
-  - This breaks the module graph, so desktop + Android cannot load bootstrap and cannot log in.
-- **Fix**:
-  - Added `export async function handleIncomingCallIsolated(...) { return handleIncomingCall(...); }` as a compatibility alias.
-- **Files changed**:
-  - `www/app/incoming/handlers.js`
-  - `docs/now.md`
-  - `docs/session-log.md`
-  - `docs/change-ledger.md`
-- **Restart required**:
-  - No container restart required if `www/` is volume-mounted into `phone-nginx` (as in `docker-compose.yml`).
-  - Clients must hard refresh (Android may require site data clear) to drop cached module graphs.
-- **Verified result**:
-  - In-container check: nginx-served `/app/incoming/handlers.js` now includes `export async function handleIncomingCallIsolated`.
-- **Next safe step**:
-  - Hard refresh desktop + Android and confirm login works and no bootstrap `SyntaxError` is present.
-
-### 2026-03-30T07:05:00Z — TASK-019: Reduce false LTE relay mismatch diagnostics (selected pair + profile policy source)
-- **AI**: Cascade
-- **Scope**: Observability/diagnostics only (no SIP/Kamailio/RTPEngine/TURN behavior changes)
-- **Root cause / limitation**:
-  - `selected-pair-relay-mismatch` was too strict by treating the **remote** candidate type as needing to be `relay` under `icePolicy=relay`. In practice, relay-only policy constrains the **local** candidate; the remote candidate can legitimately be `host`/`srflx`.
-  - Outbound diagnostic context (`icePolicy`, `selectedProfile`) was derived from the current LTE toggle (`localStorage`) instead of the active UA profile (`st.selectedProfile`), so toggling after login could mislabel active calls and produce misleading "relay mismatch" rows.
-- **Fix**:
-  - `www/app/pc/stats.js`: only emit `selected-pair-relay-mismatch` when `icePolicy=relay` AND `localCandidateType !== relay`.
-  - `www/app/outgoing/call.js`: base outbound diag context on `st.selectedProfile` (UA build-time profile) with a safe fallback; derive `lteMode`/`icePolicy` from that.
-- **Files changed**:
-  - `www/app/pc/stats.js`
-  - `www/app/outgoing/call.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - Static asset redeploy required (frontend `www/` must be re-served). If served via container, reload/recreate the web server (e.g. `phone-nginx`).
-  - No push-server restart required for the diagnostic logic change itself.
-- **Verified result**:
-  - Code inspection only (no fresh LTE call verification in this session).
-- **Next safe step**:
-  - Redeploy frontend assets, then place one LTE outbound call and confirm `outbound-selected-pair-details.localCandidateType=relay` and that `selected-pair-relay-mismatch` only appears when local candidate is not relay.
-
-### 2026-03-30T10:45:00Z — TASK-018: Fix latest exports identity matching + include both legs under corrId + repair PDF table layout
-- **AI**: Cascade
-- **Scope**: latest export selection + PDF layout only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - Latest-caller/latest-receiver/latest-pair selection matched identities using only a simplistic local-part extraction and substring compare; in real events identities often appear as `sip:900900@...`, `tel:900900`, or wrapped in `<...>` and may appear on the opposite side as `peer`/`peerAor`.
-  - Pair export selected a single `corrKey` (= `corrId || callId`) then filtered `callEvents` by that exact key. When a call has a shared `corrId` but two SIP `callId` legs, filtering by a single `callId` key can collapse the dataset to one leg.
-  - PDF “table” rendering used one long monospaced padded line; when wrapping occurs, it wraps mid-row and destroys column alignment (mangled layout/cut text).
-- **Fix**:
-  - `adminCallLogExportRoutes.js`:
-    - normalize identity tokens (strip `sip:`/`sips:`/`tel:`, `<...>`, `;` params)
-    - match identities across local+peer fields
-    - after selecting the latest key, expand the exported dataset by `corrId` when present so both SIP Call-ID legs are included (corrId-first; callId-only fallback).
-  - `callLogPdf.js`:
-    - replaced monospaced padded-line output with a fixed-width wrapped table (per-cell wrapping + row-height pagination + header repeat).
-- **Files changed**:
-  - `push-server/src/routes/adminCallLogExportRoutes.js`
-  - `push-server/src/services/callLogPdf.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Container rebuild/restart succeeded.
-  - Not yet verified against a fresh `900900`↔`600600` call export (store was empty at check time).
-- **Next safe step**:
-  - Place a fresh `900900`↔`600600` call after restart, then verify caller-only, receiver-only, and pair exports in JSON/CSV/PDF all return a correlated bundle containing both legs.
-
-### 2026-03-30T08:35:00Z — TASK-018: Make PDF export match on-screen summary view (human-useful rows/fields) and reduce lost-leg risk
-- **AI**: Cascade
-- **Scope**: PDF export content + call log store capacity (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - PDF export previously rendered the raw event stream, so it could be dominated by noisy rows like `call-log-post-flush-ok` and omit the on-screen “summary” semantics (stage labels, derived PROBLEM rows, milestone dedupe).
-  - Exports scan only a slice of the in-memory buffer; with a small buffer and/or heavy flush-ok noise, one call leg’s events could be pushed out, causing PDF to show mostly one side.
-- **Fix**:
-  - Updated `callLogPdf.js` to generate a human-readable, summary-style dataset:
-    - suppress `call-log-post-flush-ok`
-    - include milestone filtering similar to `/admin/calllogs` summary view
-    - include derived PROBLEM rows (one-way audio, missing leg, LTE no receive)
-    - include columns: timestamp, stage, username, AOR, direction, peer, event, profile, call-id, candidate summary, message
-    - keep wrapping-aware pagination + header repeat
-  - Increased call log ring buffer capacity to reduce losing one leg in exports under noisy conditions.
-- **Files changed**:
-  - `push-server/src/services/callLogPdf.js`
-  - `push-server/src/services/callLogStore.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - In-container module load check: `callLogPdf` loads without runtime errors.
-  - Full PDF correctness (both legs + expected rows) still pending until verified against a fresh `900900`↔`600600` call export.
-- **Next safe step**:
-  - Place a fresh `900900`↔`600600` call, open `/admin/calllogs` (summary view), then export latest-pair PDF and confirm it contains both legs and the key rows (ICE/DTLS/media-stats/problem rows) in a human-useful order.
-
-### 2026-03-30T08:05:00Z — TASK-018: Fix PDF export truncation (pagination/wrapping) so full call timeline renders
-- **AI**: Cascade
-- **Scope**: PDF export rendering only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - PDF generation wrote each event row using `pdfkit` `doc.text(...)` without checking how much vertical space the **wrapped** row would consume.
-  - Long `msg` fields wrapped to multiple lines, overflowed the page, and subsequent rows were effectively cut off, making the PDF appear to contain only a few lines.
-- **Fix**:
-  - Implemented page-break logic using `doc.heightOfString(...)` to measure each rendered row height before writing it.
-  - Re-prints the table header after each `addPage()`.
-  - Sorts events chronologically (ts/_serverTs ascending) so PDF timeline matches JSON export order.
-  - Adds `eventCount:` to the PDF header to make it easy to compare against JSON `calls[0].events.length`.
-- **Files changed**:
-  - `push-server/src/services/callLogPdf.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Code inspection confirms wrapping-aware pagination is now in place.
-  - Container check shows the in-memory call log store currently has `0` events, so PDF content correctness could not yet be verified against a real call timeline.
-- **Next safe step**:
-  - Place a fresh `900900`↔`600600` call, then export latest-pair as JSON and PDF and confirm:
-    - PDF header `eventCount` matches JSON `calls[0].events.length`
-    - PDF includes both legs and all expected rows (problems/ICE/DTLS/media-stats) across multiple pages if needed.
-
-### 2026-03-30T07:35:00Z — TASK-018: Add visible caller/receiver filtering + simplify latest export UI + add PDF exports
-- **AI**: Cascade
-- **Scope**: Admin call log filtering + export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - Caller/receiver visible filtering was either missing from the UI or implemented in a way that could yield empty lists due to not matching peer identity; users could confuse export-only fields with list filtering.
-  - Latest export UI was cluttered with separate JSON/CSV buttons.
-  - No human-friendly PDF export existed.
-- **Fix**:
-  - Added visible-list `caller` / `receiver` filtering that matches on corrId-first correlation groups and considers both local and peer identity fields.
-  - Simplified latest exports UI to one Export action per scope (caller / receiver / caller+receiver) with a format selector (JSON/CSV/PDF).
-  - Added PDF export endpoints for latest-caller/latest-receiver/latest-pair using `pdfkit`.
-- **Files changed**:
-  - `push-server/src/services/callLogStore.js`
-  - `push-server/src/routes/adminRoutes.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/services/callLogPdf.js` (new)
-  - `push-server/src/routes/adminCallLogExportRoutes.js`
-  - `push-server/package.json`
-  - `push-server/package-lock.json`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - `/admin/calllogs` loads with new caller/receiver list filter inputs.
-  - PDF endpoints are registered and respond (404 when no matching correlated call exists in the in-memory buffer).
-  - Full export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer.
-- **Next safe step**:
-  - Place a fresh `900900`↔`600600` call after restart, then:
-    - verify visible list filters `caller`, `receiver`, and `caller+receiver`
-    - export latest caller/receiver/pair in JSON/CSV/PDF
-    - compare exported JSON/CSV/PDF against the visible trace to confirm both legs are included in the single correlated bundle.
-
-### 2026-03-30T05:05:00Z — TASK-018: Fix Export panel so Update export fields does not hide logs
-- **AI**: Cascade
-- **Scope**: Admin call log UI only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - The Export panel used a GET submit to `/admin/calllogs` to “update” export fields; this navigated/reloaded the page and could drop the user’s current visible list state, making it look like logs vanished.
-- **Fix**:
-  - Converted Export panel “Update export fields” into a JS-only action that updates export button URLs in-place and syncs hidden `exportCaller`/`exportReceiver` fields without navigation.
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - HTML now renders `Update export fields` as a `type=button` and export links are updated by client-side JS (no navigation).
-  - End-to-end export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer.
-- **Next safe step**:
-  - With logs visible on `/admin/calllogs`, click `Update export fields` and confirm the table does not change; then place a fresh 900900↔600600 call and verify latest exports.
-
-### 2026-03-30T04:45:00Z — TASK-018: Fix export-only caller/receiver controls + add latest-caller/latest-receiver exports
-- **AI**: Cascade
-- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - The caller/receiver fields were previously implemented as part of the normal Call Logs filter form (`caller`/`receiver`), which made the export workflow depend on the Filter submission and could make the UI confusing/unusable.
-  - Pair export matching was too strict/incorrect because it only considered local identity fields (`username`/`aor`) and not peer identity (`peer`/`peerAor`), so a 900900↔600600 call could fail to match even when present.
-- **Fix**:
-  - Separated export-only controls from list filters using `exportCaller` / `exportReceiver` and added a dedicated Export section with three export actions:
-    - latest for caller only
-    - latest for receiver only
-    - latest for caller+receiver together
-  - Added dedicated routes:
-    - `/admin/calllogs/latest-caller/export.(json|csv)?caller=...`
-    - `/admin/calllogs/latest-receiver/export.(json|csv)?receiver=...`
-  - Improved identity matching for latest exports to include both local and peer identity fields (`username`/`aor` + `peer`/`peerAor`).
-- **Files changed**:
-  - `push-server/src/routes/adminCallLogExportRoutes.js`
-  - `push-server/src/routes/adminRoutes.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - UI renders the new Export section and links point to the new routes.
-  - End-to-end export content correctness still pending until a fresh 900900↔600600 call exists in the in-memory buffer (exports return 404 when no matching correlated call exists).
-- **Next safe step**:
-  - Place a fresh call between `900900` and `600600`, then verify the three latest exports return a single correlated bundle with both legs.
-
-**Correction note (2026-03-30T04:45:00Z):** Previous entry at 2026-03-30T04:30:00Z states the export-only inputs were `caller`/`receiver` in the filter form; they were replaced with `exportCaller`/`exportReceiver` in a separate Export section to avoid coupling to list filtering.
-
-### 2026-03-30T04:30:00Z — TASK-018: Export latest correlated call for caller+receiver pair
-- **AI**: Cascade
-- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - Call Logs UI still surfaces per-leg rows/trace links; there was no single action to export the **most recent correlated call** that includes **both** a chosen caller and receiver together.
-- **Fix**:
-  - Added dedicated latest-pair export routes that locate the newest correlation group containing both caller and receiver usernames (corrId-first, callId fallback) and export the full correlated bundle.
-  - Added two filter inputs on `/admin/calllogs` for export-only use: `caller` and `receiver`, plus two export buttons when both are set.
-- **Files changed**:
-  - `push-server/src/routes/adminCallLogExportRoutes.js`
-  - `push-server/src/routes/adminRoutes.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/session-log.md`
-  - `docs/now.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Route responds with expected status codes:
-    - missing params => `400`
-    - no matching correlated call => `404`
-  - Full end-to-end export with a real 900900↔600600 call not yet verified in this session (in-memory buffer must contain that call)
-- **Next safe step**:
-  - Place one real call between `900900` and `600600`, then verify:
-    - UI: `/admin/calllogs?caller=900900&receiver=600600` → click export buttons
-    - Direct: `/admin/calllogs/latest-pair/export.json?caller=900900&receiver=600600`
-
-### 2026-03-30T04:10:00Z — TASK-018: Export latest correlated call for caller (username/ext)
-- **AI**: Cascade
-- **Scope**: Admin call log export workflow only (observability-only; no SIP/media/RTP/Kamailio/TURN behavior changes)
-- **Root cause / limitation**:
-  - Existing export flow required manually finding a row/trace or exporting the current filtered list; it did not provide a single-click "latest correlated call for caller" export.
-  - Additionally, `username` filtering could return zero events when clients only provided `aor` (UI could still display a username derived from `aor`, but backend filter only matched `ev.username`).
-- **Fix**:
-  - Added dedicated export routes to export the most recent correlated call for a given caller (corrId-first, fallback to SIP Call-ID).
-  - Fixed `queryEvents()` username/domain filtering to match either explicit fields or values derived from `aor`.
-- **Files changed**:
-  - `push-server/src/routes/adminRoutes.js`
-  - `push-server/src/routes/adminCallLogExportRoutes.js` (new)
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/services/callLogStore.js`
-  - `docs/session-log.md`
-- **Restart required**:
-  - push-server: `docker compose up -d --build push-server`
-- **Verified result**:
-  - Code + container rebuild completed; routes are registered under `/admin/calllogs/latest/export.json` and `/admin/calllogs/latest/export.csv`.
-  - Runtime export for a real caller trace not yet verified in this session (buffer currently contained only `call-log-post-flush-ok` events with no identity/corrId).
-- **Next safe step**:
-  - Place one real call from caller `900900`, then verify:
-    - `/admin/calllogs?username=900900`
-    - click "Export latest for caller (JSON/CSV)" and confirm the export includes both legs in one correlated bundle.
-
-### 2026-03-30T02:30:00Z — Android auto-login after hard refresh: remove pinned `?v=` module chain, enforce runtime `cb` graph
-- **AI**: Cascade (Windsurf)
-- **Scope**: Frontend module graph/versioning only (Android boot path); no SIP/media behavior changes
-- **Root cause (proven)**:
-  - Android was executing a stale pinned ES module chain because platform boot and Android call flow imported fixed `?v=...` modules.
-  - Evidence from Android stack traces during unwanted auto-login:
-    - `startAndRegister` -> `runOneTapEnableFlow` -> `controlBindings.js?v=...`
-  - Specific pinned sources:
-    - `www/app/main.js` imported `./runtime/android/bootstrapAndroid.js?v=1773033002`
-    - `www/app/runtime/android/callFlowAndroid.js` imported `../controlBindings.js?v=1773032001`
-- **Fix (final)**:
-  - Converted platform boot to runtime `cb`-tokenized dynamic imports so Android cannot fall back to stale `?v=` graphs.
-  - Removed remaining fixed `?v=` imports inside Android bootstrap.
-  - Android now consistently loads:
-    - `bootstrapAndroid.js?cb=<token>`
-    - `callFlowAndroid.js?cb=<token>`
-    - `controlBindings.js?cb=<token>`
-- **Files changed**:
-  - `www/app/main.js`
-  - `www/app/runtime/android/bootstrapAndroid.js`
-  - `www/app/runtime/android/callFlowAndroid.js`
-- **Restart required**:
-  - phone-nginx: redeploy updated `www/` static assets and reload/recreate nginx if your deploy does not live-update the docroot
-  - client: close/reopen app/tab recommended for clean verification
-- **Verified result**:
-  - Android Chrome/Google browser no longer auto-registers after hard refresh.
-  - Password entry does not trigger registration.
-  - Only **Enable Calls** triggers first registration.
-  - Android DevTools shows no `bootstrapAndroid.js?v=...` and no `controlBindings.js?v=...` (only `?cb=`).
-- **Next safe step**:
-  - Keep `?v=` usage out of the runtime module graph; if you must version, use the `cb` propagation pattern end-to-end.
-
-### 2026-03-29T18:30:00Z — Frontend cache self-heal + restore manual Enable Calls login trigger
-- **AI**: Cascade (Windsurf)
-- **Scope**: Frontend cache/versioning + UI login trigger behavior only (no SIP/media feature changes)
-- **Symptoms**:
-  - Android/PWA could boot into stale cached JS module graphs after deploy (ES module export mismatch crashes).
-  - Regression: entering username/password could auto-start registration instead of waiting for **Enable Calls**.
-- **Causes**:
-  - Stale HTML shell/SW/cache could pin an older module graph even after a deploy.
-  - `runtime/controlBindings.js` triggered `runOneTapEnableFlow()` on password Enter key, and recovery paths could trigger registration without explicit user intent.
-- **Fix**:
-  - Added deploy build stamping (`FRONTEND_BUILD`) + startup build handshake in `www/index.html(.template)` to auto-detect mismatched builds and self-heal (unregister SW, clear caches, clear safe storage, reload with new token).
-  - Fixed render pipeline to avoid `${...}` sequences from JS template literals tripping the `make render` unresolved-variable guard.
-  - Restored manual registration trigger: only **Enable Calls** initiates registration.
-  - Gated mobile/SW wake recovery registration behind explicit user intent (`webrtc_calls_enabled`).
-- **Files changed**:
-  - `Makefile`
-  - `www/index.html`
-  - `www/index.html.template`
-  - `nginx/phone.srve.cc.conf`
-  - `nginx/phone.srve.cc.conf.template`
-  - `www/app/runtime/controlBindings.js`
-  - `www/app/runtime/registerFlow.js`
-  - `www/app/runtime/mobileRecovery.js`
-  - `www/app/runtime/swWakeHandler.js`
-  - `www/app/sipRegister.js`
-  - `www/app/incoming/handlers.js`
-  - `www/app/outgoing/call.js`
-  - `docs/hard-refresh-self-heal.md`
-- **Restart required**:
-  - phone-nginx: redeploy static assets + recreate/reload nginx so cache headers + new HTML shell are live
-  - browser: no manual cache clearing required; clients should self-heal on next open
-- **Verified result**:
-  - `make render` succeeds with the unresolved-variable guard intact.
-- **Next safe step**:
-  - Deploy updated `www/` assets, recreate `phone-nginx`, then on Android verify:
-    - build indicator shows `running==latest`
-    - entering credentials does not auto-register
-    - only **Enable Calls** triggers registration
-
-### 2026-03-29T17:35:00Z — Android frontend boot: fix PC stats import error + add SW/build-id probes
-- **AI**: Cascade (Windsurf)
-- **Scope**: Frontend module graph + SW/cache observability (no SIP/media behavior changes)
-- **Symptom**:
-  - Android DevTools: `SyntaxError: The requested module './stats.js' does not provide an export named 'scheduleMediaStatsSnapshots' (at bind.js:4:27)`
-- **Cause**:
-  - The live client was loading a stale/cached `./stats.js` without the `scheduleMediaStatsSnapshots` export while `bind.js` expected it.
-  - This prevents the JS module graph from completing bootstrap, which cascades into remote logging/metadata probes not running.
-- **Fix**:
-  - `www/app/pc/bind.js`: import `./stats.js` using the same version query param convention as the rest of the app: `./stats.js?v=1773033002`.
-  - `www/sw.js`: ensure navigation documents are always fetched with `no-store` to avoid pinning an older HTML shell/module graph on Android/PWA; bump `SW_VERSION`.
-  - Added boot-time probes to prove which module URLs are executing and whether SW controls the page:
-    - `SW_CONTROLLED`, `BOOT_BUILD_ID`, `REMOTELOGS_BUILD_ID`, `SW_UNREGISTER_OK`, `CACHE_CLEAR_OK`.
-- **Files changed**:
-  - `www/app/pc/bind.js`
-  - `www/sw.js`
   - `www/app/page/bootstrapPage.js`
-  - `www/app/page/cacheActions.js`
-  - `www/app/remoteLogs/service.js`
-- **Deploy note**:
-  - Redeploy the static web assets under nginx docroot (`/var/www/phone`).
-  - On Android, use the in-app cache clear and/or clear site data to ensure the new module URLs load.
-
-### 2026-03-29T16:55:00Z — Mobile debug logs: fix nginx body-size rejection + add server proof markers for log ingest
-- **AI**: Cascade (Windsurf)
-- **Scope**: Mobile debug-log pipeline only (no SIP/media/registration changes)
-- **Root cause**:
-  - Metadata uploads succeed (`POST /api/logs/mobile/metadata`) because they are small.
-  - Debug log uploads (`POST /api/logs/mobile`) can be multi-megabyte; nginx defaults can reject large bodies before proxying to push-server, resulting in: device cards present (metadata), but no log files on disk and no push-server log ingest activity.
-- **Files changed**:
-  - `nginx/phone.srve.cc.conf`
-  - `nginx/phone.srve.cc.conf.template`
-  - `push-server/src/routes/logRoutes.js`
-- **Restart required**:
-  - phone-nginx: reload/recreate so `client_max_body_size` is active
-  - push-server: rebuild/recreate container so proof markers are active
-- **Verified result** (code-level):
-  - nginx now allows up to `25m` request bodies under `location /api/`.
-  - push-server now logs `[DEBUG_LOG_ROUTE_HIT]` and `[DEBUG_LOG_FILE_WRITE_OK/FAILED]` for `POST /api/logs/mobile` to prove whether log uploads reach storage.
-- **Next safe step**:
-  - Recreate phone-nginx + push-server, enable Debug Mode on Android, generate logs, then check:
-    - `docker logs push-server --tail=200` includes `[DEBUG_LOG_ROUTE_HIT]`
-    - `backups/mobile-logs/<deviceId>/latest.json` and `batch_*.json` exist
-
-### 2026-03-29T16:40:00Z — Mobile debug logs: fix upload acceptance + improve dashboard ordering + log visibility
-- **AI**: Cascade (Windsurf)
-- **Scope**: Mobile debug log pipeline + dashboard UX only (no SIP/media/call behavior changes)
-- **Root cause**:
-  - Debug metadata POSTs are small and were succeeding, so devices appeared on the dashboard.
-  - Debug log POST bodies can become multi-megabyte (aggregated batches); the server was using default `bodyParser.json()` limits, causing large `/api/logs/mobile` uploads to be rejected (typical symptom: HTTP 413 / request entity too large).
-  - Dashboard ordering did not enforce online-first, and the device cards did not clearly show whether logs existed / last log time.
-- **Files changed**:
-  - `push-server/server.js`
-  - `push-server/src/routes/logRoutes.js`
-  - `push-server/src/dashboard/dashboard.js`
-- **Restart required**:
-  - push-server: rebuild/recreate container so server.js + routes are live
-- **Verified result** (code-level):
-  - Server now accepts larger JSON bodies (`25mb`) so debug log uploads are not rejected while metadata still works.
-  - `/api/logs/mobile` now returns `latestLogTimestamp` + `hasLatestTail` so the dashboard can show log status without reading giant files.
-  - Dashboard now sorts: online first, then newest; offline after, then newest.
-- **Next safe step**:
-  - Recreate push-server container, enable Debug Mode on Android, generate logs, and confirm:
-    - device card shows `Logs: available (tail)` and a recent `Last log` timestamp
-    - "View Latest Logs" loads quickly and shows fresh lines
-
-### 2026-03-29T16:20:00Z — Mobile debug logs: fix dashboard 'View Latest Logs' for large aggregated debug batches
-- **AI**: Cascade (Windsurf)
-- **Scope**: Mobile debug log pipeline (dashboard latest-log retrieval) only — no SIP/media/registration behavior changes
-- **Root cause**:
-  - Some Android devices upload logs into an aggregated debug batch file (e.g. `batch_debug.json`) that can grow very large (10+ MB).
-  - The dashboard button "View Latest Logs" calls `GET /api/logs/mobile/:deviceId/latest`, which read+`JSON.parse`d the *entire* latest file.
-  - On large debug batch files, this makes the endpoint slow/unreliable and causes the dashboard modal to appear empty / show no useful logs.
-- **Files changed**:
-  - `push-server/src/routes/logRoutes.js`
-- **Restart required**:
-  - push-server: restart/recreate so the updated route is live
-- **Verified result**:
-  - Code-level fix: server now writes a small `latest.json` tail file (last ~400 logs) on each aggregated upload, and `/api/logs/mobile/:deviceId/latest` prefers that file when present.
-- **Next safe step**:
-  - Restart push-server, then on Android toggle Debug Mode ON and generate a few logs; confirm the device card's "View Latest Logs" shows fresh lines quickly.
-
-### 2026-03-29T04:00:00Z — Call logs page: PROBLEM highlighting, remove hardcoded buttons + auto-refresh, missing-leg detection
-- **AI**: Claude (Sonnet 4.6)
-- **Scope**: Admin call logs page usability only (observability-only; no call/media/SIP/LTE/TURN behavior changes)
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-- **Restart required**:
-  - push-server: `docker compose up -d --force-recreate push-server`
-- **Verified result**:
-  - Removed hardcoded 900900/600600 quick-filter nav links entirely
-  - Removed auto-refresh (was: 15s reload when no filter active) — page now stays stable while reading
-  - Added `.problem-row` (dark red bg, red stage label) and `.warn-row` (amber bg) CSS classes
-  - PROBLEM row types now show descriptive stage labels: "PROBLEM: one-way audio", "PROBLEM: missing leg", "PROBLEM: LTE no receive"
-  - Warn row types: "No inbound RTP", "No outbound RTP", "DTLS ok / no RTP", "Audio play failed", "ICE mismatch"
-  - Missing-leg detection: `incomplete-observability` PROBLEM row is now injected for ALL calls with only one leg present (was: only when one-way audio was also confirmed)
-  - Stats rows with zero RTP show inline `recv: 0` / `sent: 0` in red in the message cell
-  - Raw view and per-call trace: unchanged
-- **Next safe step**:
-  - Restart push-server and confirm at `/admin/calllogs`
-
-### 2026-03-29T03:10:00Z — Admin call logs usability: Summary vs Raw, dedupe, ICE error aggregation, identity normalization
-- **AI**: Cascade (Windsurf)
-- **Scope**: Admin log usability only (observability-only; no call/media/SIP/LTE/TURN behavior changes)
-- **Files changed**:
-  - `push-server/src/services/callLogStore.js`
-  - `push-server/src/routes/adminRoutes.js`
-  - `push-server/src/admin/callLogPage.js`
-  - `docs/current-task-status.md`
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
   - `docs/change-ledger.md`
 - **Restart required**:
-  - push-server: `docker compose up -d --force-recreate push-server`
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - `/admin/calllogs` defaults to **Summary** view and provides a Summary/Raw toggle; per-call trace defaults to **Raw**.
-  - Summary view hides/collapses noisy duplicates and aggregates repeated `*-preflight-icecandidateerror` into a single `... xN` row per short window.
-  - Malformed stored AOR values like `user@domain@domain` are normalized to `user@domain` at ingest.
+  - Code inspection only.
 - **Next safe step**:
-  - Compare Summary vs Raw for one outbound LTE call and confirm trace shows the complete raw timeline:
-    - Summary: `/admin/calllogs?username=900900&dir=outbound&profile=lte`
-    - Raw: `/admin/calllogs?username=900900&dir=outbound&profile=lte&view=raw`
+  - Runtime/browser: reload desktop client and confirm desktop renders via desktopAppLayout (registration+banner+dialpad) and that mobile renders unchanged.
 
-### 2026-03-29T03:00:00Z — TZ follow-up: fix push-server + kamailio local time (PKT) via zoneinfo mount
-- **AI**: Cascade (Windsurf)
-- **Scope**: Container timezone handling only for push-server/kamailio (no media/call behavior changes)
+### 2026-04-11T17:41:00Z — TASK-031: desktop UI/layout boundary; desktop-owned registration+dialpad layout + Log Off binds to btnStop
+- **AI**: Cascade
+- **Scope**: desktop-only layout/render + control binding fix. No Android/iOS changes.
 - **Files changed**:
-  - `docker-compose.yml`
-- **Restart required**:
-  - `docker compose up -d push-server kamailio` (recreate containers)
-- **Verified result**:
-  - Root cause: push-server (alpine) lacked `tzdata` and both images lacked usable `Asia/Karachi` zoneinfo; additionally host `/etc/timezone` was `Europe/Berlin`, so mounting it prevented correct TZ reporting
-  - Fix: mount host `/usr/share/zoneinfo` into push-server + kamailio and rely on `TZ=Asia/Karachi` (no `/etc/timezone` mount)
-  - Verified: `docker exec push-server date` and `docker exec kamailio date` now show PKT local time
-- **Next safe step**:
-  - Verify again:
-    - `docker exec push-server sh -lc 'date; echo "TZ=$TZ"; cat /etc/timezone 2>/dev/null || true; readlink -f /etc/localtime || true'`
-    - `docker exec kamailio sh -lc 'date; echo "TZ=$TZ"; cat /etc/timezone 2>/dev/null || true; readlink -f /etc/localtime || true'`
-
-### 2026-03-29T02:50:00Z — Admin logs: display timestamps in Asia/Karachi (PKT) + standardize container TZ
-- **AI**: Cascade (Windsurf)
-- **Scope**: Admin/log timezone handling only (no media/call behavior changes)
-- **Files changed**:
-  - `push-server/src/admin/callLogPage.js`
-  - `docker-compose.yml`
-- **Restart required**:
-  - `docker compose up -d` (to recreate containers with new `TZ` env)
-- **Verified result**:
-  - Confirmed root cause of ~5 hour skew: ISO timestamps (UTC) were rendered directly in admin UI
-  - Admin UI now formats timestamps for `Asia/Karachi` and shows `PKT` label while keeping canonical UTC stored
-  - Confirmed containers were running in UTC; added `TZ=Asia/Karachi` to compose for push-server/kamailio/rtpengine/coturn/phone-nginx
-- **Next safe step**:
-  - Recreate services and verify:
-    - `docker exec push-server date`
-    - `docker exec kamailio date`
-    - `docker exec rtpengine date`
-    - `docker exec coturn date`
-    - `docker exec phone-nginx date`
-
-### 2026-03-29T02:20:00Z — Observability: outbound caller-side (900900) call logs + POST failure surfacing
-- **AI**: Cascade (Windsurf)
-- **Scope**: Observability only — improve LTE caller-side outbound events and admin filtering (no media/SIP/LTE/TURN behavior changes)
-- **Files changed**:
-  - `www/app/features/callMediaLog.js`
-  - `www/app/outgoing/call.js`
-  - `www/app/features/lteCallGuard.js`
-  - `www/app/pc/bind.js`
-  - `push-server/src/services/callLogStore.js`
-  - `push-server/src/admin/callLogPage.js`
-- **Restart required**:
-  - push-server: yes
-  - Browser hard refresh: recommended
-- **Verified result**:
-  - Added explicit `outbound-*` caller-side events for LTE preflight/invite/remote audio
-  - Added `call-log-post-failed` reporting (HTTP status / fetch failure) to detect when caller-side POSTs fail
-  - Call Logs admin page includes quick filter links for `900900` outbound and `600600` inbound views
-- **Next safe step**:
-  - Restart push-server and hard refresh webphone, then place one LTE outbound call from `900900` and filter `/admin/calllogs?username=900900&dir=outbound&profile=lte`
-
-### 2026-03-29T02:10:00Z — UI: add dashboard/admin navigation links
-- **AI**: Cascade (Windsurf)
-- **Scope**: UI/navigation only — expose existing admin routes via visible links (no call/media/SIP/LTE/TURN/logging behavior changes)
-- **Files changed**:
-  - `push-server/dashboard.html`
-  - `push-server/src/dashboard/styles.css`
-  - `push-server/src/admin/callLogPage.js`
-  - `push-server/src/admin/routingPage.js`
-- **Restart required**:
-  - push-server: yes
-- **Verified result**:
-  - Dashboard now includes direct links to: `/dashboard`, `/diagnostics/errors`, `/admin/routing`, `/admin/calllogs`
-  - Routing + Call Logs pages include complete cross-links between these existing admin pages
-- **Next safe step**:
-  - Restart push-server and verify links render correctly on WireGuard admin listener
-
-### 2026-03-29T02:05:00Z — Fix: ensure runtime APP_CONFIG/TURN config is loaded (LTE relay preflight)
-- **AI**: Cascade (Windsurf)
-- **Scope**: LTE-only diagnosis + minimal page wiring fix (no Wi-Fi media behavior changes)
-- **Files changed**:
-  - `www/index.html`
-  - `www/index.html.template`
-- **Restart required**:
-  - If static assets are served from disk/container: restart the web server container serving `/www` or redeploy the updated assets.
-  - Browser: hard refresh required.
-- **Verified result**:
-  - Code-level root cause identified and corrected: `/config.js` (which defines `window.APP_CONFIG` from `data-turn-*`) was not loaded by the page, preventing TURN entries from being included in `ICE_SERVERS` and causing relay-only LTE preflight to yield zero candidates.
-- **Next safe step**:
-  - After redeploy/restart + hard refresh, confirm in browser console:
-    - `window.APP_CONFIG.TURN_HOST`, `TURN_USER`, `TURN_PASS` are non-empty
-    - `ICE_SERVERS` includes `turn:` and `turns:` URLs
-  - Run one LTE → LTE test and capture CoTURN logs during the attempt.
-
-### 2026-03-29T00:00:00Z — Workflow/handoff system created
-- **AI**: Cascade (Windsurf)
-- **Scope**: Documentation/workflow only (no media/call behavior changes)
-- **Files changed**:
-  - `docs/current-task-status.md`
-- **Files created**:
+  - `www/app/desktop/ui/desktopAppLayout.js`
+  - `www/app/page/bootstrapPage.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/session-log.md`
   - `docs/change-ledger.md`
-  - `docs/current-ai-handoff.md`
-  - `docs/known-good-baseline.md`
-- **Folders created**:
-  - `Work_Flow/2026/01-Jan/` through `Work_Flow/2026/12-Dec/`
 - **Restart required**:
-  - No
+  - Yes (reload web app/desktop client).
 - **Verified result**:
-  - Workflow docs exist under `docs/`
-  - `Work_Flow/2026/<month>` structure exists
+  - Code inspection only.
 - **Next safe step**:
-  - Each AI session must update: `docs/current-task-status.md`, `docs/change-ledger.md`, `docs/current-ai-handoff.md` (and `docs/known-good-baseline.md` only if baseline changed)
+  - Runtime/browser: reload desktop client, confirm registration UI renders, Log Off works, and receiver banner shows on INVITE.
+
+### 2026-04-11T17:33:00Z — TASK-031: desktop inbound ringing bugfix; add missing incoming alert banner DOM nodes
+- **AI**: Cascade
+- **Scope**: desktop-only incoming alert UI render support. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/layout/dialpadSection.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: desktop→desktop call and confirm receiver banner shows on INVITE; then fix `btnStop` vs `btnLogout` wiring mismatch.
+
+### 2026-04-11T17:16:00Z — TASK-031: desktop inbound ringing bugfix; reduce incoming alert suppression window (phantom-call guard)
+- **AI**: Cascade
+- **Scope**: desktop-only incoming alert UI guard fix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/incoming/desktopIncomingAlert.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: desktop→desktop call immediately after reload and confirm receiver banner/ringtone appear on INVITE.
+
+### 2026-04-10T05:12:00Z — TASK-031: desktop inbound ringing bugfix; receiver now starts incoming alert/banner/ringtone on INVITE
+- **AI**: Cascade
+- **Scope**: desktop-only incoming alert wiring (receiver onInvite). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: place desktop→desktop call and confirm receiver shows banner and plays ringtone on INVITE; then confirm alert stops on Answer/Reject.
+
+### 2026-04-10T05:07:00Z — TASK-031: desktop outbound isolation; hangup button no longer imports shared ringback/platformAdapter via outgoing/call/hangupCall.js
+- **AI**: Cascade
+- **Scope**: desktop-only outbound hangup boundary. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/desktopHangupCall.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: place outbound call and confirm nginx no longer serves `www/app/outgoing/ringback/index.js` or `www/app/runtime/shared/platformAdapter.js` due to hangup wiring.
+
+### 2026-04-10T04:52:00Z — TASK-031: desktop outbound ringback bugfix; remove shared outgoing media/ringback imports from desktop call state-change path
+- **AI**: Cascade
+- **Scope**: desktop-only outbound ringback/media ownership boundary (stateChange). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/desktopOutboundEstablished.js`
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/outgoing/desktopStartCall.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: place outbound call and confirm ringback starts on 180 and that shared modules `outgoing/media.js`, `ui/audioRoute/enforce.js`, `runtime/shared/platformAdapter.js`, `outgoing/ringback/index.js` are not loaded.
+
+### 2026-04-10T04:37:00Z — TASK-031: desktop registration bugfix; normalize account input so ext is username (parse user@domain)
+- **AI**: Cascade
+- **Scope**: desktop-only registration normalization fix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser verify: computed ext is username-only and `/ws` connect attempt + Kamailio register is observed.
+
+### 2026-04-10T04:33:00Z — TASK-031: desktop registration bugfix; read ext/pass directly from DOM to prevent empty credentials on Enable Calls
+- **AI**: Cascade
+- **Scope**: desktop-only registration value-read fix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser verify: click Enable Calls and confirm computed ext/passLen are non-empty and `/ws` connect attempt appears.
+
+### 2026-04-10T04:17:00Z — TASK-031: desktop registration debug; add temporary [DESKTOP_REG_DEBUG] logs to locate pre-/ws stop point
+- **AI**: Cascade
+- **Scope**: desktop-only temporary debug logging in registration click path. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser: click Enable Calls and capture the first missing [DESKTOP_REG_DEBUG] log line; fix that exact stop point, then remove debug logs.
+
+### 2026-04-10T04:05:00Z — TASK-031: desktop registration bugfix; refresh DOM cache in desktop bootstrap so Enable Calls handler attaches
+- **AI**: Cascade
+- **Scope**: desktop-only bootstrap/registration wiring fix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser verify: click Enable Calls and confirm registration attempt starts (status/transport changes).
+
+### 2026-04-10T03:57:00Z — TASK-031: desktop registration bugfix; Enable Calls button now triggers runOneTapEnableFlow (btnStart binding)
+- **AI**: Cascade
+- **Scope**: desktop-only registration UI binding fix. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Runtime/browser verify desktop registration attempt triggers after clicking Enable Calls.
+
+### 2026-04-09T20:25:00Z — TASK-031 Step 5: desktop-owned incoming alert/ringtone end-to-end; desktop no longer imports incoming/alert.js (shared ringtone requires requirePlatformAdapter)
+- **AI**: Cascade
+- **Scope**: desktop-only incoming alert/ringtone boundary completion. No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Continue TASK-031 Step 5: audit remaining desktop imports for shared `requirePlatformAdapter()` / `getPlatformAdapter()` usage and move the next highest-value boundary to desktop-owned (behavior-preserving; do not change Android/iOS).
+
+### 2026-04-09T20:10:00Z — TASK-031 Step 5: desktop-owned Established-state incoming handler; desktop no longer uses incoming/handlers/onEstablished.js (shared attachIncomingRemoteAudio)
+- **AI**: Cascade
+- **Scope**: desktop-only inbound Established-state handling + attach boundary (behavior-preserving). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/incoming/desktopIncomingEstablished.js`
+  - `www/app/desktop/incoming/desktopOnIncomingEstablished.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Continue TASK-031 Step 5: migrate desktop incoming alert/ringtone ownership off shared `requirePlatformAdapter()` onto a desktop-owned module/path (behavior-preserving; do not change Android/iOS).
+
+### 2026-04-09T19:45:00Z — TASK-031 Step 5: desktop-owned global audio-route enforcement; desktop call-controls no longer import shared ui/audioRoute/enforce.js (requirePlatformAdapter)
+- **AI**: Cascade
+- **Scope**: desktop-only UI audio-route enforcement boundary (behavior-preserving). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/ui/desktopCallControlAudioRoute.js`
+  - `www/app/desktop/ui/desktopCallControls.js`
+  - `www/app/desktop/ui/desktopCallControlsDtmf.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Continue TASK-031 Step 5: migrate the shared Established-state incoming attach path off shared `requirePlatformAdapter()` onto a desktop-owned module/path (behavior-preserving; do not change Android/iOS).
+
+### 2026-04-09T19:25:00Z — TASK-031 Step 5: desktop-owned incoming attach-audio; desktop answer flow no longer uses shared attachIncomingRemoteAudio.js (requirePlatformAdapter)
+- **AI**: Cascade
+- **Scope**: desktop-only incoming attach-audio boundary (behavior-preserving). No Android/iOS changes.
+- **Files changed**:
+  - `www/app/desktop/incoming/desktopIncomingRemoteAudio.js`
+  - `www/app/desktop/incoming/desktopIncomingRemoteAudioSupport.js`
+  - `www/app/desktop/incoming/desktopAnswerIncomingCall.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-031.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (reload web app/desktop client).
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Continue TASK-031 Step 5: migrate the global audio-route enforcement path off shared `requirePlatformAdapter()` onto a desktop-owned module/path (behavior-preserving; do not change Android/iOS).
+

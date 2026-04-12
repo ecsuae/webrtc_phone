@@ -92,21 +92,38 @@ export async function runMediaStatsTick({ pc, label, base, type }) {
         : (type === "media-stats-5s" ? "outbound-stats-5s" : (type === "media-stats-10s" ? "outbound-stats-10s" : null)))
       : null;
 
+    const localMicTrackId = base.localMicTrackId;
+    const localMicStreamId = base.localMicStreamId;
+    const senderTrackId0 = snap.senderTrackId;
+    const sameAsLocalMicTrack = !!(senderTrackId0 && localMicTrackId && senderTrackId0 === localMicTrackId);
+
     sendCallMediaEvent({
       type,
       ...base,
+      localMicTrackId,
+      localMicStreamId,
+      sameAsLocalMicTrack,
+      senderTrackId: senderTrackId0,
+      senderTrackEnabled: snap.senderTrackEnabled,
+      senderTrackReadyState: snap.senderTrackReadyState,
       inboundAudioPacketsReceived: snap.inPackets,
       inboundAudioBytesReceived: snap.inBytes,
       inboundAudioPacketsLost: snap.inLost,
       inboundAudioJitter: snap.inJitter ?? undefined,
       outboundAudioPacketsSent: snap.outPackets,
       outboundAudioBytesSent: snap.outBytes,
+      outboundAudioLevel: snap.outAudioLevel,
+      outboundTotalAudioEnergy: snap.outTotalAudioEnergy,
       audioLevel: snap.inAudioLevel,
       totalAudioEnergy: snap.inTotalAudioEnergy,
       inboundCodecMimeType: snap.inboundCodecMimeType,
       inboundCodecPayloadType: snap.inboundCodecPayloadType,
       inboundCodecClockRate: snap.inboundCodecClockRate,
       inboundCodecChannels: snap.inboundCodecChannels,
+      outboundCodecMimeType: snap.outboundCodecMimeType,
+      outboundCodecPayloadType: snap.outboundCodecPayloadType,
+      outboundCodecClockRate: snap.outboundCodecClockRate,
+      outboundCodecChannels: snap.outboundCodecChannels,
       decoderImplementation: snap.decoderImplementation,
       packetsDiscarded: snap.packetsDiscarded,
       packetsRepaired: snap.packetsRepaired,

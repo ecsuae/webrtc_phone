@@ -10,6 +10,7 @@ export async function readAudioStatsSnapshot(pc) {
   let inAudioLevel = null;
   let inTotalAudioEnergy = null;
   let inCodecId = null;
+  let outCodecId = null;
   let inDecoderImplementation = null;
   let inPacketsDiscarded = null;
   let inPacketsRepaired = null;
@@ -21,6 +22,12 @@ export async function readAudioStatsSnapshot(pc) {
 
   let outPackets = 0;
   let outBytes = 0;
+  let outAudioLevel = null;
+  let outTotalAudioEnergy = null;
+
+  let senderTrackId = null;
+  let senderTrackEnabled = null;
+  let senderTrackReadyState = null;
 
   let selectedPair = null;
   let localCand = null;
@@ -68,12 +75,28 @@ export async function readAudioStatsSnapshot(pc) {
     if (r.type === 'outbound-rtp' && r.kind === 'audio') {
       outPackets += r.packetsSent || 0;
       outBytes += r.bytesSent || 0;
+      if (r.codecId && !outCodecId) outCodecId = r.codecId;
+      if (typeof r.audioLevel === 'number' && Number.isFinite(r.audioLevel)) {
+        outAudioLevel = (typeof outAudioLevel === 'number') ? Math.max(outAudioLevel, r.audioLevel) : r.audioLevel;
+      }
+      if (typeof r.totalAudioEnergy === 'number' && Number.isFinite(r.totalAudioEnergy)) {
+        outTotalAudioEnergy = (typeof outTotalAudioEnergy === 'number') ? Math.max(outTotalAudioEnergy, r.totalAudioEnergy) : r.totalAudioEnergy;
+      }
     }
     if (r.type === 'transport') {
       if (r.dtlsState) dtlsState = r.dtlsState;
       if (r.selectedCandidatePairId) selectedPair = stats.get(r.selectedCandidatePairId);
     }
   });
+
+  try {
+    const senders = pc.getSenders?.() || [];
+    const audioSender = senders.find((s) => s?.track?.kind === "audio") || null;
+    const t = audioSender?.track || null;
+    senderTrackId = t?.id || null;
+    senderTrackEnabled = typeof t?.enabled === "boolean" ? t.enabled : null;
+    senderTrackReadyState = typeof t?.readyState === "string" ? t.readyState : null;
+  } catch {}
 
   if (!selectedPair) {
     stats.forEach((r) => {
@@ -110,6 +133,17 @@ export async function readAudioStatsSnapshot(pc) {
     }
   })();
 
+  const outCodec = (() => {
+    try {
+      if (!outCodecId) return null;
+      const c = stats.get(outCodecId);
+      if (!c || c.type !== 'codec') return null;
+      return c;
+    } catch {
+      return null;
+    }
+  })();
+
   return {
     inPackets,
     inBytes,
@@ -121,6 +155,10 @@ export async function readAudioStatsSnapshot(pc) {
     inboundCodecPayloadType: codec?.payloadType,
     inboundCodecClockRate: codec?.clockRate,
     inboundCodecChannels: codec?.channels,
+    outboundCodecMimeType: outCodec?.mimeType,
+    outboundCodecPayloadType: outCodec?.payloadType,
+    outboundCodecClockRate: outCodec?.clockRate,
+    outboundCodecChannels: outCodec?.channels,
     decoderImplementation: inDecoderImplementation ?? undefined,
     packetsDiscarded: inPacketsDiscarded ?? undefined,
     packetsRepaired: inPacketsRepaired ?? undefined,
@@ -131,6 +169,11 @@ export async function readAudioStatsSnapshot(pc) {
     jitterBufferEmittedCount: inJitterBufferEmittedCount ?? undefined,
     outPackets,
     outBytes,
+    outAudioLevel: outAudioLevel ?? undefined,
+    outTotalAudioEnergy: outTotalAudioEnergy ?? undefined,
+    senderTrackId: senderTrackId ?? undefined,
+    senderTrackEnabled: senderTrackEnabled ?? undefined,
+    senderTrackReadyState: senderTrackReadyState ?? undefined,
     selectedPair: selectedPairText,
     localCandidateType: localCand?.candidateType,
     remoteCandidateType: remoteCand?.candidateType,

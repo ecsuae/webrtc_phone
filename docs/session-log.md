@@ -362,7 +362,7 @@ Examples:
 2026-04-08 04:59 PKT | BLOCKED| TASK-028 | callLogPage.js is now a small coherent root; no remaining feature-level block can be extracted cleanly without forcing incoherent moves | AI: Cascade
 2026-04-08 05:02 PKT | STOP   | TASK-028 | Session end | worked 5m | AI: Cascade
 2026-04-08 06:21 PKT | START  | TASK-028 | Attempt runtime/browser verification of /admin/calllogs | AI: Cascade
-2026-04-08 06:22 PKT | BLOCKED| TASK-028 | Runtime/browser verification not possible in this session environment; recorded limitation (no code changes) | AI: Cascade
+2026-04-08 06:22 PKT | BLOCKED| TASK-028 | Runtime/browser verification not executed in this session (no live console/log evidence captured here); recorded limitation (no code changes) | AI: Cascade
 2026-04-08 06:24 PKT | STOP   | TASK-028 | Session end | worked 3m | AI: Cascade
 2026-04-08 06:48 PKT | START  | TASK-028 | Add synthesized summary rows for one-way-audio troubleshooting (operator-facing) | AI: Cascade
 2026-04-08 07:07 PKT | CHANGE | TASK-028 | Added themed media-verdict + anomaly synthesis modules and wired them into summary transform pipeline for /admin/calllogs summary view (no raw-view changes intended) | AI: Cascade
@@ -420,3 +420,339 @@ Examples:
 2026-04-09 08:47 PKT | START  | TASK-030 | Docs correction-only: reconcile docs/now.md with already-recorded TASK-030 verification | AI: Cascade
 2026-04-09 08:48 PKT | CHANGE | TASK-030 | Updated docs/now.md to reflect completed container + live-route verification and mark TASK-030 complete enough to close (optional /ws Upgrade probe deferred) | AI: Cascade
 2026-04-09 08:49 PKT | STOP   | TASK-030 | Session end | worked 2m | AI: Cascade
+2026-04-09 08:59 PKT | START  | TASK-031 | Task management (docs-only): close TASK-030 as complete enough; open TASK-031 desktop app refactor/isolation task | AI: Cascade
+2026-04-09 09:00 PKT | CHANGE | TASK-031 | Created docs/tasks/TASK-031.md and updated docs/now.md to make TASK-031 the active task (desktop standalone; no shared/common code with Android/iOS; no shared registration) | AI: Cascade
+2026-04-09 09:01 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+2026-04-09 09:02 PKT | START  | TASK-031 | Desktop inventory + isolation-first plan (docs-only): identify entrypoints, shared/common deps, and shared registration usage | AI: Cascade
+2026-04-09 09:03 PKT | CHANGE | TASK-031 | Recorded desktop entrypoints/build wiring and enumerated desktop dependencies on shared/common modules (including shared registration via sipRegister.js/registration/*); added concrete multi-step desktop isolation plan in docs/tasks/TASK-031.md; updated docs/now.md | AI: Cascade
+2026-04-09 09:04 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+2026-04-09 09:06 PKT | START  | TASK-031 | Step 1: add desktop-owned bootstrap entrypoint and switch desktop branch to load it (behavior-preserving) | AI: Cascade
+2026-04-09 09:07 PKT | CHANGE | TASK-031 | Added www/app/desktop/bootstrapDesktopApp.js and updated only desktop branch in www/app/main.js to load it; updated TASK-031 docs (task file + now.md + change-ledger) | AI: Cascade
+2026-04-09 09:08 PKT | VERIFY | TASK-031 | Code inspection only. Attempted node -c syntax check but Node refused because files are ES modules without ESM config. | AI: Cascade
+2026-04-09 09:09 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:10 PKT | START  | TASK-031 | Step 2: desktop-owned registration module; remove desktop dependency on sipRegister.js + runtime/registerFlow.js + registration/* | AI: Cascade
+2026-04-09 09:11 PKT | CHANGE | TASK-031 | Added www/app/desktop/registration/desktopRegistration.js and updated www/app/desktop/bootstrapDesktopApp.js to use desktop-owned createDesktopAppState/createDesktopRegistration (desktop no longer imports sipRegister.js for registration) | AI: Cascade
+2026-04-09 09:12 PKT | VERIFY | TASK-031 | Code inspection only (desktop registration path no longer references sipRegister.js / runtime/registerFlow.js / app/registration/*). | AI: Cascade
+2026-04-09 09:13 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:15 PKT | START  | TASK-031 | Step 3: desktop-owned call-control bindings; remove desktop dependency on runtime/shared/controlBindingsCore.js | AI: Cascade
+2026-04-09 09:16 PKT | CHANGE | TASK-031 | Added www/app/desktop/bindings/desktopControlBindings.js and updated www/app/runtime/desktop/callFlowDesktop.js to use it (desktop no longer imports controlBindingsCore.js) | AI: Cascade
+2026-04-09 09:17 PKT | VERIFY | TASK-031 | Code inspection only (confirmed no controlBindingsCore.js import under www/app/runtime/desktop). | AI: Cascade
+2026-04-09 09:18 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:19 PKT | START  | TASK-031 | Step 4: desktop-owned runtime recovery hooks; remove desktop dependency on runtime/mobileRecovery.js + runtime/swWakeHandler.js | AI: Cascade
+2026-04-09 09:20 PKT | CHANGE | TASK-031 | Added www/app/desktop/runtime/desktopRecoveryHooks.js + desktopServiceWorkerWakeHandler.js and updated www/app/desktop/bootstrapDesktopApp.js to use them (desktop no longer imports shared mobileRecovery/swWakeHandler) | AI: Cascade
+2026-04-09 09:21 PKT | VERIFY | TASK-031 | Code inspection only (confirmed desktop bootstrap no longer imports runtime/mobileRecovery.js or runtime/swWakeHandler.js). | AI: Cascade
+2026-04-09 09:22 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:24 PKT | START  | TASK-031 | Step 5 (partial): desktop-owned platform adapter registry; remove desktop bootstrap dependency on runtime/shared/platformAdapter.js | AI: Cascade
+2026-04-09 09:25 PKT | CHANGE | TASK-031 | Added www/app/desktop/runtime/platformAdapterRegistry.js and updated www/app/desktop/bootstrapDesktopApp.js to use setDesktopPlatformAdapter (desktop bootstrap no longer imports runtime/shared/platformAdapter.js) | AI: Cascade
+2026-04-09 09:26 PKT | VERIFY | TASK-031 | Code inspection only (confirmed no runtime/shared/platformAdapter.js import under www/app/desktop). | AI: Cascade
+2026-04-09 09:27 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:43 PKT | START  | TASK-031 | Step 5: desktop-owned outbound ringback + provisional delegate; remove desktop dependency on outgoing/ringback/index.js ownership | AI: Cascade
+2026-04-09 09:44 PKT | CHANGE | TASK-031 | Added www/app/desktop/outgoing/desktopRingbackDelegate.js + desktopStartCall.js and updated desktopControlBindings.js to use desktop-owned startCall (no shared sipCall.js) | AI: Cascade
+2026-04-09 09:45 PKT | VERIFY | TASK-031 | Code inspection only (desktop/outgoing has no requirePlatformAdapter()/outgoing/ringback/index.js imports; desktop bindings no longer import sipCall.js). | AI: Cascade
+2026-04-09 09:46 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:50 PKT | START  | TASK-031 | Step 5: desktop-owned outgoing media + audio-route enforcement; remove desktop dependency on outgoing/media.js (requirePlatformAdapter) | AI: Cascade
+2026-04-09 09:51 PKT | CHANGE | TASK-031 | Added www/app/desktop/outgoing/desktopOutgoingMedia.js and updated desktopRingbackDelegate.js to use it (desktop outbound no longer imports shared outgoing/media.js or UI enforceCurrentAudioRoute path) | AI: Cascade
+2026-04-09 09:52 PKT | VERIFY | TASK-031 | Code inspection only (www/app/desktop/outgoing has no requirePlatformAdapter() and no outgoing/media.js imports). | AI: Cascade
+2026-04-09 09:53 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-09 09:56 PKT | START  | TASK-031 | Step 5: desktop-owned incoming ringtone priming; remove desktop dependency on incoming/alert/ringtone.js (requirePlatformAdapter) | AI: Cascade
+2026-04-09 09:57 PKT | CHANGE | TASK-031 | Added www/app/desktop/incoming/desktopIncomingAlert.js and updated desktopControlBindings.js to use desktop-owned primeIncomingRingtone (desktop no longer imports incoming/alert.js) | AI: Cascade
+2026-04-09 09:58 PKT | VERIFY | TASK-031 | Code inspection only (desktop/bindings no longer imports incoming/alert.js; desktop/incoming has no requirePlatformAdapter usage). | AI: Cascade
+2026-04-09 09:59 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 00:16 PKT | START  | TASK-031 | Step 5: desktop-owned incoming attach-audio boundary; stop desktop answer flow from using shared attachIncomingRemoteAudio.js (requirePlatformAdapter) | AI: Cascade
+2026-04-10 00:19 PKT | CHANGE | TASK-031 | Added desktop incoming attach module (desktopIncomingRemoteAudio.js + support) and desktop answer handler (desktopAnswerIncomingCall.js); wired desktopControlBindings.js to answer via desktop handler | AI: Cascade
+2026-04-10 00:20 PKT | VERIFY | TASK-031 | Code inspection only (desktop no longer references attachIncomingRemoteAudio; desktop attach uses getDesktopPlatformAdapter). | AI: Cascade
+2026-04-10 00:21 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+2026-04-10 00:34 PKT | START  | TASK-031 | Step 5: desktop-owned global audio-route enforcement; remove desktop dependency on ui/audioRoute/enforce.js (requirePlatformAdapter) | AI: Cascade
+2026-04-10 00:37 PKT | CHANGE | TASK-031 | Added desktop UI call-controls audio-route module (desktop/ui/*) and switched desktopControlBindings.js to setupDesktopCallControls (no shared audioRoute/enforce import); fixed btnCall incoming-answer to use answerIncomingCallDesktop | AI: Cascade
+2026-04-10 00:38 PKT | VERIFY | TASK-031 | Code inspection only (desktop/bindings no longer imports ui/callControls.js; desktop uses getDesktopPlatformAdapter for audio route enforcement). | AI: Cascade
+2026-04-10 00:39 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+2026-04-10 03:22 PKT | START  | TASK-031 | Step 5: desktop-owned Established-state incoming handler; stop desktop from using incoming/handlers/onEstablished.js (shared attachIncomingRemoteAudio) | AI: Cascade
+2026-04-10 03:26 PKT | CHANGE | TASK-031 | Added desktop incoming established handler (desktopOnIncomingEstablished.js + wiring) and wired desktopRegistration.js onInvite to attach established listener; established now uses attachDesktopIncomingRemoteAudio | AI: Cascade
+2026-04-10 03:27 PKT | VERIFY | TASK-031 | Code inspection only (desktop no longer imports incoming/handlers/onEstablished.js or attachIncomingRemoteAudio; desktop attach uses attachDesktopIncomingRemoteAudio). | AI: Cascade
+2026-04-10 03:28 PKT | STOP   | TASK-031 | Session end | worked 6m | AI: Cascade
+2026-04-10 03:31 PKT | START  | TASK-031 | Step 5: desktop-owned incoming alert/ringtone end-to-end; stop desktop from importing incoming/alert.js (shared ringtone requires requirePlatformAdapter) | AI: Cascade
+2026-04-10 03:32 PKT | CHANGE | TASK-031 | Updated desktopAnswerIncomingCall.js to use desktopIncomingAlert.js stopIncomingAlert (desktop no longer imports shared incoming/alert/*). | AI: Cascade
+2026-04-10 03:33 PKT | VERIFY | TASK-031 | Code inspection only (no incoming/alert.js import under www/app/desktop; no requirePlatformAdapter usage under desktop). | AI: Cascade
+2026-04-10 03:34 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 03:56 PKT | START  | TASK-031 | Desktop registration bugfix: Enable Calls click path does not trigger runOneTapEnableFlow (wrong button binding) | AI: Cascade
+2026-04-10 03:57 PKT | CHANGE | TASK-031 | Fixed desktopControlBindings.js to bind Enable Calls via el.btnStart (UI id) instead of non-existent el.btnEnableCalls. | AI: Cascade
+2026-04-10 03:58 PKT | VERIFY | TASK-031 | Code inspection only (registrationSection renders btnStart; desktopControlBindings now binds btnStart to runOneTapEnableFlow). | AI: Cascade
+2026-04-10 03:59 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 04:04 PKT | START  | TASK-031 | Desktop registration bugfix: ensure desktop bootstrap refreshes DOM cache so Enable Calls handler attaches | AI: Cascade
+2026-04-10 04:05 PKT | CHANGE | TASK-031 | Added refreshEl() call in desktop/bootstrapDesktopApp.js so desktop uses current DOM nodes (btnStart) when binding handlers. | AI: Cascade
+2026-04-10 04:06 PKT | VERIFY | TASK-031 | Code inspection only (bootstrapPage renders layout + refreshEl on versioned dom.js; desktop bootstrap now refreshes on its dom.js instance before binding). | AI: Cascade
+2026-04-10 04:07 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 04:16 PKT | START  | TASK-031 | Desktop registration bugfix: add temporary debug logs to prove where Enable Calls path stops before /ws | AI: Cascade
+2026-04-10 04:17 PKT | CHANGE | TASK-031 | Added temporary [DESKTOP_REG_DEBUG] logs in desktopControlBindings + desktopRegistration to trace btnStart click → runOneTapEnableFlow → startAndRegister → startDesktopUaAndRegister. | AI: Cascade
+2026-04-10 04:18 PKT | VERIFY | TASK-031 | Code inspection only (logs are desktop-only and placed at click + registration entrypoints + early-return). | AI: Cascade
+2026-04-10 04:19 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 04:32 PKT | START  | TASK-031 | Desktop registration bugfix: ext/pass read as empty at Enable Calls; fix value-read path | AI: Cascade
+2026-04-10 04:33 PKT | CHANGE | TASK-031 | Updated desktopRegistration.js to read #ext/#pass directly from DOM (fallback to ui.*) before early-return checks. | AI: Cascade
+2026-04-10 04:34 PKT | VERIFY | TASK-031 | Code inspection only (value-read fix is desktop-only; debug logs kept for runtime confirmation). | AI: Cascade
+2026-04-10 04:35 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 04:36 PKT | START  | TASK-031 | Desktop registration bugfix: normalize account input so ext is username (avoid user@domain in ext) | AI: Cascade
+2026-04-10 04:37 PKT | CHANGE | TASK-031 | Updated desktopRegistration.js to parse raw ext/domain via parseSipAccount and use parsed username/domain for UA options. | AI: Cascade
+2026-04-10 04:38 PKT | VERIFY | TASK-031 | Code inspection only (computed ext now derives from parsed username even if user typed user@domain). | AI: Cascade
+2026-04-10 04:39 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 04:51 PKT | START  | TASK-031 | Desktop outbound ringback bugfix: stop desktop outbound flow from importing shared outgoing media/ringback via outgoing/call/stateChange.js | AI: Cascade
+2026-04-10 04:52 PKT | CHANGE | TASK-031 | Added desktop-owned outbound state change handler (desktop/outgoing/*) and switched desktopStartCall.js to use it (prevents shared outgoing/media.js + ringback.js + runtime/shared/platformAdapter.js loads). | AI: Cascade
+2026-04-10 04:53 PKT | VERIFY | TASK-031 | Code inspection only (desktopStartCall no longer imports outgoing/call/stateChange.js; desktop state change uses desktopOutgoingMedia + desktopRingbackDelegate). | AI: Cascade
+2026-04-10 04:54 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 05:06 PKT | START  | TASK-031 | Desktop outbound isolation: remove shared hangupCall -> shared ringback/platformAdapter imports from desktop bindings | AI: Cascade
+2026-04-10 05:07 PKT | CHANGE | TASK-031 | Desktop hangup button now calls desktopHangupCall (uses desktopRingbackDelegate.stopRingbackTone) instead of shared outgoing/call/hangupCall.js (which imports shared outgoing/ringback/index.js and runtime/shared/platformAdapter.js). | AI: Cascade
+2026-04-10 05:08 PKT | VERIFY | TASK-031 | Code inspection only (desktopControlBindings no longer imports outgoing/call/hangupCall.js). | AI: Cascade
+2026-04-10 05:09 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-10 05:11 PKT | START  | TASK-031 | Desktop inbound ringing bugfix: receiver does not show/play incoming alert on INVITE | AI: Cascade
+2026-04-10 05:12 PKT | CHANGE | TASK-031 | Desktop UA onInvite now calls desktopIncomingAlert.startIncomingAlert(callerDisplay) after setting st.incomingInvitation and updating buttons (desktop-only). | AI: Cascade
+2026-04-10 05:13 PKT | VERIFY | TASK-031 | Code inspection only (startIncomingAlert wired at desktopRegistration UA delegate onInvite). | AI: Cascade
+2026-04-10 05:14 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-11 22:14 PKT | START  | TASK-031 | Desktop inbound ringing bugfix: relax phantom-call suppression that blocks incoming alert shortly after load | AI: Cascade
+2026-04-11 22:16 PKT | CHANGE | TASK-031 | Reduced desktopIncomingAlert guard window from 5000ms to 500ms for both primeIncomingRingtone() and startIncomingAlert() so receiver can ring on real INVITEs soon after load. | AI: Cascade
+2026-04-11 22:17 PKT | VERIFY | TASK-031 | Code inspection only (onInvite already calls startIncomingAlert; guard no longer blocks for ~5s). | AI: Cascade
+2026-04-11 22:18 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:31 PKT | START  | TASK-031 | Desktop inbound ringing bugfix: restore missing incoming alert banner DOM so receiver UI can show ringing state | AI: Cascade
+2026-04-11 22:33 PKT | CHANGE | TASK-031 | Added incomingAlertBanner/incomingAlertTitle nodes to dialpadSection so desktopIncomingAlert.startIncomingAlert can display banner on INVITE (desktop-owned alert path). | AI: Cascade
+2026-04-11 22:34 PKT | VERIFY | TASK-031 | Code inspection only (banner element ids now exist in rendered layout; onInvite calls startIncomingAlert). | AI: Cascade
+2026-04-11 22:35 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:39 PKT | START  | TASK-031 | Desktop UI/layout boundary: desktop-owned registration+dialpad layout; fix Log Off wiring to btnStop | AI: Cascade
+2026-04-11 22:41 PKT | CHANGE | TASK-031 | Added desktop/ui/desktopAppLayout.js and made bootstrapPage render it on desktop only; desktopControlBindings now binds stopAndUnregister to el.btnStop (not el.btnLogout). | AI: Cascade
+2026-04-11 22:42 PKT | VERIFY | TASK-031 | Code inspection only (desktop render path uses desktopAppLayout; Log Off uses btnStop id). | AI: Cascade
+2026-04-11 22:43 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:45 PKT | START  | TASK-031 | Desktop UI/layout boundary: move desktop layout selection out of shared bootstrapPage into desktop bootstrap | AI: Cascade
+2026-04-11 22:46 PKT | CHANGE | TASK-031 | bootstrapPage now always renders shared layout; desktop bootstrap now renders desktopAppLayout before refreshEl, fully owning desktop layout selection. | AI: Cascade
+2026-04-11 22:47 PKT | VERIFY | TASK-031 | Code inspection only (desktop layout selection no longer in shared bootstrapPage.js). | AI: Cascade
+2026-04-11 22:48 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-11 23:46 PKT | START  | TASK-031 | Desktop UI support boundary: replace shared historyActivity/callTimer with desktop-owned desktopUiSupport module | AI: Cascade
+2026-04-11 23:46 PKT | CHANGE | TASK-031 | Added desktopUiSupport.js + desktopUiSupportState.js and switched desktop bootstrap to use createDesktopHistoryActivity/createDesktopCallTimer. | AI: Cascade
+2026-04-11 23:46 PKT | STOP   | TASK-031 | Session end | worked 10m | AI: Cascade
+2026-04-11 22:50 PKT | START  | TASK-031 | Desktop DOM boundary: desktop-owned DOM refs for registration+dialpad+incoming-alert UI | AI: Cascade
+2026-04-11 22:52 PKT | CHANGE | TASK-031 | Added desktopDomRefs.js and switched desktop bootstrap/bindings/registration to use desktopEl/refreshDesktopEl (no shared dom.js el/refreshEl in desktop path for this boundary). | AI: Cascade
+2026-04-11 22:53 PKT | VERIFY | TASK-031 | Code inspection only (desktop/bootstrapDesktopApp no longer imports ../dom.js; desktopRegistration reads desktopEl.ext/pass). | AI: Cascade
+2026-04-11 22:54 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:55 PKT | START  | TASK-031 | Runtime verification only: desktop-owned layout + desktop DOM refs boundary | AI: Cascade
+2026-04-11 22:56 PKT | BLOCKED| TASK-031 | Runtime/browser verification not executed in this session (no live console/log evidence captured here); boundary remains unproven at runtime. | AI: Cascade
+2026-04-11 22:57 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+2026-04-11 23:10 PKT | START  | TASK-031 | Desktop UI shell isolation: move header/status/log sections from shared layout into desktop-owned modules | AI: Cascade
+2026-04-11 23:11 PKT | CHANGE | TASK-031 | Added desktopShellSections.js and updated desktopAppLayout.js to use desktopHeaderSection/desktopStatusBarSection/desktopLogSection (no shared layout section imports). | AI: Cascade
+2026-04-11 23:12 PKT | VERIFY | TASK-031 | Code inspection only (desktopAppLayout no longer imports layout/headerSection.js, statusBarSection.js, logSection.js). | AI: Cascade
+2026-04-11 23:13 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-11 23:28 PKT | START  | TASK-031 | Fix desktop outgoing call start: dial target read before Inviter creation | AI: Cascade
+2026-04-11 23:29 PKT | CHANGE | TASK-031 | Desktop outbound startCall now reads dial target from desktopDomRefs to avoid stale shared dom el.dial (pre-inviter bailout) | AI: Cascade
+2026-04-11 23:29 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+2026-04-11 23:33 PKT | START  | TASK-031 | Desktop UI ownership boundary: replace shared ui/appUi.js with desktop-owned desktopAppUi.js | AI: Cascade
+2026-04-11 23:34 PKT | CHANGE | TASK-031 | Added desktop/ui/desktopAppUi.js and switched desktop bootstrap to use createDesktopUi() (no shared ui/appUi.js dependency in desktop bootstrap). | AI: Cascade
+2026-04-11 23:34 PKT | STOP   | TASK-031 | Session end | worked 12m | AI: Cascade
+2026-04-11 22:14 PKT | START  | TASK-031 | Desktop inbound ringing bugfix: relax phantom-call suppression that blocks incoming alert shortly after load | AI: Cascade
+2026-04-11 22:16 PKT | CHANGE | TASK-031 | Reduced desktopIncomingAlert guard window from 5000ms to 500ms for both primeIncomingRingtone() and startIncomingAlert() so receiver can ring on real INVITEs soon after load. | AI: Cascade
+2026-04-11 22:17 PKT | VERIFY | TASK-031 | Code inspection only (onInvite already calls startIncomingAlert; guard no longer blocks for ~5s). | AI: Cascade
+2026-04-11 22:18 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:31 PKT | START  | TASK-031 | Desktop inbound ringing bugfix: restore missing incoming alert banner DOM so receiver UI can show ringing state | AI: Cascade
+2026-04-11 22:33 PKT | CHANGE | TASK-031 | Added incomingAlertBanner/incomingAlertTitle nodes to dialpadSection so desktopIncomingAlert.startIncomingAlert can display banner on INVITE (desktop-owned alert path). | AI: Cascade
+2026-04-11 22:34 PKT | VERIFY | TASK-031 | Code inspection only (banner element ids now exist in rendered layout; onInvite calls startIncomingAlert). | AI: Cascade
+2026-04-11 22:35 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:39 PKT | START  | TASK-031 | Desktop UI/layout boundary: desktop-owned registration+dialpad layout; fix Log Off wiring to btnStop | AI: Cascade
+2026-04-11 22:41 PKT | CHANGE | TASK-031 | Added desktop/ui/desktopAppLayout.js and made bootstrapPage render it on desktop only; desktopControlBindings now binds stopAndUnregister to el.btnStop (not el.btnLogout). | AI: Cascade
+2026-04-11 22:42 PKT | VERIFY | TASK-031 | Code inspection only (desktop render path uses desktopAppLayout; Log Off uses btnStop id). | AI: Cascade
+2026-04-11 22:43 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:45 PKT | START  | TASK-031 | Desktop UI/layout boundary: move desktop layout selection out of shared bootstrapPage into desktop bootstrap | AI: Cascade
+2026-04-11 22:46 PKT | CHANGE | TASK-031 | bootstrapPage now always renders shared layout; desktop bootstrap now renders desktopAppLayout before refreshEl, fully owning desktop layout selection. | AI: Cascade
+2026-04-11 22:47 PKT | VERIFY | TASK-031 | Code inspection only (desktop layout selection no longer in shared bootstrapPage.js). | AI: Cascade
+2026-04-11 22:48 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-11 22:50 PKT | START  | TASK-031 | Desktop DOM boundary: desktop-owned DOM refs for registration+dialpad+incoming-alert UI | AI: Cascade
+2026-04-11 22:52 PKT | CHANGE | TASK-031 | Added desktopDomRefs.js and switched desktop bootstrap/bindings/registration to use desktopEl/refreshDesktopEl (no shared dom.js el/refreshEl in desktop path for this boundary). | AI: Cascade
+2026-04-11 22:53 PKT | VERIFY | TASK-031 | Code inspection only (desktop/bootstrapDesktopApp no longer imports ../dom.js; desktopRegistration reads desktopEl.ext/pass). | AI: Cascade
+2026-04-11 22:54 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-11 22:55 PKT | START  | TASK-031 | Runtime verification only: desktop-owned layout + desktop DOM refs boundary | AI: Cascade
+2026-04-11 22:56 PKT | BLOCKED| TASK-031 | Runtime/browser verification not executed in this session (no live console/log evidence captured here); boundary remains unproven at runtime. | AI: Cascade
+2026-04-11 22:57 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+2026-04-11 23:10 PKT | START  | TASK-031 | Desktop UI shell isolation: move header/status/log sections from shared layout into desktop-owned modules | AI: Cascade
+2026-04-11 23:11 PKT | CHANGE | TASK-031 | Added desktopShellSections.js and updated desktopAppLayout.js to use desktopHeaderSection/desktopStatusBarSection/desktopLogSection (no shared layout section imports). | AI: Cascade
+2026-04-11 23:12 PKT | VERIFY | TASK-031 | Code inspection only (desktopAppLayout no longer imports layout/headerSection.js, statusBarSection.js, logSection.js). | AI: Cascade
+2026-04-11 23:13 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+2026-04-12 00:10 PKT | START  | TASK-031 | Desktop logging isolation boundary | AI: Cascade
+2026-04-12 00:12 PKT | CHANGE | TASK-031 | Added desktopLogging.js (desktop-owned logging/timestamps); desktop bootstrap no longer imports shared log.js or config.js | AI: Cascade
+2026-04-12 00:14 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+2026-04-12 00:20 PKT | START  | TASK-031 | Desktop logging boundary - extend to all desktop modules | AI: Cascade
+2026-04-12 00:25 PKT | CHANGE | TASK-031 | Updated 12 desktop modules to use desktopLogging.js (nowISO/logLine from desktop-owned, not shared config.js/log.js) | AI: Cascade
+2026-04-12 00:27 PKT | VERIFY | TASK-031 | grep confirms no remaining config.js/log.js imports in desktop path | AI: Cascade
+2026-04-12 00:28 PKT | STOP   | TASK-031 | Session end | worked 18m | AI: Cascade
+2026-04-12 00:30 PKT | START  | TASK-031 | Desktop session recovery isolation boundary | AI: Cascade
+2026-04-12 00:32 PKT | CHANGE | TASK-031 | Added desktopRecoverySession.js (desktop-owned password hydration/clear); no longer imports shared push/recoverySession.js | AI: Cascade
+2026-04-12 00:33 PKT | VERIFY | TASK-031 | grep confirms no remaining recoverySession.js imports in desktop path | AI: Cascade
+2026-04-12 00:34 PKT | STOP   | TASK-031 | Session end | worked 6m | AI: Cascade
+2026-04-12 01:24 PKT | START  | TASK-031 | Desktop remote logging isolation boundary | AI: Cascade
+2026-04-12 01:26 PKT | CHANGE | TASK-031 | Added desktopRemoteLogs.js wrapper; bootstrapDesktopApp now uses startDesktopRemoteLogging (not direct shared import) | AI: Cascade
+2026-04-12 01:27 PKT | VERIFY | TASK-031 | grep confirms bootstrapDesktopApp no longer directly imports shared remoteLogs.js | AI: Cascade
+2026-04-12 01:28 PKT | STOP   | TASK-031 | Session end | worked 6m | AI: Cascade
+2026-04-12 01:35 PKT | START  | TASK-031 | Desktop incoming reject isolation boundary | AI: Cascade
+2026-04-12 01:38 PKT | CHANGE | TASK-031 | Added desktopRejectIncomingCall.js (desktop-owned reject/cleanup); no longer imports shared sipCallIncoming.js | AI: Cascade
+2026-04-12 01:39 PKT | VERIFY | TASK-031 | grep confirms no remaining sipCallIncoming.js imports in desktop path | AI: Cascade
+2026-04-12 01:40 PKT | STOP   | TASK-031 | Session end | worked 12m | AI: Cascade
+2026-04-12 01:42 PKT | START  | TASK-031 | Desktop tab navigation isolation boundary | AI: Cascade
+2026-04-12 01:44 PKT | CHANGE | TASK-031 | Added desktopTabNavigation.js (desktop-owned tab nav); no longer imports shared ui/tabNavigation.js | AI: Cascade
+2026-04-12 01:45 PKT | VERIFY | TASK-031 | grep confirms no remaining tabNavigation.js imports in desktop path | AI: Cascade
+2026-04-12 01:46 PKT | STOP   | TASK-031 | Session end | worked 10m | AI: Cascade
+2026-04-12 01:48 PKT | START  | TASK-031 | Desktop incoming state cleanup isolation | AI: Cascade
+2026-04-12 01:50 PKT | CHANGE | TASK-031 | Added desktopIncomingState.js (desktop-owned cleanup); no longer imports shared incoming/handlers/state.js | AI: Cascade
+2026-04-12 01:51 PKT | VERIFY | TASK-031 | grep confirms no remaining incoming/handlers/state.js imports in desktop path | AI: Cascade
+2026-04-12 01:52 PKT | STOP   | TASK-031 | Session end | worked 18m | AI: Cascade
+2026-04-12 01:54 PKT | START  | TASK-031 | Desktop conference join isolation boundary | AI: Cascade
+2026-04-12 01:56 PKT | CHANGE | TASK-031 | Added desktopJoinConference.js (164 lines, desktop-owned); no longer imports shared conference/join.js | AI: Cascade
+2026-04-12 01:57 PKT | VERIFY | TASK-031 | grep confirms no remaining conference/join.js imports in desktop path | AI: Cascade
+2026-04-12 01:58 PKT | STOP   | TASK-031 | Session end | worked 8m | AI: Cascade
+
+2026-04-12 02:05 PKT | START  | TASK-031 | Desktop LTE relay readiness guard boundary: replace shared features/lteCallGuard.js usage with desktop-owned guard module | AI: Cascade
+2026-04-12 02:07 PKT | CHANGE | TASK-031 | Added desktopLteCallGuard.js and switched desktopStartCall + desktopAnswerIncomingCall to use guardDesktopLteRelayReadiness() (no shared lteCallGuard import in desktop path). | AI: Cascade
+2026-04-12 02:07 PKT | VERIFY | TASK-031 | Code inspection (grep confirms no remaining features/lteCallGuard.js imports under www/app/desktop). | AI: Cascade
+2026-04-12 02:08 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 02:20 PKT | START  | TASK-031 | Desktop outbound-call-start boundary: remove shared outgoing/call/* imports from desktopStartCall | AI: Cascade
+2026-04-12 02:23 PKT | CHANGE | TASK-031 | Added desktopStartCallSupport.js + desktopStartCallPreflight.js and switched desktopStartCall to use desktop-owned remoteAudio/diagContext/inviter/preflight modules (no shared outgoing/call/* imports). | AI: Cascade
+2026-04-12 02:23 PKT | VERIFY | TASK-031 | Code inspection (grep confirms desktopStartCall.js has no outgoing/call/* imports). | AI: Cascade
+2026-04-12 02:24 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+
+2026-04-12 02:30 PKT | START  | TASK-031 | Runtime/browser verification: desktop call path after reload (partial checklist) | AI: Cascade
+2026-04-12 02:31 PKT | VERIFY | TASK-031 | Runtime/browser evidence (user report): PASS — Enable Calls (one click), Outbound INVITE, ringback audible, two-way audio after answer, hangup/end, incoming banner/ringtone on INVITE. NOT TESTED — Log Off (btnStop), History tab renders, History item dial+call, call timer start/stop. | AI: Cascade
+2026-04-12 02:31 PKT | STOP   | TASK-031 | Session end | worked 1m | AI: Cascade
+
+2026-04-12 02:39 PKT | START  | TASK-031 | Desktop UI regressions fix: Log Off visibility + call timer stop/reset on hangup | AI: Cascade
+2026-04-12 02:41 PKT | CHANGE | TASK-031 | Fixed desktop btnStop visibility (hide when unregistered) and ensured window.callTimer.stop() runs when leaving in-call state + on explicit hangup path. | AI: Cascade
+2026-04-12 02:41 PKT | VERIFY | TASK-031 | Code inspection only (desktopAppUi now hides btnStop when unregistered; callTimer.stop called on call end paths). | AI: Cascade
+2026-04-12 02:42 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 02:52 PKT | START  | TASK-031 | Desktop UI controls fix: Log Off icon on dialer + hide earpiece/record controls | AI: Cascade
+2026-04-12 02:54 PKT | CHANGE | TASK-031 | Desktop UI now toggles status-bar Log Off icon (logOffBtn) on registered state; desktop call controls hide btnSpeaker (earpiece) and btnRecord (record). | AI: Cascade
+2026-04-12 02:54 PKT | VERIFY | TASK-031 | Code inspection only (logOffBtn display toggled in desktopAppUi; btnSpeaker/btnRecord forced hidden in desktopCallControls). | AI: Cascade
+2026-04-12 02:55 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 03:03 PKT | START  | TASK-031 | Desktop UI controls fix follow-up: ensure Log Off icon sync + keep earpiece hidden | AI: Cascade
+2026-04-12 03:05 PKT | CHANGE | TASK-031 | Desktop UI now also toggles logOffBtn visibility during ui.setStatus() (not only ui.setButtons); desktop call controls no longer initialize audio-route on btnSpeaker (prevents re-show). | AI: Cascade
+2026-04-12 03:05 PKT | VERIFY | TASK-031 | Code inspection only. | AI: Cascade
+2026-04-12 03:06 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 03:18 PKT | START  | TASK-031 | Desktop call end cleanup: stop mic on remote hangup (outbound terminated) | AI: Cascade
+2026-04-12 03:19 PKT | ISSUE  | TASK-031 | Runtime report: when other party hangs up, call disconnects but mic remains in use; intermittent one-way audio (remote cannot hear). | AI: Cascade
+2026-04-12 03:22 PKT | CHANGE | TASK-031 | Desktop outbound SessionState.Terminated now stops local mic stream (stopLocalAudioStream) to release microphone on remote hangup. | AI: Cascade
+2026-04-12 03:22 PKT | VERIFY | TASK-031 | Code inspection only; runtime re-check required. | AI: Cascade
+2026-04-12 03:23 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+
+2026-04-12 03:40 PKT | START  | TASK-031 | Desktop local mic ownership boundary: acquire/attach/release in one desktop-owned module (uplink audio fix) | AI: Cascade
+2026-04-12 03:41 PKT | ISSUE  | TASK-031 | Runtime report: remote side cannot hear desktop user (intermittent); mic sometimes remains active after hangup/remote hangup. | AI: Cascade
+2026-04-12 03:51 PKT | CHANGE | TASK-031 | Added desktopLocalAudioSession.js and rewired desktopStartCall + desktopAnswerIncomingCall to acquire fresh mic per call, force-enable track, attach/replace sender track, and release mic on failures. | AI: Cascade
+2026-04-12 03:51 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser re-test required for two-way audio and mic release. | AI: Cascade
+2026-04-12 03:52 PKT | STOP   | TASK-031 | Session end | worked 12m | AI: Cascade
+
+2026-04-12 04:05 PKT | START  | TASK-031 | Desktop hard refresh button: wire advanced cache clear + reload on desktop bootstrap path | AI: Cascade
+2026-04-12 04:09 PKT | CHANGE | TASK-031 | Added desktop-owned cache clear module and initialized it in bootstrapDesktopApp so refreshBtn calls clearAllCacheAndReload(). | AI: Cascade
+2026-04-12 04:09 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click on refreshBtn required. | AI: Cascade
+2026-04-12 04:10 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+
+2026-04-12 04:20 PKT | START  | TASK-031 | Desktop hard refresh button: bind click handler in desktop runtime (avoid relying on inline onclick) | AI: Cascade
+2026-04-12 04:21 PKT | CHANGE | TASK-031 | desktopCacheActions now binds refreshBtn click via addEventListener and emits DESKTOP_HARD_REFRESH_CLICK before running clearAllCacheAndReload(). | AI: Cascade
+2026-04-12 04:21 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click required to observe HARD_REFRESH_BEGIN and CACHE logs. | AI: Cascade
+2026-04-12 04:22 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 04:30 PKT | START  | TASK-031 | Desktop hard refresh diagnostics: persist click breadcrumb across reload so click can be proven even if logs are lost | AI: Cascade
+2026-04-12 04:31 PKT | CHANGE | TASK-031 | desktopCacheActions now stores __desktop_hard_refresh_click_ts on click/run and logs DESKTOP_HARD_REFRESH_PREV_CLICK on next boot. | AI: Cascade
+2026-04-12 04:31 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click + reload required. | AI: Cascade
+2026-04-12 04:32 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 04:40 PKT | START  | TASK-031 | Desktop hard refresh: force update of desktopCacheActions via cache-busted import | AI: Cascade
+2026-04-12 04:41 PKT | CHANGE | TASK-031 | bootstrapDesktopApp now imports desktopCacheActions.js with a cache-busting query so latest hard refresh logic is fetched under aggressive caching. | AI: Cascade
+2026-04-12 04:41 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser reload + click gear required. | AI: Cascade
+2026-04-12 04:42 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 04:55 PKT | START  | TASK-031 | Desktop hard refresh diagnostics: move click breadcrumb to window.name (survives localStorage.clear) | AI: Cascade
+2026-04-12 04:56 PKT | CHANGE | TASK-031 | desktopCacheActions now records __desktop_hard_refresh_click_ts in window.name and logs DESKTOP_HARD_REFRESH_PREV_CLICK on next boot even after storage clear. | AI: Cascade
+2026-04-12 04:56 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click + reload required. | AI: Cascade
+2026-04-12 04:57 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 05:05 PKT | START  | TASK-031 | Desktop hard refresh: force refreshBtn onclick binding to ensure click handler fires | AI: Cascade
+2026-04-12 05:06 PKT | CHANGE | TASK-031 | desktopCacheActions now assigns refreshBtn.onclick in addition to addEventListener to avoid inline handler interference. | AI: Cascade
+2026-04-12 05:06 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click + reload required. | AI: Cascade
+2026-04-12 05:07 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 05:15 PKT | START  | TASK-031 | Desktop hard refresh: investigate why call history is flushed after hard reset | AI: Cascade
+2026-04-12 05:16 PKT | NOTE  | TASK-031 | Hard refresh clears localStorage + IndexedDB + Cache Storage; call history persistence uses localStorage keys callHistoryV2/callHistory and will be lost if not present or if another key is used. | AI: Cascade
+2026-04-12 05:18 PKT | CHANGE | TASK-031 | Added HARD_REFRESH_PRESERVE/HARD_REFRESH_RESTORED diagnostic logs for callHistoryV2/callHistory lengths around localStorage.clear() in desktopCacheActions. | AI: Cascade
+2026-04-12 05:18 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser click gear required to capture preserve/restore values. | AI: Cascade
+2026-04-12 05:19 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+
+2026-04-12 05:30 PKT | START  | TASK-031 | Desktop dialpad input regression: keypad clicks + keyboard typing not updating dial field | AI: Cascade
+2026-04-12 05:37 PKT | CHANGE | TASK-031 | Added desktop-owned dialpad input init and keyboard toggle init; desktop bootstrap now initializes them so #dial is writable and .dial-btn clicks append digits. | AI: Cascade
+2026-04-12 05:37 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required. | AI: Cascade
+2026-04-12 05:38 PKT | STOP   | TASK-031 | Session end | worked 8m | AI: Cascade
+
+2026-04-12 05:45 PKT | START  | TASK-031 | Desktop dialpad keyboard input fix: capture keydown digits/backspace/enter | AI: Cascade
+2026-04-12 05:47 PKT | CHANGE | TASK-031 | desktopDialpadInput now handles keydown on #dial and globally (when not typing in another input) to append digits and support Backspace/Enter-to-call. | AI: Cascade
+2026-04-12 05:47 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required. | AI: Cascade
+2026-04-12 05:48 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 06:10 PKT | START  | TASK-031 | Desktop uplink audio failure: consolidate local-audio ownership into one desktop runtime boundary with sender/transceiver attach verification | AI: Cascade
+2026-04-12 06:18 PKT | CHANGE | TASK-031 | Added desktopCallAudioRuntime.js and rewired desktopStartCall + desktopAnswerIncomingCall + outbound terminated cleanup to use it (attach via negotiated audio transceiver sender, plus diagnostics + unified release). | AI: Cascade
+2026-04-12 06:18 PKT | CHANGE | TASK-031 | Desktop dialer: keyboard icon now focuses/selects #dial on desktop. | AI: Cascade
+2026-04-12 06:19 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser re-test required (remote can hear desktop; mic releases on hangup/remote BYE; keyboard icon focuses dial input). | AI: Cascade
+2026-04-12 06:20 PKT | STOP   | TASK-031 | Session end | worked 10m | AI: Cascade
+
+2026-04-12 06:35 PKT | START  | TASK-031 | Desktop uplink still failing: add post-Established transceiver/sender verification and re-attach logic | AI: Cascade
+2026-04-12 06:42 PKT | CHANGE | TASK-031 | Added desktopCallAudioPostAccept.js and wired outbound+inbound Established state to re-attach mic and log transceiver direction/sender track. | AI: Cascade
+2026-04-12 06:42 PKT | CHANGE | TASK-031 | Desktop dialer keyboard icon no longer hidden; click now logs focus event and focuses/selects #dial. | AI: Cascade
+2026-04-12 06:43 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (remote can hear desktop; post-accept logs present; keyboard icon focuses). | AI: Cascade
+2026-04-12 06:44 PKT | STOP   | TASK-031 | Session end | worked 9m | AI: Cascade
+
+2026-04-12 06:55 PKT | START  | TASK-031 | Desktop uplink still silent: add sender stats + audio energy/level diagnostics and one-shot recovery attempt | AI: Cascade
+2026-04-12 07:05 PKT | CHANGE | TASK-031 | Added desktopCallAudioUplinkDiagnostics.js + desktopCallAudioRecovery.js; diagnostics samples sender.getStats after Established and attempts one reacquire+rebind if likely-silent uplink detected; stop timer on Terminated. | AI: Cascade
+2026-04-12 07:05 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (diag tick logs + recovery if triggered; remote can hear desktop). | AI: Cascade
+2026-04-12 07:06 PKT | STOP   | TASK-031 | Session end | worked 11m | AI: Cascade
+
+2026-04-12 07:20 PKT | START  | TASK-031 | Desktop call terminates by remote BYE NORMAL_CLEARING: add desktop-only termination diagnostics snapshot (Established / remote BYE / Terminated) | AI: Cascade
+2026-04-12 07:30 PKT | CHANGE | TASK-031 | Added desktopTerminationDiagnostics.js and wired outbound call flow to snapshot SIP+WebRTC state on Established, remote BYE (if surfaced by SIP.js delegate), and Terminated; uplink diag history is stored on session for inclusion in termination snapshot. | AI: Cascade
+2026-04-12 07:30 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (capture [desktop:term-diag] lines and validate BYE reason + ICE/RTP state right before clear). | AI: Cascade
+2026-04-12 07:31 PKT | STOP   | TASK-031 | Session end | worked 11m | AI: Cascade
+
+2026-04-12 07:45 PKT | START  | TASK-031 | Regression restore: desktop call path regressed after last runtime two-way-audio PASS; disable newest audio diagnostics hooks and fix termination listener crash | AI: Cascade
+2026-04-12 07:52 PKT | CHANGE | TASK-031 | Fixed desktopCallAudioUplinkDiagnostics termination listener to guard SIP null (prevents null.SessionState crash); disabled post-accept uplink diagnostics hook; removed post-Established mic reattach listeners from outbound+inbound call flows to reduce regression surface. | AI: Cascade
+2026-04-12 07:52 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (call should no longer throw on termination; re-test two-way audio against last known-good scenario). | AI: Cascade
+2026-04-12 07:53 PKT | STOP   | TASK-031 | Session end | worked 8m | AI: Cascade
+
+2026-04-12 08:05 PKT | START  | TASK-031 | Regression restore follow-up: fully detach uplink diagnostics module from outbound termination path | AI: Cascade
+2026-04-12 08:07 PKT | CHANGE | TASK-031 | Removed stopDesktopUplinkDiagnostics import/call from desktopOutboundStateChange so uplink diagnostics module is no longer referenced by runtime call termination path. | AI: Cascade
+2026-04-12 08:07 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser re-test required. | AI: Cascade
+2026-04-12 08:08 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 08:20 PKT | START  | TASK-031 | Regression restore: simplify outbound mic cleanup to a single ownership path (terminate release only once) | AI: Cascade
+2026-04-12 08:23 PKT | CHANGE | TASK-031 | Outbound flow: removed extra bindDesktopCallAudioReleaseOnTerminate listener; outbound Terminated handler now relies on releaseDesktopCallAudio only (removed redundant stopLocalAudioStream). | AI: Cascade
+2026-04-12 08:23 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser re-test required (mic release on remote BYE + local hangup). | AI: Cascade
+2026-04-12 08:24 PKT | STOP   | TASK-031 | Session end | worked 4m | AI: Cascade
+
+2026-04-12 08:35 PKT | START  | TASK-031 | Desktop mic path: surface warning if mic input is silent (dialer) using one-shot probe after attach | AI: Cascade
+2026-04-12 08:39 PKT | CHANGE | TASK-031 | desktopCallAudioRuntime now runs a one-shot AudioContext/Analyser RMS probe after successful attach and sets UI status warning if mic input appears silent (no retries/recovery). | AI: Cascade
+2026-04-12 08:39 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (observe warning when mic is muted/silent; confirm no change to call signaling). | AI: Cascade
+2026-04-12 08:40 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+
+2026-04-12 08:50 PKT | START  | TASK-031 | Desktop mic silent warning: improve probe reliability (resume AudioContext before sample) and keep warning visible | AI: Cascade
+2026-04-12 08:52 PKT | CHANGE | TASK-031 | desktopCallAudioRuntime mic probe now resumes AudioContext if suspended before sampling; if silent, re-asserts UI status after 1.2s to avoid being overwritten by other status updates. | AI: Cascade
+2026-04-12 08:52 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required. | AI: Cascade
+2026-04-12 08:53 PKT | STOP   | TASK-031 | Session end | worked 3m | AI: Cascade
+
+2026-04-12 09:20 PKT | START  | TASK-031 | Regression-first mic lifecycle diagnostics: corrId + micId logs for acquire/attach/release + post-termination checks | AI: Cascade
+2026-04-12 09:28 PKT | CHANGE | TASK-031 | Added desktop-only mic lifecycle diagnostics in desktopCallAudioRuntime (acquire/attach/release + settings snapshot + post-term-check at 300ms/1200ms). Updated desktop call flows to pass corrId/micId context and route hangup through releaseDesktopCallAudio for a single observed release path. | AI: Cascade
+2026-04-12 09:28 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (grep [desktop:mic]). | AI: Cascade
+2026-04-12 09:29 PKT | STOP   | TASK-031 | Session end | worked 9m | AI: Cascade
+
+2026-04-12 09:40 PKT | START  | TASK-031 | Regression restore: remove manual post-invite/post-accept mic attach and rely on SIP.js localMediaStream attachment (closer to last known-good) | AI: Cascade
+2026-04-12 09:44 PKT | CHANGE | TASK-031 | Desktop call flows no longer call attachDesktopCallAudioToSession after invite/accept; mic is acquired before call and provided via sessionDescriptionHandlerOptions.localMediaStream so SIP.js owns track attachment (manual transceiver replaceTrack/addTrack path removed from runtime). | AI: Cascade
+2026-04-12 09:44 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (re-test two-way audio; keep [desktop:mic] logs for acquire/release only). | AI: Cascade
+2026-04-12 09:45 PKT | STOP   | TASK-031 | Session end | worked 5m | AI: Cascade
+
+2026-04-12 10:05 PKT | START  | TASK-031 | Regression restore: remove sender hard-stop mutations and simplify mic release back to stopLocalAudioStream-only | AI: Cascade
+2026-04-12 10:12 PKT | CHANGE | TASK-031 | Desktop outbound Terminated handler no longer stops sender tracks or calls replaceTrack(null); desktopCallAudioRuntime releaseDesktopCallAudio now uses stopLocalAudioStream only (no hard-stop sender cleanup, no enumerateDevices). | AI: Cascade
+2026-04-12 10:12 PKT | VERIFY | TASK-031 | Code inspection only; runtime/browser required (re-test inbound+outbound two-way audio). | AI: Cascade
+2026-04-12 10:13 PKT | STOP   | TASK-031 | Session end | worked 8m | AI: Cascade
+
+2026-04-12 10:22 PKT | START  | TASK-031 | Uplink regression restore: ensureMicAccess re-acquires when cached local track is not live; extend outbound stats to include outbound audio level/energy | AI: Cascade
+2026-04-12 10:23 PKT | CHANGE | TASK-031 | Updated media.ensureMicAccess() to treat cached localAudioStream as valid only when its audio track exists and readyState=live; otherwise stopLocalAudioStream() and re-run getUserMedia. Extended pc stats snapshot events to include outboundAudioLevel/outboundTotalAudioEnergy when exposed by browser stats, so uplink silence can be proven from existing media-stats/outbound-stats events. | AI: Cascade
+2026-04-12 10:24 PKT | CHANGE | TASK-031 | Extended media-stats-* and outbound-stats-* event payloads to include senderTrackId/senderTrackEnabled/senderTrackReadyState so the uplink sender track can be correlated at 2s/5s/10s. | AI: Cascade
+2026-04-12 10:26 PKT | CHANGE | TASK-031 | Call log exports: added localMicTrackId to outbound call diagnostic context and added senderTrack* + outboundAudioLevel/energy + localMicTrackId columns to call log CSV export so raw call-log view includes uplink payload fields (for 2s/5s/10s correlation). | AI: Cascade
+2026-04-12 10:23 PKT | VERIFY | TASK-031 | Runtime/browser required: place outbound call and confirm whether outboundAudioLevel/outboundTotalAudioEnergy appear and whether remote can hear desktop. | AI: Cascade
+2026-04-12 10:24 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade

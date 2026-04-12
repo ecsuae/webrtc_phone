@@ -11,6 +11,7 @@ export function getOutboundDiagContext(st, target, inviter) {
   const lteMode = selectedProfile === 'lte';
   const mode = lteMode ? 'lte' : 'wifi';
   const icePolicy = lteMode ? 'relay' : 'all';
+  const localMicTrackId = inviter?.__desktopMicTrackId || st?.__desktopMicTrackId || undefined;
   return {
     username,
     domain,
@@ -24,6 +25,7 @@ export function getOutboundDiagContext(st, target, inviter) {
     mode,
     selectedProfile,
     icePolicy,
+    localMicTrackId,
     probeBuildId: (() => {
       try {
         return window?.OUTBOUND_CALLER_PROBE_BUILD_ID || localStorage.getItem('OUTBOUND_CALLER_PROBE_BUILD_ID') || undefined;

@@ -108,6 +108,92 @@ function ingestEvents(rawEvents, sourceIp) {
       mode: typeof ev.mode === 'string' ? ev.mode.slice(0, 16) : undefined,
       selectedProfile: typeof ev.selectedProfile === 'string' ? ev.selectedProfile.slice(0, 16) : undefined,
 
+      // Uplink track correlation (desktop one-sided voice RCA)
+      localMicTrackId: typeof ev.localMicTrackId === 'string' ? ev.localMicTrackId.slice(0, 128) : undefined,
+      localMicStreamId: typeof ev.localMicStreamId === 'string' ? ev.localMicStreamId.slice(0, 128) : undefined,
+      localMicTrackKind: typeof ev.localMicTrackKind === 'string' ? ev.localMicTrackKind.slice(0, 16) : undefined,
+      localStreamTrackCount: typeof ev.localStreamTrackCount === 'number' ? ev.localStreamTrackCount : undefined,
+      localStreamTrackIds: Array.isArray(ev.localStreamTrackIds)
+        ? ev.localStreamTrackIds.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      localStreamTrackKinds: Array.isArray(ev.localStreamTrackKinds)
+        ? ev.localStreamTrackKinds.slice(0, 8).map((k) => (typeof k === 'string') ? k.slice(0, 16) : undefined).filter(Boolean)
+        : undefined,
+      localStreamTrackLabels: Array.isArray(ev.localStreamTrackLabels)
+        ? ev.localStreamTrackLabels.slice(0, 8).map((l) => (typeof l === 'string') ? l.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      localStreamAudioTrackId: typeof ev.localStreamAudioTrackId === 'string' ? ev.localStreamAudioTrackId.slice(0, 128) : undefined,
+      localStreamAudioTrackLabel: typeof ev.localStreamAudioTrackLabel === 'string' ? ev.localStreamAudioTrackLabel.slice(0, 128) : undefined,
+      localStreamAudioTrackEnabled: typeof ev.localStreamAudioTrackEnabled === 'boolean' ? ev.localStreamAudioTrackEnabled : undefined,
+      localStreamAudioTrackMuted: typeof ev.localStreamAudioTrackMuted === 'boolean' ? ev.localStreamAudioTrackMuted : undefined,
+      localStreamAudioTrackReadyState: typeof ev.localStreamAudioTrackReadyState === 'string' ? ev.localStreamAudioTrackReadyState.slice(0, 32) : undefined,
+      senderTrackId: (ev.senderTrackId === null) ? null : (typeof ev.senderTrackId === 'string' ? ev.senderTrackId.slice(0, 128) : undefined),
+      senderTrackReadyState: (ev.senderTrackReadyState === null) ? null : (typeof ev.senderTrackReadyState === 'string' ? ev.senderTrackReadyState.slice(0, 32) : undefined),
+      senderStateSource: typeof ev.senderStateSource === 'string' ? ev.senderStateSource.slice(0, 64) : undefined,
+      senderTrackEnabled: typeof ev.senderTrackEnabled === 'boolean' ? ev.senderTrackEnabled : undefined,
+      senderTrackMuted: typeof ev.senderTrackMuted === 'boolean' ? ev.senderTrackMuted : undefined,
+      senderTrackIdAfter: typeof ev.senderTrackIdAfter === 'string' ? ev.senderTrackIdAfter.slice(0, 128) : undefined,
+      senderTrackReadyStateAfter: typeof ev.senderTrackReadyStateAfter === 'string' ? ev.senderTrackReadyStateAfter.slice(0, 32) : undefined,
+      senderStreamIds: Array.isArray(ev.senderStreamIds)
+        ? ev.senderStreamIds.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      sameAsLocalMicTrack: typeof ev.sameAsLocalMicTrack === 'boolean' ? ev.sameAsLocalMicTrack : undefined,
+      pcSignalingState: typeof ev.pcSignalingState === 'string' ? ev.pcSignalingState.slice(0, 32) : undefined,
+      checkpoint: typeof ev.checkpoint === 'string' ? ev.checkpoint.slice(0, 64) : undefined,
+      previousSenderTrackId: typeof ev.previousSenderTrackId === 'string' ? ev.previousSenderTrackId.slice(0, 128) : undefined,
+      transceiverMid: typeof ev.transceiverMid === 'string' ? ev.transceiverMid.slice(0, 32) : undefined,
+      senderHasTrack: typeof ev.senderHasTrack === 'boolean' ? ev.senderHasTrack : undefined,
+      senderKind: typeof ev.senderKind === 'string' ? ev.senderKind.slice(0, 16) : undefined,
+      transceiverDirection: typeof ev.transceiverDirection === 'string' ? ev.transceiverDirection.slice(0, 32) : undefined,
+      transceiverCurrentDirection: typeof ev.transceiverCurrentDirection === 'string' ? ev.transceiverCurrentDirection.slice(0, 32) : undefined,
+      audioTransceiverIndex: typeof ev.audioTransceiverIndex === 'number' ? ev.audioTransceiverIndex : undefined,
+      senderTrackIsSameObjectAsLocalStreamAudioTrack: typeof ev.senderTrackIsSameObjectAsLocalStreamAudioTrack === 'boolean' ? ev.senderTrackIsSameObjectAsLocalStreamAudioTrack : undefined,
+      senderTrackIdMatchesLocalStreamAudioTrackId: typeof ev.senderTrackIdMatchesLocalStreamAudioTrackId === 'boolean' ? ev.senderTrackIdMatchesLocalStreamAudioTrackId : undefined,
+      stackTop: typeof ev.stackTop === 'string' ? ev.stackTop.slice(0, 256) : undefined,
+      replaceTrackNullRan: typeof ev.replaceTrackNullRan === 'boolean' ? ev.replaceTrackNullRan : undefined,
+      replaceTrackNullTimedOut: typeof ev.replaceTrackNullTimedOut === 'boolean' ? ev.replaceTrackNullTimedOut : undefined,
+      replaceTrackNullError: typeof ev.replaceTrackNullError === 'string' ? ev.replaceTrackNullError.slice(0, 256) : undefined,
+      afterStopEventEmitted: typeof ev.afterStopEventEmitted === 'boolean' ? ev.afterStopEventEmitted : undefined,
+      senderTrackIdBefore: typeof ev.senderTrackIdBefore === 'string' ? ev.senderTrackIdBefore.slice(0, 128) : undefined,
+      senderTrackReadyStateBefore: typeof ev.senderTrackReadyStateBefore === 'string' ? ev.senderTrackReadyStateBefore.slice(0, 32) : undefined,
+      senderTrackIdAfterDetach: typeof ev.senderTrackIdAfterDetach === 'string' ? ev.senderTrackIdAfterDetach.slice(0, 128) : undefined,
+      senderTrackReadyStateAfterDetach: typeof ev.senderTrackReadyStateAfterDetach === 'string' ? ev.senderTrackReadyStateAfterDetach.slice(0, 32) : undefined,
+      senderHasTrackAfterDetach: typeof ev.senderHasTrackAfterDetach === 'boolean' ? ev.senderHasTrackAfterDetach : undefined,
+      sameAsStoredMicTrack: typeof ev.sameAsStoredMicTrack === 'boolean' ? ev.sameAsStoredMicTrack : undefined,
+      storedMicTrackId: typeof ev.storedMicTrackId === 'string' ? ev.storedMicTrackId.slice(0, 128) : undefined,
+      storedMicTrackReadyStateBefore: typeof ev.storedMicTrackReadyStateBefore === 'string' ? ev.storedMicTrackReadyStateBefore.slice(0, 32) : undefined,
+      storedMicTrackReadyStateAfter: typeof ev.storedMicTrackReadyStateAfter === 'string' ? ev.storedMicTrackReadyStateAfter.slice(0, 32) : undefined,
+      storedLocalStreamTrackIdsBefore: Array.isArray(ev.storedLocalStreamTrackIdsBefore)
+        ? ev.storedLocalStreamTrackIdsBefore.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      storedLocalStreamTrackIdsAfter: Array.isArray(ev.storedLocalStreamTrackIdsAfter)
+        ? ev.storedLocalStreamTrackIdsAfter.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+
+      outboundRtpMid: typeof ev.outboundRtpMid === 'string' ? ev.outboundRtpMid.slice(0, 32) : undefined,
+      outboundRtpSsrc: typeof ev.outboundRtpSsrc === 'number' ? ev.outboundRtpSsrc : undefined,
+      outboundRtpPacketsSent: typeof ev.outboundRtpPacketsSent === 'number' ? ev.outboundRtpPacketsSent : undefined,
+      outboundRtpBytesSent: typeof ev.outboundRtpBytesSent === 'number' ? ev.outboundRtpBytesSent : undefined,
+      outboundRtpAudioLevel: typeof ev.outboundRtpAudioLevel === 'number' ? ev.outboundRtpAudioLevel : undefined,
+      outboundRtpTotalAudioEnergy: typeof ev.outboundRtpTotalAudioEnergy === 'number' ? ev.outboundRtpTotalAudioEnergy : undefined,
+      outboundRtpTrackIdentifier: typeof ev.outboundRtpTrackIdentifier === 'string' ? ev.outboundRtpTrackIdentifier.slice(0, 256) : undefined,
+      outboundRtpCodecId: typeof ev.outboundRtpCodecId === 'string' ? ev.outboundRtpCodecId.slice(0, 128) : undefined,
+      outboundRtpTransportId: typeof ev.outboundRtpTransportId === 'string' ? ev.outboundRtpTransportId.slice(0, 128) : undefined,
+      outboundRtpSelectedCandidatePairId: typeof ev.outboundRtpSelectedCandidatePairId === 'string' ? ev.outboundRtpSelectedCandidatePairId.slice(0, 128) : undefined,
+      isOutboundRtpProducer: typeof ev.isOutboundRtpProducer === 'boolean' ? ev.isOutboundRtpProducer : undefined,
+
+      sdpType: typeof ev.sdpType === 'string' ? ev.sdpType.slice(0, 16) : undefined,
+      sdpAudioMLineIndex: typeof ev.sdpAudioMLineIndex === 'number' ? ev.sdpAudioMLineIndex : undefined,
+      sdpAudioMLine: typeof ev.sdpAudioMLine === 'string' ? ev.sdpAudioMLine.slice(0, 256) : undefined,
+      sdpAudioMid: typeof ev.sdpAudioMid === 'string' ? ev.sdpAudioMid.slice(0, 32) : undefined,
+      sdpAudioDirection: typeof ev.sdpAudioDirection === 'string' ? ev.sdpAudioDirection.slice(0, 16) : undefined,
+      sdpAudioMsid: typeof ev.sdpAudioMsid === 'string' ? ev.sdpAudioMsid.slice(0, 256) : undefined,
+
+      outboundCodecMimeType: typeof ev.outboundCodecMimeType === 'string' ? ev.outboundCodecMimeType.slice(0, 128) : undefined,
+      outboundCodecPayloadType: typeof ev.outboundCodecPayloadType === 'number' ? ev.outboundCodecPayloadType : undefined,
+      outboundCodecClockRate: typeof ev.outboundCodecClockRate === 'number' ? ev.outboundCodecClockRate : undefined,
+      outboundCodecChannels: typeof ev.outboundCodecChannels === 'number' ? ev.outboundCodecChannels : undefined,
+
       // Peer/target
       peer: typeof ev.peer === 'string' ? ev.peer.slice(0, 128) : undefined,
       peerDomain: typeof ev.peerDomain === 'string' ? ev.peerDomain.slice(0, 128) : undefined,
@@ -148,9 +234,25 @@ function ingestEvents(rawEvents, sourceIp) {
 
       // Track/audio-element health
       trackId: typeof ev.trackId === 'string' ? ev.trackId.slice(0, 128) : undefined,
+      trackKind: typeof ev.trackKind === 'string' ? ev.trackKind.slice(0, 16) : undefined,
       trackMuted: typeof ev.trackMuted === 'boolean' ? ev.trackMuted : undefined,
       trackEnabled: typeof ev.trackEnabled === 'boolean' ? ev.trackEnabled : undefined,
       trackReadyState: typeof ev.trackReadyState === 'string' ? ev.trackReadyState.slice(0, 32) : undefined,
+
+      // Capture lifecycle (desktop mic-stuck RCA)
+      sourceTag: typeof ev.sourceTag === 'string' ? ev.sourceTag.slice(0, 96) : undefined,
+      contextState: typeof ev.contextState === 'string' ? ev.contextState.slice(0, 32) : undefined,
+      activeCount: typeof ev.activeCount === 'number' ? ev.activeCount : undefined,
+      activeTrackIds: Array.isArray(ev.activeTrackIds)
+        ? ev.activeTrackIds.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      trackIds: Array.isArray(ev.trackIds)
+        ? ev.trackIds.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
+        : undefined,
+      streamId: typeof ev.streamId === 'string' ? ev.streamId.slice(0, 128) : undefined,
+      label: typeof ev.label === 'string' ? ev.label.slice(0, 128) : undefined,
+      readyStateBefore: typeof ev.readyStateBefore === 'string' ? ev.readyStateBefore.slice(0, 32) : undefined,
+      readyStateAfter: typeof ev.readyStateAfter === 'string' ? ev.readyStateAfter.slice(0, 32) : undefined,
       audioElMuted: typeof ev.audioElMuted === 'boolean' ? ev.audioElMuted : undefined,
       audioElVolume: typeof ev.audioElVolume === 'number' ? ev.audioElVolume : undefined,
       audioElReadyState: typeof ev.audioElReadyState === 'number' ? ev.audioElReadyState : undefined,
@@ -215,6 +317,10 @@ function ingestEvents(rawEvents, sourceIp) {
       outboundAudioPacketsSent: typeof ev.outboundAudioPacketsSent === 'number' ? ev.outboundAudioPacketsSent : undefined,
       outboundAudioBytesSent: typeof ev.outboundAudioBytesSent === 'number' ? ev.outboundAudioBytesSent : undefined,
 
+      // Outbound audio content evidence (if exposed by browser stats)
+      outboundAudioLevel: typeof ev.outboundAudioLevel === 'number' ? ev.outboundAudioLevel : undefined,
+      outboundTotalAudioEnergy: typeof ev.outboundTotalAudioEnergy === 'number' ? ev.outboundTotalAudioEnergy : undefined,
+
       // Group B: codec/decode/energy RCA fields (whitelist only; no summary changes)
       audioLevel: typeof ev.audioLevel === 'number' ? ev.audioLevel : undefined,
       totalAudioEnergy: typeof ev.totalAudioEnergy === 'number' ? ev.totalAudioEnergy : undefined,
@@ -236,24 +342,23 @@ function ingestEvents(rawEvents, sourceIp) {
       t_inviteSent: typeof ev.t_inviteSent === 'string' ? ev.t_inviteSent.slice(0, 32) : undefined,
       t_incomingReceived: typeof ev.t_incomingReceived === 'string' ? ev.t_incomingReceived.slice(0, 32) : undefined,
       t_answerClicked: typeof ev.t_answerClicked === 'string' ? ev.t_answerClicked.slice(0, 32) : undefined,
-      t_established: typeof ev.t_established === 'string' ? ev.t_established.slice(0, 32) : undefined,
-      t_ended: typeof ev.t_ended === 'string' ? ev.t_ended.slice(0, 32) : undefined,
 
       // Transport diagnostics (e.g., call-log-post-failed)
       httpStatus: typeof ev.httpStatus === 'number' ? ev.httpStatus : undefined,
-      httpStatusText: typeof ev.httpStatusText === 'string' ? ev.httpStatusText.slice(0, 64) : undefined,
-      fetchError: typeof ev.fetchError === 'string' ? ev.fetchError.slice(0, 128) : undefined,
+      httpErr: typeof ev.httpErr === 'string' ? ev.httpErr.slice(0, 256) : undefined,
+      urlPath: typeof ev.urlPath === 'string' ? ev.urlPath.slice(0, 256) : undefined,
+      fetchOk: typeof ev.fetchOk === 'boolean' ? ev.fetchOk : undefined,
+      attempts: typeof ev.attempts === 'number' ? ev.attempts : undefined,
 
-      queuedCount: typeof ev.queuedCount === 'number' ? ev.queuedCount : undefined,
-      flushedCount: typeof ev.flushedCount === 'number' ? ev.flushedCount : undefined,
+      // Human-readable message (raw-only; no summary transforms)
+      msg: typeof ev.msg === 'string' ? ev.msg.slice(0, 256) : undefined,
+      reason: typeof ev.reason === 'string' ? ev.reason.slice(0, 128) : undefined,
+      checkpoint: typeof ev.checkpoint === 'string' ? ev.checkpoint.slice(0, 64) : undefined,
+
       oldestQueuedAgeMs: typeof ev.oldestQueuedAgeMs === 'number' ? ev.oldestQueuedAgeMs : undefined,
 
       // Probe/build markers
       probeBuildId: typeof ev.probeBuildId === 'string' ? ev.probeBuildId.slice(0, 96) : undefined,
-
-      // Client build marker (proves which JS build emitted events)
-      sourceBuildId: typeof ev.sourceBuildId === 'string' ? ev.sourceBuildId.slice(0, 128) : undefined,
-
       // POST proof fields (client-side delivery diagnostics)
       postAttemptId: typeof ev.postAttemptId === 'string' ? ev.postAttemptId.slice(0, 64) : undefined,
       postBatchSize: typeof ev.postBatchSize === 'number' ? ev.postBatchSize : undefined,
@@ -262,8 +367,6 @@ function ingestEvents(rawEvents, sourceIp) {
       postStatus: typeof ev.postStatus === 'number' ? ev.postStatus : undefined,
       postStatusText: typeof ev.postStatusText === 'string' ? ev.postStatusText.slice(0, 64) : undefined,
       postError: typeof ev.postError === 'string' ? ev.postError.slice(0, 256) : undefined,
-
-      msg: typeof ev.msg === 'string' ? ev.msg.slice(0, 256) : undefined,
     };
 
     // Remove undefined fields

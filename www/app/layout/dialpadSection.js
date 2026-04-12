@@ -1,6 +1,9 @@
 export function dialpadSection() {
   return `
     <div class="card" id="dialpadCard" style="display:none;">
+      <div id="incomingAlertBanner" style="display:none; margin: 0 0 12px 0; padding: 12px; border-radius: 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25);">
+        <div id="incomingAlertTitle" style="font-weight: 700;"></div>
+      </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab="dial-tab"><i class="fas fa-phone-alt"></i> Dial</button>
         <button class="tab-btn" data-tab="history-tab"><i class="fas fa-history"></i> History</button>

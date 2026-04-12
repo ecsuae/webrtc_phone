@@ -1,4 +1,21 @@
+# =========================================================
+# SECTION: PURPOSE
+# Generic builder instructions for any repository/task.
+# Goals:
+# - follow local workflow docs as source of truth
+# - keep work isolation-first
+# - keep outputs short
+# - keep each turn to one safe step
+# - reduce token/quota usage
+# =========================================================
+
 You are working in the current project repository.
+
+# =========================================================
+# SECTION: REQUIRED WORKFLOW READ ORDER
+# Always read these first and treat them as authoritative.
+# Do not use any other source of truth for workflow/task state.
+# =========================================================
 
 Before doing anything, read and follow these files fully:
 1. docs/00-read-first.md
@@ -10,14 +27,92 @@ Before doing anything, read and follow these files fully:
 
 Treat them as the only workflow source of truth.
 
-Do not make any code or docs changes until you have read them and summarized the current task/status back to me.
+# =========================================================
+# SECTION: CONFLICT RULE
+# Stop before editing if the user request conflicts with workflow.
+# =========================================================
 
 If my request conflicts with docs/now.md, docs/00-read-first.md, or docs/ai-working-rules.md, stop and say so clearly before changing anything.
 
-Do not scan unrelated repo files.
-After reading the required workflow files, read only the files strictly needed for the current task, and list them first.
+# =========================================================
+# SECTION: QUOTA RULES
+# These rules exist only to keep token usage low.
+# Tune this section if replies are still too verbose.
+# =========================================================
+
+Keep quota low:
+- Keep the same model and same thread for the current task.
+- Be terse.
+- One safe step only.
+- Do not restate old task history unless it changed in this step.
+- After the required workflow files, read only files strictly needed for this step.
+- Do not scan unrelated repo files.
+- Do not dump full file contents.
+- Do not dump unchanged code.
+- Prefer changed hunks only.
+- Keep pre-edit output short.
+- Keep post-edit output short.
+- Do not add narrative before the required sections.
+- Do not add narrative after the required sections.
+- Do not say “I’m going to…”, “What I did”, “Done”, or similar filler.
+- Do not repeat my instructions back to me.
+
+# =========================================================
+# SECTION: SCOPE AND ISOLATION RULES
+# These keep the step small, safe, and platform/layer-owned.
+# Tune this section if the AI starts mixing domains.
+# =========================================================
 
 This task must be handled isolation-first.
+
+Rules you must follow strictly:
+- Treat every task as isolation-first.
+- Follow the read order defined by docs/00-read-first.md. Do not invent a new read order.
+- Work only on the current task in docs/now.md unless I explicitly change task scope.
+- Make the smallest safe patch only.
+- Do not refactor unrelated code.
+- Do not mix unrelated domains in one step.
+- Keep logging, UI, runtime, media, registration, infra, and docs changes separated unless the current task explicitly requires a coupled change.
+- If a change can be isolated to one platform, layer, route, module, or service, keep it there.
+- If a file is shared across multiple platforms, runtimes, or critical flows, treat it as high-risk and avoid editing it unless no safer isolated file exists.
+- If isolation is not possible, stop and say so before making changes.
+- Do not replace a working baseline with an experiment.
+- Any experiment must be isolated and disabled by default.
+- Do not make module-loading, cache-busting, bootstrap, or import-path changes unless the task explicitly requires them.
+
+# =========================================================
+# SECTION: FILE SHAPE RULES
+# These control fragmentation and code size.
+# Tune here if the AI starts making too many tiny files.
+# =========================================================
+
+File shape rules:
+- Prefer meaningful, themed modules over many tiny helper files.
+- Target roughly 150–200 lines per new helper/module file when reasonable.
+- If a refactor exceeds 200 lines, split it into exactly two coherent files when practical.
+- Avoid creating many tiny 5–10 line files unless there is a clear isolation/safety reason.
+- Do not extract trivial one-line wrappers into standalone files unless they belong inside a larger themed module.
+- Consolidation steps are allowed when they reduce fragmentation without changing behavior.
+- If a touched file is already too large, prefer safe splitting or grouping work that reduces future fragmentation.
+
+# =========================================================
+# SECTION: STEP TYPES
+# One turn = one safe step only.
+# Tune here if the AI tries to do too much in one reply.
+# =========================================================
+
+Keep each turn to one safe step only:
+- one isolated extraction
+- or one isolated consolidation
+- or one isolated bug fix
+- or one docs/workflow-only change
+
+# =========================================================
+# SECTION: PRE-EDIT OUTPUT FORMAT
+# Output only these sections before editing.
+# Keep each section compact.
+# Tune here if pre-edit replies are still too long.
+# =========================================================
 
 Before editing, output exactly these sections:
 
@@ -32,67 +127,36 @@ Choose one only:
 - infra/service config
 - docs/workflow only
 
-2. CURRENT TASK SUMMARY
-- current task from docs/now.md
-- why it matters
-- what is already proven
+2. CURRENT TASK
+Use short bullets only:
+- active task
 - current blocker
 - exact next safe step
 
 3. FILES TO READ
-List only the files you need to inspect for this task.
+List only the files strictly needed for this step.
 
 4. FILES TO CHANGE
-List exact files you plan to modify and why each one is required.
+List exact files you plan to modify and one short reason for each.
 
-5. PROTECTED BEHAVIOR
-List the working features that must not break.
+5. ISOLATION PLAN
+Explain the single ownership boundary or isolated change being completed in this step.
+If this is a consolidation step, write:
+5. CONSOLIDATION PLAN
 
-6. ISOLATION PLAN
-Explain how the change stays isolated and what areas you will not touch.
+6. RISK
+Use short bullets only:
+- rollback
+- shared/high-risk files
+- baseline if relevant
 
-If the current step is explicitly a consolidation step, section 6 may be written as:
-6. CONSOLIDATION PLAN
-Describe the grouping strategy and exactly which small set of files/functions are being merged.
+# =========================================================
+# SECTION: DOCS/WORKFLOW UPDATE RULES
+# Controls how docs should be updated after real changes.
+# Tune here if docs become noisy or inconsistent.
+# =========================================================
 
-7. RISK CHECK
-State:
-- whether rollback is simple
-- whether the target files are shared/high-risk
-- what baseline or last known-good point is relevant, if any
-
-Rules you must follow strictly:
-- Treat every task as isolation-first.
-- Follow the read order defined by docs/00-read-first.md. Do not invent a new read order.
-- Work only on the current task in docs/now.md unless I explicitly change task scope.
-- Make the smallest safe patch only.
-- Do not refactor unrelated code.
-- Do not mix unrelated domains in one step. Keep logging, UI, runtime, media, registration, infra, and docs changes separated unless the current task explicitly requires a coupled change.
-- If a change can be isolated to one platform, layer, route, module, or service, keep it there.
-- If a file is shared across multiple platforms, runtimes, or critical flows, treat it as high-risk and avoid editing it unless no safer isolated file exists.
-- If isolation is not possible, stop and say so before making changes.
-- Prefer backend-first diagnostics and proof gathering:
-  - ingress logs
-  - sanitizer/storage
-  - backend/dashboard rendering
-  - frontend emitters only if required
-- Do not replace a working baseline with an experiment.
-- Any experiment must be isolated and disabled by default.
-- Do not make module-loading, cache-busting, bootstrap, or import-path changes unless the task explicitly requires them.
-- Prefer meaningful, themed modules over many tiny helper files.
-- When splitting code, group closely related pure helpers/constants into coherent modules where practical.
-- Target roughly 100–200 lines per helper/module file when reasonable.
-- Avoid creating many tiny 5–10 line files unless there is a clear isolation/safety reason.
-- Do not extract trivial one-line wrappers into standalone files unless they belong inside a larger themed module.
-- Consolidation steps are allowed when they reduce fragmentation without changing behavior.
-- Keep each turn to one safe step only:
-  - either one isolated extraction
-  - or one isolated consolidation
-  - or one isolated bug fix
-  - or one docs/workflow-only change
-- If a touched file is already too large, prefer safe splitting or grouping work that reduces future fragmentation.
-- Do not claim completion without saying how the result was verified.
-- After changes, update workflow docs exactly as required by docs/00-read-first.md and docs/ai-working-rules.md.
+After changes, update workflow docs exactly as required by docs/00-read-first.md and docs/ai-working-rules.md.
 
 When updating docs/now.md:
 - Do not rewrite “Already proven” as only the latest micro-change.
@@ -100,6 +164,12 @@ When updating docs/now.md:
 - Keep it short, but cumulative.
 - “Current blocker” and “Exact next safe step” should describe only the remaining work.
 - If a task is paused, docs/now.md must say it is paused, not abandoned or completed.
+
+# =========================================================
+# SECTION: TASK HISTORY RULES
+# Keeps detailed history in task files instead of bloating live docs.
+# Tune here if task docs/history become inconsistent.
+# =========================================================
 
 Workflow file size and history rules:
 - Keep live workflow files small and manageable.
@@ -125,63 +195,94 @@ Task-specific history rules:
     - next safe step
   - if summarizing a step, keep the original timestamp at the start of that step entry
   - keep the historical order consistent
-- A task-specific history file should keep the full task record in one place, including:
-  - task title and scope
-  - why it mattered
-  - protected behavior
-  - files changed
-  - step-by-step safe changes
-  - verification performed
-  - final outcome
-  - next safe step or completion note
+
+# =========================================================
+# SECTION: LIVE LEDGER RULES
+# Keeps docs/change-ledger.md tiny.
+# Tune here if the live ledger grows too large.
+# =========================================================
 
 Live change-ledger rules:
-- Keep docs/change-ledger.md as a short live global ledger:
-  - one concise summary entry per meaningful change
-  - include the task ID
-  - include the exact files changed
-  - include restart required or not
-  - include exact verified result
-  - include next safe step
-  - if a task-specific history file exists, keep the live ledger entry short and point readers to that task file for full detail
+- Keep docs/change-ledger.md as a short live global ledger.
+- Use one concise summary entry per meaningful change.
+- Include:
+  - task ID
+  - exact files changed
+  - restart required or not
+  - exact verified result
+  - next safe step
+- If a task-specific history file exists, keep the live ledger entry short and point readers to that task file for full detail.
 - The live docs/change-ledger.md must stay a short global index, not a long historical dump.
-- After a completed task is migrated into docs/tasks/<TASK-ID>.md and the previous live ledger is archived, remove the duplicated detailed historical entries for that migrated period from the live docs/change-ledger.md.
+- After a completed task is migrated into docs/tasks/<TASK-ID>.md and older live history is archived, remove duplicated detailed history from the live docs/change-ledger.md.
 - Do not keep both:
-  - the archived full ledger
-  - and the same long detailed entries repeated in the live docs/change-ledger.md
+  - archived full ledger history
+  - and the same long detailed entries in the live docs/change-ledger.md
 - The live docs/change-ledger.md should contain only:
-  - the ledger rules
+  - ledger rules
   - current essential entries
   - concise task completion or index entries
   - pointers to docs/tasks/<TASK-ID>.md and archived ledger files where applicable
 - The live docs/change-ledger.md may keep detailed entries only for active or very recent non-migrated work.
 - Do not move full task history into docs/now.md.
+- Keep docs/change-ledger.md under about 250–300 lines when practical by moving older detail into task files or dated archive files.
+
+# =========================================================
+# SECTION: DOCS-ONLY REFACTOR RULES
+# Special rules for docs-only restructuring/rotation work.
+# Tune here if docs compaction work becomes unsafe.
+# =========================================================
 
 If doing docs/workflow-only refactor:
 - do not change code or runtime config
 - preserve real history
-- do not delete factual history without first moving it into the appropriate task-specific file
+- do not delete factual history without first moving it into the appropriate task-specific file or archive
 - if rotating or trimming docs/change-ledger.md, archive the previous live file first
 - keep structure clean and easy for the next AI to follow
 
+# =========================================================
+# SECTION: VERIFICATION RULES
+# Prevents false completion claims.
+# Tune here if the AI overclaims verification.
+# =========================================================
+
+Do not claim completion without saying how the result was verified.
+
+# =========================================================
+# SECTION: POST-EDIT OUTPUT FORMAT
+# Output only these sections after finishing.
+# Keep compact. No extra recap.
+# Tune here if post-edit replies are still too long.
+# =========================================================
+
 After finishing, output exactly these sections:
 
-1. EXACT DIFFS
+1. CHANGED FILES
 
-2. FILES CHANGED
+2. EXACT DIFFS
+Changed hunks only.
+If hunks are too large, give a concise per-file summary.
 
-3. RESTART/REDEPLOY REQUIRED
-
-4. VERIFICATION DONE
+3. VERIFICATION DONE
 State exactly which of these apply:
 - code inspection only
 - container
 - live route
 - runtime/browser
 
-5. DOCS UPDATED
+4. DOCS UPDATED
 List exactly which workflow/docs files were updated.
 
-6. WHAT WAS NOT CHANGED
+5. REMAINING RISKS
+Use short bullets only.
 
-7. REMAINING RISKS
+# =========================================================
+# SECTION: FINAL OUTPUT DISCIPLINE
+# Last guardrails against verbose replies.
+# =========================================================
+
+Final output discipline:
+- No extra headings beyond the required sections.
+- No prose before the required sections.
+- No prose after the required sections.
+- No duplicate summaries.
+- No full-file dumps.

@@ -11,9 +11,41 @@ let _rtpUiLast = null;
 
 let _rtpUiAudio = null;
 
+function _safeCallDiagContext(st) {
+  try {
+    const s = st?.session || null;
+    return {
+      corrId: s?.__webrtcCorrId || st?.__webrtcCorrId || undefined,
+      callId: s?.outgoingRequestMessage?.callId || s?.incomingRequestMessage?.callId || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function _safeTrackIds(streamOrTracks) {
+  try {
+    const tracks = Array.isArray(streamOrTracks)
+      ? streamOrTracks
+      : (streamOrTracks?.getTracks?.() || []);
+    return tracks.map((t) => t?.id || null).filter(Boolean).slice(0, 8);
+  } catch {
+    return undefined;
+  }
+}
+
 function _safeCloseAudioMeter() {
   try {
     if (_rtpUiAudio?.ctx && typeof _rtpUiAudio.ctx.close === 'function') {
+      try {
+        sendCallMediaEvent({
+          type: 'audio-context-closed',
+          ..._safeCallDiagContext(null),
+          sourceTag: 'rtp-ui-meter',
+          contextState: _rtpUiAudio?.ctx?.state,
+          msg: 'UI meter AudioContext close requested',
+        });
+      } catch {}
       _rtpUiAudio.ctx.close().catch(() => {});
     }
   } catch {}
@@ -42,11 +74,39 @@ function _ensureAudioMetersBound(st) {
     if (!_rtpUiAudio) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return;
+      const ctx = new Ctx();
       _rtpUiAudio = {
-        ctx: new Ctx(),
+        ctx,
         tx: { analyser: null, buf: null, src: null, trackId: null },
         rx: { analyser: null, buf: null, src: null },
       };
+
+      try {
+        sendCallMediaEvent({
+          type: 'audio-context-created',
+          ..._safeCallDiagContext(st),
+          sourceTag: 'rtp-ui-meter',
+          contextState: ctx?.state,
+          msg: 'UI meter AudioContext created',
+        });
+      } catch {}
+
+      try {
+        if (!_rtpUiAudio.ctx.__diagStateListenerBound) {
+          _rtpUiAudio.ctx.__diagStateListenerBound = true;
+          _rtpUiAudio.ctx.onstatechange = () => {
+            try {
+              sendCallMediaEvent({
+                type: 'audio-context-state',
+                ..._safeCallDiagContext(st),
+                sourceTag: 'rtp-ui-meter',
+                contextState: _rtpUiAudio?.ctx?.state,
+                msg: 'UI meter AudioContext state change',
+              });
+            } catch {}
+          };
+        }
+      } catch {}
     }
 
     try {
@@ -62,7 +122,17 @@ function _ensureAudioMetersBound(st) {
       const trackId = track?.id || null;
       const needsRebind = !!trackId && _rtpUiAudio.tx.trackId !== trackId;
       if (needsRebind) {
-        try { _rtpUiAudio.tx.src?.disconnect?.(); } catch {}
+        try {
+          _rtpUiAudio.tx.src?.disconnect?.();
+          sendCallMediaEvent({
+            type: 'media-stream-source-disconnected',
+            ..._safeCallDiagContext(st),
+            sourceTag: 'rtp-ui-meter:tx',
+            contextState: _rtpUiAudio?.ctx?.state,
+            trackIds: _safeTrackIds([track].filter(Boolean)),
+            msg: 'UI meter TX MediaStreamSource disconnected (rebind)',
+          });
+        } catch {}
         _rtpUiAudio.tx = { analyser: null, buf: null, src: null, trackId };
       }
 
@@ -75,6 +145,18 @@ function _ensureAudioMetersBound(st) {
         _rtpUiAudio.tx.src = src;
         _rtpUiAudio.tx.analyser = analyser;
         _rtpUiAudio.tx.buf = new Uint8Array(analyser.fftSize);
+
+        try {
+          sendCallMediaEvent({
+            type: 'media-stream-source-created',
+            ..._safeCallDiagContext(st),
+            sourceTag: 'rtp-ui-meter:tx',
+            contextState: _rtpUiAudio?.ctx?.state,
+            streamId: stream?.id,
+            trackIds: _safeTrackIds(stream),
+            msg: 'UI meter TX MediaStreamSource created',
+          });
+        } catch {}
       }
     } catch {}
 
@@ -91,6 +173,18 @@ function _ensureAudioMetersBound(st) {
         _rtpUiAudio.rx.src = src;
         _rtpUiAudio.rx.analyser = analyser;
         _rtpUiAudio.rx.buf = new Uint8Array(analyser.fftSize);
+
+        try {
+          sendCallMediaEvent({
+            type: 'media-stream-source-created',
+            ..._safeCallDiagContext(st),
+            sourceTag: 'rtp-ui-meter:rx',
+            contextState: _rtpUiAudio?.ctx?.state,
+            streamId: stream?.id,
+            trackIds: _safeTrackIds(stream),
+            msg: 'UI meter RX MediaStreamSource created (from remoteAudio.captureStream)',
+          });
+        } catch {}
       }
     } catch {}
   } catch {

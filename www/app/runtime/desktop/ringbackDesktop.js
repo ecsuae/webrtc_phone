@@ -1,3 +1,5 @@
+import { sendCallMediaEvent } from "../../features/callMediaLog.js";
+
 let ringbackCtx = null;
 let ringbackGain = null;
 let ringbackOscA = null;
@@ -17,7 +19,32 @@ const RINGBACK_CYCLE_MS = Math.round(RINGBACK_CYCLE_SEC * 1000);
 function ensureContext() {
   if (!window.AudioContext && !window.webkitAudioContext) return null;
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!ringbackCtx) ringbackCtx = new Ctx();
+  if (!ringbackCtx) {
+    ringbackCtx = new Ctx();
+    try {
+      sendCallMediaEvent({
+        type: "audio-context-created",
+        sourceTag: "desktop-ringback",
+        contextState: ringbackCtx?.state,
+        msg: "Ringback AudioContext created",
+      });
+    } catch {}
+    try {
+      if (!ringbackCtx.__diagStateListenerBound) {
+        ringbackCtx.__diagStateListenerBound = true;
+        ringbackCtx.onstatechange = () => {
+          try {
+            sendCallMediaEvent({
+              type: "audio-context-state",
+              sourceTag: "desktop-ringback",
+              contextState: ringbackCtx?.state,
+              msg: "Ringback AudioContext state change",
+            });
+          } catch {}
+        };
+      }
+    } catch {}
+  }
   return ringbackCtx;
 }
 
@@ -130,4 +157,17 @@ export function stopDesktopRingback() {
     ringbackGain.disconnect();
     ringbackGain = null;
   }
+
+  try {
+    if (ringbackCtx && typeof ringbackCtx.close === "function") {
+      sendCallMediaEvent({
+        type: "audio-context-closed",
+        sourceTag: "desktop-ringback",
+        contextState: ringbackCtx?.state,
+        msg: "Ringback AudioContext close requested",
+      });
+      ringbackCtx.close().catch(() => {});
+    }
+  } catch {}
+  ringbackCtx = null;
 }

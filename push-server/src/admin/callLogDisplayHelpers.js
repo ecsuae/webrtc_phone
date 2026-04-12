@@ -29,7 +29,7 @@ function renderRawPayloadDetails(ev, { viewMode } = {}) {
     if (ts0) labelBits.push(String(ts0));
     const label = labelBits.length ? `payload ${labelBits.join(' ')}` : 'payload';
     return json
-      ? `<details style="margin-top: 6px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">${escHtml(label)}</summary><div style="margin-top: 6px; border: 1px solid rgba(160,160,160,.25); border-radius: 6px; background: rgba(0,0,0,.08); padding: 8px;"><pre style="white-space: pre; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 0; color: var(--dim);">${escHtml(json)}</pre></div></details>`
+      ? `<details open style="margin-top: 6px;"><summary style="cursor: pointer; color: var(--dim); font-family: var(--mono); font-size: 11px;">${escHtml(label)}</summary><div style="margin-top: 6px; border: 1px solid rgba(160,160,160,.25); border-radius: 6px; background: rgba(0,0,0,.08); padding: 8px;"><pre style="white-space: pre; overflow: auto; max-height: 320px; font-family: var(--mono); font-size: 11px; line-height: 1.35; margin: 0; color: var(--dim);">${escHtml(json)}</pre></div></details>`
       : '';
   } catch {
     return '';

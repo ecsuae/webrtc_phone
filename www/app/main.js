@@ -39,7 +39,7 @@ if (isAndroidClient()) {
     .then((m) => m.bootstrapIosApp(window.SIP))
     .catch((err) => console.error("[boot] Failed to load iOS bootstrap:", err));
 } else {
-  import(withCb("./runtime/desktop/bootstrapDesktop.js"))
+  import(withCb("./desktop/bootstrapDesktopApp.js"))
     .then((m) => m.bootstrapDesktopApp(window.SIP))
     .catch((err) => console.error("[boot] Failed to load Desktop bootstrap:", err));
 }
