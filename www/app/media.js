@@ -18,6 +18,10 @@ function snapshotActiveAudioRegistry() {
   }
 }
 
+export function getActiveAudioCaptureRegistrySnapshot() {
+  return snapshotActiveAudioRegistry();
+}
+
 function emitMediaEvent(ev) {
   try {
     sendCallMediaEvent(ev);

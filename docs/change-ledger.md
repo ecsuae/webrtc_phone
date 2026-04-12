@@ -44,6 +44,40 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-12T18:58:00Z — TASK-031: desktop mic ownership tracker (identify second mic owner)
+- **AI**: Cascade
+- **Scope**: desktop-only observability + safe teardown snapshot; no push-server changes; no SIP/media negotiation changes.
+- **Files changed**:
+  - `www/app/desktop/media/desktopMicOwnershipHooks.js`
+  - `www/app/desktop/media/desktopMicOwnershipTracker.js`
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: reload desktop web app.
+- **Verified result**:
+  - Not yet runtime verified (requires a desktop call + hangup). Expected evidence: post-release snapshots include `msg` with a compact `live=...` owner summary; console includes full `owners` object.
+- **Next safe step**:
+  - Runtime test: place call, hang up, check which owner remains. If an AudioContext/MediaStreamSource remains open, close/disconnect it in the responsible desktop-owned module.
+
+### 2026-04-12T18:40:00Z — TASK-031: desktop outbound media fix + teardown observability (two-way audio restored; mic-release proof)
+- **AI**: Cascade
+- **Scope**: desktop outbound media stability + teardown observability; no behavior changes outside media attachment/teardown evidence.
+- **Files changed**:
+  - `www/app/desktop/outgoing/desktopOutboundStateChange.js`
+  - `www/app/desktop/media/desktopCallAudioRuntime.js`
+  - `www/app/media.js`
+  - `push-server/src/services/callLogStore.js`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: reload desktop web app; rebuild/restart push-server for sanitizer changes.
+- **Verified result**:
+  - Runtime verified: desktop outbound calls have two-way audio; teardown logs show local stream cleared, sender track detached, active capture registry returns to 0.
+- **Next safe step**:
+  - Observability-only: search for second mic owner outside call lifecycle (additional gUM / AudioContext MediaStreamSource / preview paths). Capture global snapshot after hangup.
+
 ### 2026-04-12T10:23:00Z — TASK-031: uplink regression restore (re-acquire mic if cached track not live; emit outbound audio level/energy)
 - **AI**: Cascade
 - **Scope**: desktop-first uplink stability; shared media/stats modules adjusted to restore reliable fresh mic track and improve evidence.

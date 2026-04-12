@@ -112,6 +112,7 @@ function ingestEvents(rawEvents, sourceIp) {
       localMicTrackId: typeof ev.localMicTrackId === 'string' ? ev.localMicTrackId.slice(0, 128) : undefined,
       localMicStreamId: typeof ev.localMicStreamId === 'string' ? ev.localMicStreamId.slice(0, 128) : undefined,
       localMicTrackKind: typeof ev.localMicTrackKind === 'string' ? ev.localMicTrackKind.slice(0, 16) : undefined,
+      localMicTrackReadyState: (ev.localMicTrackReadyState === null) ? null : (typeof ev.localMicTrackReadyState === 'string' ? ev.localMicTrackReadyState.slice(0, 32) : undefined),
       localStreamTrackCount: typeof ev.localStreamTrackCount === 'number' ? ev.localStreamTrackCount : undefined,
       localStreamTrackIds: Array.isArray(ev.localStreamTrackIds)
         ? ev.localStreamTrackIds.slice(0, 8).map((id) => (typeof id === 'string') ? id.slice(0, 128) : undefined).filter(Boolean)
@@ -227,6 +228,8 @@ function ingestEvents(rawEvents, sourceIp) {
       // Media flags
       hasLocalStream: typeof ev.hasLocalStream === 'boolean' ? ev.hasLocalStream : undefined,
       hasRemoteStream: typeof ev.hasRemoteStream === 'boolean' ? ev.hasRemoteStream : undefined,
+      storedHasLocalStream: typeof ev.storedHasLocalStream === 'boolean' ? ev.storedHasLocalStream : undefined,
+      storedLocalStreamTrackCount: (ev.storedLocalStreamTrackCount === null) ? null : (typeof ev.storedLocalStreamTrackCount === 'number' ? ev.storedLocalStreamTrackCount : undefined),
       remoteAudioTrackCount: typeof ev.remoteAudioTrackCount === 'number' ? ev.remoteAudioTrackCount : undefined,
       remoteAudioAttached: typeof ev.remoteAudioAttached === 'boolean' ? ev.remoteAudioAttached : undefined,
       audioPlayOk: typeof ev.audioPlayOk === 'boolean' ? ev.audioPlayOk : undefined,

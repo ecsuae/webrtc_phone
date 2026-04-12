@@ -21,10 +21,16 @@ import { createDesktopUi } from "./ui/desktopAppUi.js";
 import { createDesktopCallTimer, createDesktopHistoryActivity } from "./ui/desktopUiSupport.js";
 import { initDesktopDialpadInput, initDesktopKeyboardToggle } from "./ui/desktopDialpadInput.js";
 
+import { installDesktopMicOwnershipHooks } from "./media/desktopMicOwnershipHooks.js";
+
 export function bootstrapDesktopApp(SIP = window.SIP) {
   // NOTE: This is a desktop-owned bootstrap entrypoint.
   // Behavior is intentionally kept identical to the previous desktop bootstrap.
   bootLog();
+
+  try {
+    installDesktopMicOwnershipHooks();
+  } catch {}
 
   renderDesktopAppLayout();
 

@@ -55,9 +55,11 @@ Desktop app code isolation reduces cross-platform coupling risk and makes deskto
 - Step 5 progress: desktop outbound-call-start support is desktop-owned (`www/app/desktop/outgoing/desktopStartCallSupport.js`, `www/app/desktop/outgoing/desktopStartCallPreflight.js`); desktopStartCall no longer imports shared `www/app/outgoing/call/*`.
 
 ## Current blocker
-- Desktop runtime still has a proven local-audio/uplink failure:
-  - Symptom: desktop user can hear remote audio clearly, but the remote side cannot hear the desktop user (intermittent); microphone sometimes remains in use after hangup/remote hangup.
-  - Regression present: desktop call path has regressed since the last runtime two-way-audio PASS; newest post-Established reattach + uplink diagnostics hook were disabled and a termination listener crash was fixed.
+- Desktop runtime: remaining issue is OS/browser mic indicator staying active after hangup, even though app-level teardown now proves:
+  - local mic track is stopped (readyState=ended)
+  - local stream cleared (localStream=no)
+  - sender has no audio track
+  - active capture registry returns to 0
 
 - Desktop UI controls: Log Off visibility is now proven fixed by runtime user report; earpiece/record hide still require runtime re-check after reload.
 
@@ -69,15 +71,11 @@ Desktop app code isolation reduces cross-platform coupling risk and makes deskto
 - Any current desktop entrypoints/build wiring (to be identified via inventory)
 
 ## Exact next safe step
-Runtime/browser: re-test outbound and inbound calls against the last known-good scenario (2026-04-12 02:31 PKT PASS) after regression-restore (desktop call path relies on SIP.js `localMediaStream` attachment; desktop mic release uses stopLocalAudioStream without sender hard-stop mutations). Capture the desktop-only mic lifecycle diagnostics:
-- `[desktop:mic] acquire ...` (track/stream/settings)
-- `[desktop:mic] attach ...` (method + transceiver/sender state)
-- `[desktop:mic] release ...` (requested/executed)
-- `[desktop:mic] post-term-check ...` at ~300ms and ~1200ms after release
+Runtime/browser: place a desktop outbound call and hang up. Use the desktop mic ownership tracker snapshots emitted after release to identify any remaining mic owner:
+- `[desktop:mic-owner] hooks installed` (once at startup)
+- `[desktop:mic-owner] snapshot ... checkpoint=post-release ... ownerCount=... liveOwnerCount=...`
+- `[desktop:mic-owner] snapshot ... checkpoint=post-release-1500ms ...`
 
-Confirm:
-- no termination exception
-- mic is actually released (localStream becomes null; sender track cleared or pc closed)
-- whether `Warning: microphone input appears silent` is shown (and the RMS warning log)
+Snapshots now include a compact `live=...` summary in posted logs (with acquisition hint) and legacy `navigator.getUserMedia`/`webkitGetUserMedia` are also tracked.
 
-If call is still cleared by remote, capture `[desktop:term-diag]` lines for established/remote-bye/terminated.
+If a remaining owner is shown (AudioContext / MediaStreamSource / getUserMedia), fix the leak in the responsible desktop-owned module by closing/disconnecting/stopping it.

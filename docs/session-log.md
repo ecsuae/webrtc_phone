@@ -756,3 +756,12 @@ Examples:
 2026-04-12 10:26 PKT | CHANGE | TASK-031 | Call log exports: added localMicTrackId to outbound call diagnostic context and added senderTrack* + outboundAudioLevel/energy + localMicTrackId columns to call log CSV export so raw call-log view includes uplink payload fields (for 2s/5s/10s correlation). | AI: Cascade
 2026-04-12 10:23 PKT | VERIFY | TASK-031 | Runtime/browser required: place outbound call and confirm whether outboundAudioLevel/outboundTotalAudioEnergy appear and whether remote can hear desktop. | AI: Cascade
 2026-04-12 10:24 PKT | STOP   | TASK-031 | Session end | worked 2m | AI: Cascade
+
+2026-04-12 23:40 PKT | NOTE   | TASK-031 | Runtime verified: desktop outbound calls now have two-way audio; teardown logs prove local stream cleared, sender track cleared, active capture registry returns to 0 (post-term 300ms/1200ms) | AI: Cascade
+2026-04-12 23:40 PKT | NOTE   | TASK-031 | Remaining issue: OS/browser mic indicator remains on after hangup despite app-level release proof; next step is observability-only search for a second mic owner (gUM/AudioContext MediaStreamSource/preview paths) | AI: Cascade
+
+2026-04-12 23:49 PKT | START  | TASK-031 | Desktop mic-indicator RCA: add desktop-only mic ownership tracker hooks + post-hangup snapshot | AI: Cascade
+2026-04-12 23:49 PKT | CHANGE | TASK-031 | Added desktop-only mic ownership tracker split (hooks+tracker): wraps navigator.mediaDevices.getUserMedia, AudioContext, createMediaStreamSource, and per-track stop; installed from desktop bootstrap; releaseDesktopCallAudio now force-releases any remaining desktop mic owners and emits post-release snapshots | AI: Cascade
+2026-04-13 00:18 PKT | NOTE   | TASK-031 | Ownership hooks now also track legacy navigator.getUserMedia/webkitGetUserMedia; posted snapshot msg includes compact live owner summary with acquisition hint (so raw logs can identify the remaining mic owner) | AI: Cascade
+
+2026-04-12 23:58 PKT | STOP   | TASK-031 | Session end | worked 9m | AI: Cascade
