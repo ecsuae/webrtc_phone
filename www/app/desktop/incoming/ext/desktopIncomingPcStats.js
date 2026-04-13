@@ -22,7 +22,7 @@ function loadPcStats() {
   if (_statsImport) return _statsImport;
 
   const cb = getRuntimeCb();
-  const url = cb ? `../../pc/stats.js?cb=${encodeURIComponent(cb)}` : "../../pc/stats.js";
+  const url = cb ? `../../../pc/stats.js?cb=${encodeURIComponent(cb)}` : "../../../pc/stats.js";
   _statsImport = import(url)
     .then((m) => {
       _stats = m;

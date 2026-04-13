@@ -7,13 +7,11 @@ import { attachRemoteAudio } from "./desktopOutgoingMedia.js";
 import { handleOutboundEstablishedDesktop } from "./desktopOutboundEstablished.js";
 
 import { syncDesktopOutboundTerminated } from "./desktopOutboundTerminationSync.js";
-import {
-  emitDesktopAudioSenderBound,
-  emitDesktopOutboundSenderObserved,
-  emitDesktopNegotiatedAudioSnapshot,
-  forceDesktopOutboundAudioSenderToLocalStreamTrack,
-  installDesktopOutboundSenderMutationHooks,
-} from "./desktopOutboundSenderDiagnostics.js";
+import { emitDesktopAudioSenderBound } from "./ext/desktopOutboundSenderBound.js";
+import { emitDesktopOutboundSenderObserved } from "./ext/desktopOutboundSenderObserved.js";
+import { emitDesktopNegotiatedAudioSnapshot } from "./ext/desktopOutboundNegotiatedAudioSnapshot.js";
+import { forceDesktopOutboundAudioSenderToLocalStreamTrack } from "./ext/desktopOutboundSenderForceTrack.js";
+import { installDesktopOutboundSenderMutationHooks } from "./ext/desktopOutboundSenderMutationHooksCore.js";
 
 export function onOutboundStateChangeDesktop(SIP, inviter, st, ui, { t_callStart, peer } = {}) {
   return async (s) => {

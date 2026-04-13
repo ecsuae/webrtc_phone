@@ -6,6 +6,8 @@ import {
   getDesktopOutboundDiagContext,
 } from "./ext/desktopExtInviterFactory.js";
 
+export { createDesktopInviter, getDesktopOutboundDiagContext };
+
 export function configureDesktopRemoteAudio(ui) {
   const audioEl = ui?.remoteAudio?.();
   if (!audioEl) return;

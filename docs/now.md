@@ -3,6 +3,13 @@
 ## Current task
 TASK-032 — desktop runtime/correctness bug fixing (post-isolation).
 
+## Current blocker(s)
+- None (desktop bootstrap + inbound stats + hard-refresh loop issues fixed).
+
+## Exact next safe step
+- Verify hard refresh is one-shot: after one manual hard refresh, typing username must not reload the page.
+- Then resume TASK-032 runtime proof pass: reproduce outbound ext-to-ext 477/480 and capture the full desktop outbound event trace for one failing call.
+
 ## Why this matters
 Desktop app code isolation reduces cross-platform coupling risk and makes desktop behavior (including registration) explicit, maintainable, and desktop-owned.
 

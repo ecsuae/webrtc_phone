@@ -46,6 +46,67 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-13T01:26:00Z — TASK-032: desktop hard-refresh loop fix (one-shot consume)
+- **AI**: Cascade
+- **Scope**: desktop runtime UX fix (hard-refresh/cache only).
+- **Proof / symptom**:
+  - After manual hard refresh, `[POST_REFRESH_BOOT] hr=1 ... href=...&hr=1` and `[DESKTOP_HARD_REFRESH_PREV_CLICK] ... href=...&hr=1` observed.
+  - Page refreshed again during early login input activity.
+- **Fix**:
+  - `www/app/desktop/runtime/ext/desktopCacheHardRefreshSetup.js` now consumes hard-refresh state on first boot:
+    - clears `__desktop_hard_refresh_click_ts` from localStorage
+    - removes `hr=1` from the URL via `history.replaceState`
+    - emits `[DESKTOP_HARD_REFRESH_CONSUMED] ...` marker
+- **Next safe step**:
+  - Verify: one refresh click triggers exactly one reload; after reload, typing username does not reload; then resume TASK-032 SIP 480 proof pass.
+
+### 2026-04-13T01:14:00Z — TASK-032: inbound stats 404 fix (pc/stats import path)
+- **AI**: Cascade
+- **Scope**: desktop inbound runtime unblock (stats/diag import only; no media behavior change).
+- **Symptom**:
+  - Browser tried to import `/app/desktop/pc/stats.js?...` and 404’d during inbound established flow.
+- **Root cause**:
+  - `www/app/desktop/incoming/ext/desktopIncomingPcStats.js` used a relative import path that resolved under `/app/desktop/...`.
+- **Fix**:
+  - Updated dynamic import URL from `../../pc/stats.js` to `../../../pc/stats.js` (resolves to real `www/app/pc/stats.js`).
+- **Next safe step**:
+  - Re-test inbound call establish: confirm `loadPcStats` import succeeds and stats snapshots continue without 404; then resume TASK-032 ext-to-ext SIP 480 proof pass.
+
+### 2026-04-13T01:09:00Z — TASK-032: desktop bootstrap fix (export createDesktopInviter)
+- **AI**: Cascade
+- **Scope**: desktop runtime bootstrap unblock (export mismatch fix).
+- **Fix**:
+  - `www/app/desktop/outgoing/desktopStartCallSupport.js` now exports `createDesktopInviter` and `getDesktopOutboundDiagContext` for callers under `www/app/desktop/outgoing/ext/`.
+- **Symptom**:
+  - `SyntaxError: ... does not provide an export named 'createDesktopInviter'` from `desktopExtInviteFlow.js`.
+- **Next safe step**:
+  - Reload desktop app and confirm bootstrap/login UI renders; then resume TASK-032 SIP 480 proof pass.
+
+### 2026-04-13T01:07:00Z — TASK-032: desktop bootstrap fix (remove stale outbound sender diagnostics import)
+- **AI**: Cascade
+- **Scope**: desktop runtime bootstrap unblock (no SIP logic changes).
+- **Fix**:
+  - Removed stale import of deleted `www/app/desktop/outgoing/desktopOutboundSenderDiagnostics.js`.
+  - Updated `www/app/desktop/outgoing/desktopOutboundStateChange.js` to import the required functions from existing `www/app/desktop/outgoing/ext/` modules.
+- **Verified result**:
+  - Repo search returns zero references to `desktopOutboundSenderDiagnostics.js`.
+- **Next safe step**:
+  - Re-test desktop app loads past bootstrap and login UI renders; then resume TASK-032 SIP 480 proof pass.
+
+### 2026-04-13T00:48:00Z — Docs: correct TASK-032 start date in task index
+- **AI**: Cascade
+- **Scope**: docs/workflow only (metadata consistency).
+- **Files changed**:
+  - `docs/tasks/Index.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - `docs/now.md` shows TASK-032 active.
+  - `docs/change-ledger.md` contains `2026-04-13T05:15:00Z — TASK-032: start state`.
+  - `docs/tasks/Index.md` TASK-032 start date set to `2026-04-13`.
+- **Next safe step**:
+  - Continue TASK-032 runtime proof pass for desktop outbound ext-to-ext 480 branch.
+
 ### 2026-04-13T05:15:00Z — TASK-032: start state (runtime/correctness only; post-isolation)
 - **AI**: Cascade
 - **Scope**: runtime/correctness debugging only (no isolation/refactor work; desktop isolation is complete).

@@ -799,3 +799,13 @@ Examples:
 2026-04-13 09:30 PKT | CHANGE | TASK-031 | Behavior-preserving split: reduced final 200+ desktop UI files by delegating layout sections to `www/app/desktop/ui/ext/desktopLayoutSections.js` and extracting UI helpers into `www/app/desktop/ui/ext/desktopAppUiHelpers.js`; verified `www/app/desktop/**/*.js` now has 0 files >200 lines. | AI: Cascade
 
 2026-04-13 10:05 PKT | CHANGE | TASK-031 | Strict isolation: moved shared Add Call UI behavior from `www/app/ui/callControlAddCall.js` into desktop-owned `www/app/desktop/ui/ext/desktopCallControlAddCall.js` and updated `desktopCallControls.js` to import desktop version; inbound handler behavior and registration input parsing are now desktop-owned. | AI: Cascade
+
+2026-04-13 05:48 PKT | NOTE   | TASK-032 | Docs-only correction: updated `docs/tasks/Index.md` to set TASK-032 start date to 2026-04-13 based on change-ledger start-state timestamp. | AI: Cascade
+
+2026-04-13 06:07 PKT | FIX    | TASK-032 | Desktop bootstrap unblock: removed stale import of deleted `www/app/desktop/outgoing/desktopOutboundSenderDiagnostics.js` from `desktopOutboundStateChange.js` and imported required functions directly from `www/app/desktop/outgoing/ext/` modules. | AI: Cascade
+
+2026-04-13 06:09 PKT | FIX    | TASK-032 | Desktop bootstrap unblock: `desktopStartCallSupport.js` now exports `createDesktopInviter` (and `getDesktopOutboundDiagContext`) to satisfy `desktopExtInviteFlow.js` import and eliminate export-name runtime failure. | AI: Cascade
+
+2026-04-13 06:14 PKT | FIX    | TASK-032 | Inbound stats loader unblock: `desktopIncomingPcStats.js` dynamic import path corrected from `../../pc/stats.js` (resolved to `/app/desktop/pc/stats.js` 404) to `../../../pc/stats.js` (real shared stats module). | AI: Cascade
+
+2026-04-13 06:26 PKT | FIX    | TASK-032 | Desktop hard-refresh loop fix: consume one-shot hard-refresh state on boot by clearing `__desktop_hard_refresh_click_ts` and removing `hr=1` from the URL (via `history.replaceState`) in `desktopCacheHardRefreshSetup.js`, preventing a second reload during login typing. | AI: Cascade
