@@ -1,5 +1,5 @@
 import { nowISO, logLine } from "../desktopLogging.js";
-import { sendCallMediaEvent } from "../../features/callMediaLog.js";
+import { reportDesktopMicOwnershipSnapshotToCallLog } from "./desktopMicOwnershipReporter.js";
 
 const _state = {
   gumOwners: [],
@@ -178,14 +178,8 @@ export function emitDesktopMicOwnershipSnapshot(ctx = {}) {
     } catch {}
 
     try {
-      sendCallMediaEvent({
-        type: "desktop-mic-ownership-snapshot",
-        corrId: snap.corrId,
-        callId: snap.callId,
+      reportDesktopMicOwnershipSnapshotToCallLog(snap, {
         dir: ctx?.dir || "outbound",
-        checkpoint: snap.checkpoint,
-        reason: snap.reason,
-        activeCount: snap.ownerCount,
         msg: `desktop-mic-ownership-snapshot ownerCount=${snap.ownerCount} liveOwnerCount=${snap.liveOwnerCount} live=${ownersSummary}`,
       });
     } catch {}

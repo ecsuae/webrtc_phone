@@ -12,10 +12,10 @@ import {
 
 import { stopIncomingAlert } from "./desktopIncomingAlert.js";
 import { cleanupDesktopIncomingState } from "./desktopIncomingState.js";
-import { getHeaderValue, getInboundDiagContext } from "../../incoming/handlers/diag.js";
-import { observeRemoteAudioPlay } from "../../incoming/handlers/observeRemoteAudioPlay.js";
-import { runLteAnswerPreflight } from "../../incoming/handlers/answer/preflight.js";
-import { acceptIncomingInvitation } from "../../incoming/handlers/answer/accept.js";
+import { getHeaderValue, getInboundDiagContext } from "./ext/desktopIncomingDiag.js";
+import { observeRemoteAudioPlay } from "./ext/desktopIncomingRemoteAudioObserve.js";
+import { runLteAnswerPreflight } from "./ext/desktopIncomingPreflight.js";
+import { acceptIncomingInvitation } from "./ext/desktopIncomingAccept.js";
 
 import { startDesktopIncomingEarlyMediaLoop } from "./desktopIncomingRemoteAudio.js";
 

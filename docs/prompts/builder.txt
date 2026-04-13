@@ -88,7 +88,12 @@ Rules you must follow strictly:
 
 File shape rules:
 - Prefer meaningful, themed modules over many tiny helper files.
-- Target roughly 150–200 lines per new helper/module file when reasonable.
+- Target maximum file size: 150 lines when reasonable.
+- Hard ceiling: 200 lines.
+- If a change would push a file above 200 lines, you must split first.
+- Do not extend already-large files unless they are first reduced/split.
+- Prefer behavior-preserving refactor/extraction before bug-fix edits when boundaries or size limits are at risk.
+- Design new files around a single responsibility; avoid “grab bag” modules.
 - If a refactor exceeds 200 lines, split it into exactly two coherent files when practical.
 - Avoid creating many tiny 5–10 line files unless there is a clear isolation/safety reason.
 - Do not extract trivial one-line wrappers into standalone files unless they belong inside a larger themed module.
@@ -286,3 +291,42 @@ Final output discipline:
 - No prose after the required sections.
 - No duplicate summaries.
 - No full-file dumps.
+
+# =========================================================
+# SECTION: TASK INDEX RULES
+# Keeps docs/tasks/Index.md in sync with real task state.
+# =========================================================
+
+Task index rules:
+- Maintain docs/tasks/Index.md as the canonical quick index of all task files under docs/tasks/.
+- Update docs/tasks/Index.md whenever:
+  - a task is started
+  - a task becomes Active again after not being Active
+  - a task status changes from Active to any other status
+  - a task is completed, paused, blocked, archived, or reopened
+- When a task is first started, ensure its row shows:
+  - task ID
+  - short title
+  - status = Active
+  - start date
+  - end date = —
+  - one-line summary of the current plan
+- When a task is re-opened or resumed:
+  - set status = Active
+  - keep the original start date if already known
+  - set end date = —
+  - refresh the one-line summary to match the current plan
+- When a task changes from Active to any non-Active state:
+  - update the status in docs/tasks/Index.md
+  - set end date if the new status is Complete or Archived
+  - keep end date = — for Paused or Blocked unless the local workflow defines otherwise
+  - refresh the one-line summary so it matches the final state or next planned action
+- Do not invent dates.
+- Use dates from the task file first.
+- If the task file does not contain a reliable date, use archive/history sources if available.
+- If no reliable date exists, write Unknown.
+- Keep one-line summaries short, current, and action-oriented.
+- docs/tasks/Index.md is a compact index, not a full history file.
+- If task status changes, docs/now.md and docs/tasks/Index.md must stay consistent in the same step when both are affected.
+
+- When task state changes, also update docs/tasks/Index.md in the same step per the Task Index Rules.

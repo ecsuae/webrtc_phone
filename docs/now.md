@@ -1,7 +1,7 @@
 # NOW
 
 ## Current task
-TASK-031 — desktop app refactor/isolation (standalone; no shared code with Android/iOS).
+TASK-032 — desktop runtime/correctness bug fixing (post-isolation).
 
 ## Why this matters
 Desktop app code isolation reduces cross-platform coupling risk and makes desktop behavior (including registration) explicit, maintainable, and desktop-owned.
@@ -10,12 +10,12 @@ Desktop app code isolation reduces cross-platform coupling risk and makes deskto
 - TASK-028: complete (push-server isolation + `/admin/calllogs` summary diagnosis work complete enough; do not reopen).
 - TASK-029: pending (missing inbound raw proof rows in raw logs).
 - TASK-030: complete enough to close (template-driven runtime config is in place and verified; optional websocket Upgrade probe is deferred).
-- TASK-031: active (desktop app refactor/isolation).
+- TASK-031: complete/closed (desktop isolation/refactor is complete; remaining issues are runtime-only bugs).
+- TASK-032: active (runtime/correctness fixes only; no further isolation work expected).
 
 ## Scope guardrails (for current work)
-- Scope: desktop app refactor/isolation only.
-- Desktop must become standalone with no shared/common code dependency on Android or iOS.
-- Desktop must not use shared/common registration code; registration must be desktop-owned.
+- Scope: desktop runtime/correctness debugging only (post-isolation).
+- Do not reopen desktop isolation/refactor work unless a new isolation leak is proven.
 - Do not modify Android or iOS implementation in this step.
 - Do not mix with TASK-029 missing inbound raw proof rows.
 - Do not touch push-server summary/logging/admin.
@@ -55,15 +55,9 @@ Desktop app code isolation reduces cross-platform coupling risk and makes deskto
 - Step 5 progress: desktop outbound-call-start support is desktop-owned (`www/app/desktop/outgoing/desktopStartCallSupport.js`, `www/app/desktop/outgoing/desktopStartCallPreflight.js`); desktopStartCall no longer imports shared `www/app/outgoing/call/*`.
 
 ## Current blocker
-- Desktop runtime: remaining issue is OS/browser mic indicator staying active after hangup, even though app-level teardown now proves:
-  - local mic track is stopped (readyState=ended)
-  - local stream cleared (localStream=no)
-  - sender has no audio track
-  - active capture registry returns to 0
-
-- Desktop UI controls: Log Off visibility is now proven fixed by runtime user report; earpiece/record hide still require runtime re-check after reload.
-
-- Desktop hard refresh control (status bar gear icon) needed desktop-owned advanced cache clear + reload wiring; fix applied, runtime click verification pending.
+- Runtime bug: desktop outbound extension-to-extension calls may reject/terminate early (477/480).
+- Runtime issue: OS/browser mic indicator may remain on after hangup despite app-level release proof.
+- Note: these are runtime/correctness bugs; desktop isolation/refactor is not the blocker.
 
 ## Files most likely involved (TASK-031)
 - `docs/tasks/TASK-031.md`
@@ -71,11 +65,4 @@ Desktop app code isolation reduces cross-platform coupling risk and makes deskto
 - Any current desktop entrypoints/build wiring (to be identified via inventory)
 
 ## Exact next safe step
-Runtime/browser: place a desktop outbound call and hang up. Use the desktop mic ownership tracker snapshots emitted after release to identify any remaining mic owner:
-- `[desktop:mic-owner] hooks installed` (once at startup)
-- `[desktop:mic-owner] snapshot ... checkpoint=post-release ... ownerCount=... liveOwnerCount=...`
-- `[desktop:mic-owner] snapshot ... checkpoint=post-release-1500ms ...`
-
-Snapshots now include a compact `live=...` summary in posted logs (with acquisition hint) and legacy `navigator.getUserMedia`/`webkitGetUserMedia` are also tracked.
-
-If a remaining owner is shown (AudioContext / MediaStreamSource / getUserMedia), fix the leak in the responsible desktop-owned module by closing/disconnecting/stopping it.
+Desktop isolation/refactor is complete. Next safe step: runtime-only debugging to reproduce and fix 477/480 early termination and any mic-stuck indicators (no refactors unless a file grows beyond the ceiling).

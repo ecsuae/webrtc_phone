@@ -1,5 +1,5 @@
 import { initializeHoldButton, syncHoldButtonUI } from "../../features/sipHold.js?v=1773023601";
-import { initializeAddCallButton } from "../../ui/callControlAddCall.js";
+import { initializeAddCallButton } from "./ext/desktopCallControlAddCall.js";
 import { dualSessionManager } from "../../features/dualSessionManager.js";
 import { nowISO, logLine } from "../desktopLogging.js";
 import { initializeAudioRouteButtonDesktop } from "./desktopCallControlAudioRoute.js";

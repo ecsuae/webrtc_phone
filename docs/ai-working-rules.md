@@ -71,8 +71,11 @@ If a new change is risky, isolate it behind:
 
 ## Code size and split rule
 - Keep every code file small and focused.
-- Target maximum file size: **150 to 200 lines** for normal code files.
-- If a file grows beyond that range, split it into smaller focused modules/files.
+- Target maximum file size: **150 lines** when reasonable.
+- Hard ceiling: **200 lines**.
+- If a change would push a file above 200 lines, you must split first.
+- Do not extend already-large files unless they are first reduced/split.
+- Prefer behavior-preserving refactor/extraction before bug-fix edits when boundaries or size limits are at risk.
 - Do not keep adding logic into large files just because they already exist.
 - Split by responsibility, for example:
   - routes

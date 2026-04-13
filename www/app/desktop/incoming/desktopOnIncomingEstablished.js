@@ -4,9 +4,9 @@ import { dualSessionManager } from "../../features/dualSessionManager.js";
 import { sendCallMediaEvent } from "../../features/callMediaLog.js";
 import { readAppAudioRouteDiagSnapshot } from "../../ui/audioRoute/state.js";
 
-import { scheduleMediaStatsSnapshots } from "../../incoming/handlers/pcStats.js";
-import { getInboundDiagContext } from "../../incoming/handlers/diag.js";
-import { observeRemoteAudioPlay } from "../../incoming/handlers/observeRemoteAudioPlay.js";
+import { scheduleMediaStatsSnapshots } from "./ext/desktopIncomingPcStats.js";
+import { getInboundDiagContext } from "./ext/desktopIncomingDiag.js";
+import { observeRemoteAudioPlay } from "./ext/desktopIncomingRemoteAudioObserve.js";
 
 import { attachDesktopIncomingRemoteAudio } from "./desktopIncomingRemoteAudio.js";
 

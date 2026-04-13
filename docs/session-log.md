@@ -765,3 +765,37 @@ Examples:
 2026-04-13 00:18 PKT | NOTE   | TASK-031 | Ownership hooks now also track legacy navigator.getUserMedia/webkitGetUserMedia; posted snapshot msg includes compact live owner summary with acquisition hint (so raw logs can identify the remaining mic owner) | AI: Cascade
 
 2026-04-12 23:58 PKT | STOP   | TASK-031 | Session end | worked 9m | AI: Cascade
+
+2026-04-13 00:25 PKT | START  | TASK-031 | Desktop remote hangup: ensure call timer stops + UI/state clears on SessionState.Terminated | AI: Cascade
+2026-04-13 00:25 PKT | CHANGE | TASK-031 | Inbound remote termination now runs desktop end-call UI/state sync (stop timer, clear st.session, set Idle) with decisive logs; outbound termination also routes through the same end-call helper and emits remote-hangup detected + timer stop + state cleared proof events. | AI: Cascade
+2026-04-13 00:25 PKT | STOP   | TASK-031 | Session end | worked 0m | AI: Cascade
+
+2026-04-13 00:30 PKT | NOTE   | TASK-031 | Regression mitigation: rolled back outbound termination to prior inline UI/timer cleanup and reduced desktopCallEndSync side effects (no callMediaLog posts) to avoid interfering with call establishment; inbound Terminated still stops timer and clears state on remote hangup. | AI: Cascade
+
+2026-04-13 00:35 PKT | NOTE   | TASK-031 | Outbound early-failure diagnostics: desktop outbound now posts `desktop-sip-reject-details`, `desktop-remote-answer-processing`, `desktop-session-state-transition`, and `desktop-local-terminate-request` so raw logs can prove whether 477/480 is remote reject vs local cancel/terminate and whether Terminated fires prematurely. | AI: Cascade
+
+2026-04-13 00:45 PKT | NOTE   | TASK-031 | Isolation: extracted outbound SIP progress/accept/reject event posting into desktop-owned `desktopOutboundSipDiagnostics.js`; ringback delegate now focuses on ringback+UI only and calls the diagnostics helper. | AI: Cascade
+
+2026-04-13 00:55 PKT | NOTE   | TASK-031 | Isolation: extracted desktop outbound SessionState.Terminated cleanup (ringback stop + pc.close + releaseDesktopCallAudio + endDesktopCallUiState) into `desktopOutboundTerminationSync.js`; outbound stateChange handler now orchestrates only. | AI: Cascade
+
+2026-04-13 01:05 PKT | NOTE   | TASK-031 | Isolation: mic ownership tracker is now pure state/snapshot+local logs; remote call-log emission for `desktop-mic-ownership-snapshot` moved into desktop-owned `desktopMicOwnershipReporter.js` (tracker no longer imports sendCallMediaEvent). | AI: Cascade
+
+2026-04-13 01:20 PKT | CHANGE | TASK-031 | Rule enforcement: tightened repo AI rules to hard-enforce file size discipline (target 150 lines, hard ceiling 200, split-before-growing, prefer behavior-preserving refactors). | AI: Cascade
+
+2026-04-13 01:35 PKT | CHANGE | TASK-031 | Behavior-preserving split: extracted desktop outbound SIP response parsing/meta + diagnostics emission into `www/app/desktop/outgoing/ext/desktopExtSipResponses.js`; `desktopRingbackDelegate.js` now delegates response handling but keeps ringback control + early-media attach behavior unchanged. | AI: Cascade
+
+2026-04-13 01:45 PKT | CHANGE | TASK-031 | Behavior-preserving split: extracted desktop outbound INVITE sequencing (inviter creation + requestDelegate wiring + invite send) into `www/app/desktop/outgoing/ext/desktopExtInviteFlow.js`; `desktopStartCall.js` now delegates sequencing and stays behavior-equivalent (line count 380 → 330). | AI: Cascade
+
+2026-04-13 01:55 PKT | CHANGE | TASK-031 | Behavior-preserving split: extracted post-INVITE sender/codec observation + LTE-guard onFail (local cancel/bye + `desktop-local-terminate-request`) into `www/app/desktop/outgoing/ext/desktopExtPostInviteFlow.js`; `desktopStartCall.js` reduced to 196 lines and now delegates this branch. | AI: Cascade
+
+2026-04-13 02:05 PKT | CHANGE | TASK-031 | Behavior-preserving split: extracted inviter construction + outbound diag-context assembly into `www/app/desktop/outgoing/ext/desktopExtInviterFactory.js`; `desktopStartCallSupport.js` reduced 250 → 111 lines via re-export (API preserved). | AI: Cascade
+
+2026-04-13 02:15 PKT | CHANGE | TASK-031 | Behavior-preserving split: extracted termination getStats parsing + snapshot shaping helpers into `www/app/desktop/outgoing/ext/desktopTerminationSnapshotHelpers.js`; `desktopTerminationDiagnostics.js` reduced 267 → 120 lines (API preserved; lifecycle wiring unchanged). | AI: Cascade
+
+2026-04-13 02:25 PKT | CHANGE | TASK-031 | Behavior-preserving split: reduced `desktopOutboundSenderDiagnostics.js` 800+ line monolith to thin re-export shim; extracted sender snapshot/bound/observed, negotiated audio snapshot, force-track, and mutation hook wrappers into `www/app/desktop/outgoing/ext/desktopOutboundSender*` modules (all <200 lines) with exported API preserved. | AI: Cascade
+
+2026-04-13 02:35 PKT | CHANGE | TASK-031 | Behavior-preserving split: reduced `desktopCallAudioRuntime.js` by extracting runtime helpers + release sequencing into `www/app/desktop/media/ext/desktopCallAudioRuntimeHelpers.js` and `desktopCallAudioRuntimeRelease.js`; `desktopCallAudioRuntime.js` reduced 472 → 126 lines (exports preserved; event names/payloads/order unchanged). | AI: Cascade
+
+2026-04-13 09:30 PKT | CHANGE | TASK-031 | Behavior-preserving split: reduced final 200+ desktop UI files by delegating layout sections to `www/app/desktop/ui/ext/desktopLayoutSections.js` and extracting UI helpers into `www/app/desktop/ui/ext/desktopAppUiHelpers.js`; verified `www/app/desktop/**/*.js` now has 0 files >200 lines. | AI: Cascade
+
+2026-04-13 10:05 PKT | CHANGE | TASK-031 | Strict isolation: moved shared Add Call UI behavior from `www/app/ui/callControlAddCall.js` into desktop-owned `www/app/desktop/ui/ext/desktopCallControlAddCall.js` and updated `desktopCallControls.js` to import desktop version; inbound handler behavior and registration input parsing are now desktop-owned. | AI: Cascade

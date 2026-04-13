@@ -38,6 +38,10 @@ Before moving code, inventory and record:
 - Desktop structure is clear and maintainable.
 - Workflow docs updated truthfully as work progresses (`docs/now.md`, `docs/session-log.md`, `docs/change-ledger.md`, and this task file).
 
+## Status
+- Complete/closed.
+- Desktop isolation/refactor is complete; remaining work is runtime/correctness debugging only (tracked under TASK-032).
+
 ## Implementation approach guardrails
 - Keep changes isolation-first and behavior-preserving where possible.
 - Prefer coherent feature/file moves; avoid tiny fragmented helpers.
@@ -1034,3 +1038,44 @@ Conclusion (truthful): desktop currently uses shared/common registration flow an
   - Code inspection only.
 - **Next safe step**:
   - Runtime/browser: click gear icon; after reload confirm `DESKTOP_HARD_REFRESH_PREV_CLICK` log appears.
+
+## Final historical record (closeout)
+
+### 2026-04-13T04:10:00Z — Desktop UI file-size pass complete (all desktop-only JS now <200)
+- **AI**: Cascade
+- **Change**: finish desktop UI file-size pass by delegating layout/template sections and extracting UI helpers.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopAppLayout.js`
+  - `www/app/desktop/ui/ext/desktopLayoutSections.js`
+  - `www/app/desktop/ui/desktopAppUi.js`
+  - `www/app/desktop/ui/ext/desktopAppUiHelpers.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**: line-count scan confirms `www/app/desktop/**/*.js` has 0 files >200 lines.
+
+### 2026-04-13T05:05:00Z — Strict isolation: remove shared Add Call UI behavior dependency
+- **AI**: Cascade
+- **Change**: copied shared Add Call button behavior into desktop-owned module and switched desktop imports.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopCallControlAddCall.js` (new)
+  - `www/app/desktop/ui/desktopCallControls.js`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**: import audit confirms desktop no longer imports `www/app/dom.js`, `www/app/incoming/handlers/**`, or `www/app/ui/callControlAddCall.js`.
+
+### 2026-04-13 09:30 PKT — Final 200+ desktop UI refactor pass confirmation
+- Verified: delegated layout sections + extracted UI helpers; confirmed 0 files >200 under `www/app/desktop/**/*.js`.
+
+### 2026-04-13 10:05 PKT — Strict isolation confirmation: desktop-owned Add Call UI module in use
+- Verified: shared Add Call UI behavior moved from `www/app/ui/callControlAddCall.js` into desktop-owned `www/app/desktop/ui/ext/desktopCallControlAddCall.js`; `desktopCallControls.js` imports desktop version.
+
+### 2026-04-13 — Final verification
+- Verified by full desktop line-count scan and import audit:
+  - `www/app/desktop/**/*.js` files >200 lines: 0
+  - No desktop imports from:
+    - `www/app/dom.js`
+    - `www/app/incoming/handlers/**`
+    - `www/app/ui/callControlAddCall.js`
+- Remaining issues (477/480 early termination; mic-stuck indicator) are runtime/correctness bugs, not isolation debt.

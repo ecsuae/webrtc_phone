@@ -1,5 +1,4 @@
 import { nowISO, logLine } from "../desktopLogging.js";
-import { guardDesktopLteRelayReadiness } from "../desktopLteCallGuard.js";
 import { sendCallMediaEvent } from "../../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../../features/mobileNetworkMode.js";
 
@@ -11,19 +10,17 @@ import {
 import {
   configureDesktopRemoteAudio,
   getDesktopOutboundDiagContext,
-  createDesktopInviter,
 } from "./desktopStartCallSupport.js";
-import { onOutboundStateChangeDesktop } from "./desktopOutboundStateChange.js";
 import { runDesktopLtePreflightOrThrow } from "./desktopStartCallPreflight.js";
 
 import { desktopEl } from "../ui/desktopDomRefs.js";
 
 import {
-  createOutboundRequestDelegateDesktop,
   primeOutboundRingbackContext,
   stopRingbackTone,
 } from "./desktopRingbackDelegate.js";
-import { initDesktopTerminationDiagnostics } from "./desktopTerminationDiagnostics.js";
+import { runDesktopExtInviteFlow } from "./ext/desktopExtInviteFlow.js";
+import { runDesktopExtPostInviteFlow } from "./ext/desktopExtPostInviteFlow.js";
 
 export async function startCall(SIP, st, ui) {
   const target = (() => {
@@ -165,192 +162,27 @@ export async function startCall(SIP, st, ui) {
 
   const selectedProfile = st.selectedProfile || (isMobileCompatModeEnabled() ? "lte" : "wifi");
 
-  const inviter = createDesktopInviter({ SIP, st, targetUri, corrId, selectedProfile, peer: target });
-
-  try {
-    inviter.__webrtcCorrId = corrId;
-  } catch {}
-  try {
-    inviter.__desktopMicId = micId;
-  } catch {}
-  try {
-    inviter.__desktopMicTrackId = micTrackId;
-  } catch {}
-  try {
-    inviter.__desktopMicStreamId = mic?.stream?.id || null;
-  } catch {}
-  try {
-    inviter.__desktopMicTrack = mic?.track || null;
-  } catch {}
-  try {
-    inviter.__desktopLocalStream = mic?.stream || null;
-  } catch {}
-
-  try {
-    inviter.__callMediaDiag = getDesktopOutboundDiagContext(st, target, inviter);
-  } catch {}
-
-  const requestDelegate = createOutboundRequestDelegateDesktop({ SIP, st, ui, inviter, target });
-  const termDiag = initDesktopTerminationDiagnostics(SIP, inviter, ui, { dir: "outbound", target });
-  try {
-    requestDelegate.onBye = async (req) => {
-      try {
-        termDiag?.onRemoteBye?.(req);
-      } catch {}
-    };
-  } catch {}
-
   const aor = st.account ? `${st.account.rawUsername}@${st.account.domain}` : null;
 
   try {
-    const audioEl = ui?.remoteAudio?.();
-    if (audioEl) audioEl.__callMediaDiagContext = getDesktopOutboundDiagContext(st, target, inviter);
-  } catch {}
-
-  st.session = inviter;
-  inviter.stateChange.addListener(onOutboundStateChangeDesktop(SIP, inviter, st, ui, { t_callStart, peer: target }));
-  ui.setButtons();
-
-  sendCallMediaEvent({
-    type: "media-offer-outgoing",
-    ...getDesktopOutboundDiagContext(st, target, inviter),
-    t_callStart,
-    msg: "About to send INVITE (offer)",
-  });
-
-  sendCallMediaEvent({
-    type: "outbound-invite-sent",
-    ...getDesktopOutboundDiagContext(st, target, inviter),
-    t_callStart,
-    msg: "Outbound INVITE will be sent",
-  });
-
-  try {
-    await inviter.invite({ requestDelegate });
-    ui.setStatus("Calling...");
-
-    try {
-      const pc = inviter?.sessionDescriptionHandler?.peerConnection || null;
-      const stream = (() => {
-        try {
-          return pc ? (getLocalStream() || null) : (getLocalStream() || null);
-        } catch {
-          return null;
-        }
-      })();
-      const localMicTrackId = inviter?.__desktopMicTrackId || st?.__desktopMicTrackId || undefined;
-      const localMicStreamId = inviter?.__desktopMicStreamId || st?.__desktopMicStreamId || stream?.id || (() => {
-        try {
-          return getLocalStream()?.id || undefined;
-        } catch {
-          return undefined;
-        }
-      })();
-      const pcSignalingState = pc?.signalingState || undefined;
-
-      const senderTrack = (() => {
-        try {
-          const senders = pc?.getSenders?.() || [];
-          const a = senders.find((sd) => sd?.track?.kind === "audio") || null;
-          return a?.track || null;
-        } catch {
-          return null;
-        }
-      })();
-
-      const senderStreamIds = (() => {
-        try {
-          const senders = pc?.getSenders?.() || [];
-          const a = senders.find((sd) => sd?.track?.kind === "audio") || null;
-          const ss = a?.getStreams?.() || [];
-          return ss.map((s) => s?.id || null).filter(Boolean);
-        } catch {
-          return undefined;
-        }
-      })();
-
-      const senderTrackId = senderTrack?.id || undefined;
-      const senderTrackReadyState = senderTrack?.readyState || undefined;
-      const senderTrackEnabled = (typeof senderTrack?.enabled === "boolean") ? senderTrack.enabled : undefined;
-      const senderTrackMuted = (typeof senderTrack?.muted === "boolean") ? senderTrack.muted : undefined;
-      const sameAsLocalMicTrack = !!(senderTrackId && localMicTrackId && senderTrackId === localMicTrackId);
-
-      sendCallMediaEvent({
-        type: "desktop-sender-track-observed",
-        ...getDesktopOutboundDiagContext(st, target, inviter),
-        checkpoint: "post-local-description",
-        senderTrackId,
-        senderTrackReadyState,
-        senderTrackEnabled,
-        senderTrackMuted,
-        localMicTrackId,
-        localMicStreamId,
-        senderStreamIds,
-        sameAsLocalMicTrack,
-        pcSignalingState,
-        msg: "Desktop sender audio track observed",
-      });
-
-      try {
-        const trs = pc?.getTransceivers?.() || [];
-        const t = trs.find((tr) => tr?.sender?.track?.kind === "audio") || null;
-        const codecs = t?.sender?.getParameters?.()?.codecs || [];
-        const c0 = Array.isArray(codecs) ? codecs[0] : null;
-        if (c0 && c0.mimeType) {
-          sendCallMediaEvent({
-            type: "desktop-outbound-codec-observed",
-            ...getDesktopOutboundDiagContext(st, target, inviter),
-            checkpoint: "post-local-description",
-            outboundCodecMimeType: c0.mimeType || undefined,
-            outboundCodecPayloadType: (typeof c0.payloadType === "number") ? c0.payloadType : undefined,
-            outboundCodecClockRate: (typeof c0.clockRate === "number") ? c0.clockRate : undefined,
-            outboundCodecChannels: (typeof c0.channels === "number") ? c0.channels : undefined,
-            msg: "Desktop outbound codec observed",
-          });
-        }
-      } catch {}
-    } catch {}
-
-    sendCallMediaEvent({
-      type: "invite-sent",
-      ...getDesktopOutboundDiagContext(st, target, inviter),
+    const out = await runDesktopExtInviteFlow(SIP, st, ui, {
+      target,
+      targetUri,
+      corrId,
       t_callStart,
-      t_inviteSent: new Date().toISOString(),
-      msg: "INVITE sent",
+      selectedProfile,
+      micId,
+      micTrackId,
+      mic,
     });
+    const inviter = out?.inviter;
 
-    sendCallMediaEvent({
-      type: "outbound-invite-sent",
-      ...getDesktopOutboundDiagContext(st, target, inviter),
+    runDesktopExtPostInviteFlow(SIP, st, ui, inviter, {
+      target,
+      corrId,
       t_callStart,
-      t_inviteSent: new Date().toISOString(),
-      msg: "Outbound INVITE sent",
-    });
-
-    const callId = inviter.outgoingRequestMessage?.callId || null;
-    guardDesktopLteRelayReadiness(inviter, {
       aor,
-      callId,
-      dir: "outbound",
-      onFail: (code, userMessage) => {
-        logLine(`[${nowISO()}] [call] ${code} — aborting call: ${userMessage}`);
-        ui.setStatus(userMessage);
-        try {
-          if (inviter.state === SIP.SessionState.Established) inviter.bye();
-          else inviter.cancel();
-        } catch {}
-        releaseDesktopCallAudio("outbound-lte-guard-fail", { session: inviter, corrId, callId, micId });
-        st.session = null;
-        ui.setButtons();
-        stopRingbackTone({ trigger: "hangup", reason: "hangup" });
-      },
-    });
-
-    sendCallMediaEvent({
-      type: "call-start",
-      ...getDesktopOutboundDiagContext(st, target, inviter),
-      t_callStart,
-      msg: "Outbound call active (invite initiated)",
+      micId,
     });
   } catch (e) {
     stopRingbackTone();

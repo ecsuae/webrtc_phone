@@ -1,7 +1,15 @@
-import { nowISO, formatSipResponse, getSipRejectDetails, logLine, mapSipFailureToMessage } from "../desktopLogging.js";
+import { nowISO, logLine, formatSipResponse } from "../desktopLogging.js";
 import { attachRemoteAudio, startEarlyMediaAttachLoop } from "./desktopOutgoingMedia.js";
 import { emitRingbackEvent, emitRingbackOutputSnapshot, startRingbackDiag, stopRingbackDiag } from "../../outgoing/ringback/diag.js";
 import { getDesktopPlatformAdapter } from "../runtime/platformAdapterRegistry.js";
+import {
+  emitDesktopExtAccept,
+  emitDesktopExtProgress,
+  emitDesktopExtReject,
+  getDesktopExtAcceptMeta,
+  getDesktopExtProgressMeta,
+  getDesktopExtRejectMeta,
+} from "./ext/desktopExtSipResponses.js";
 
 let ringbackRunning = false;
 let ringbackLastStartTrigger = null;
@@ -93,34 +101,38 @@ export function stopRingbackTone(meta = {}) {
 export function createOutboundRequestDelegateDesktop({ SIP, st, ui, inviter, target }) {
   return {
     onTrying: async (resp) => {
-      const info = formatSipResponse(resp);
+      const info = getDesktopExtProgressMeta(resp)?.info || "";
       if (info) logLine(`[${nowISO()}] [call] trying ${info}`);
     },
     onProgress: async (resp) => {
-      const info = formatSipResponse(resp);
-      if (info) logLine(`[${nowISO()}] [call] progress ${info}`);
+      const meta = getDesktopExtProgressMeta(resp);
+      if (meta?.info) logLine(`[${nowISO()}] [call] progress ${meta.info}`);
 
-      const code = resp?.message?.statusCode || resp?.statusCode || resp?.message?.status;
-      const body = resp?.message?.body || "";
-      const hasSdp = body.includes("v=") && body.includes("m=audio");
+      if (meta?.isProvisional) {
+        logLine(`[${nowISO()}] [call] provisional ${meta.code} (hasSdp=${meta.hasSdp})`);
 
-      if (code === 180 || code === 183) {
-        logLine(`[${nowISO()}] [call] provisional ${code} (hasSdp=${hasSdp})`);
+        try {
+          emitDesktopExtProgress(inviter, st, target, {
+            code: meta.code,
+            hasSdp: meta.hasSdp,
+            source: "desktopRingbackDelegate.onProgress",
+          });
+        } catch {}
 
-        if (code === 180) {
+        if (meta.code === 180) {
           ui.setStatus("Ringing...");
           try {
             const a = getDesktopPlatformAdapter();
             const fn = a?.callPolicy?.shouldStartLocalRingbackOn180;
-            const allow = typeof fn === "function" ? !!fn({ hasSdp }) : !hasSdp;
+            const allow = typeof fn === "function" ? !!fn({ hasSdp: meta.hasSdp }) : !meta.hasSdp;
             if (allow) startRingbackTone({ trigger: "sip-180", reason: "sip-180-ringing" });
           } catch {
-            if (!hasSdp) startRingbackTone({ trigger: "sip-180", reason: "sip-180-ringing" });
+            if (!meta.hasSdp) startRingbackTone({ trigger: "sip-180", reason: "sip-180-ringing" });
           }
         }
 
-        if (code === 183) {
-          if (hasSdp) {
+        if (meta.code === 183) {
+          if (meta.hasSdp) {
             stopRingbackTone({ trigger: "sip-183", reason: "early-media-sdp" });
             ui.setStatus("Early media...");
           } else {
@@ -134,13 +146,21 @@ export function createOutboundRequestDelegateDesktop({ SIP, st, ui, inviter, tar
     },
     onAccept: async (resp) => {
       stopRingbackTone({ trigger: "sip-200", reason: "call-answered" });
-      const info = formatSipResponse(resp);
-      const details = getSipRejectDetails(resp);
+      const meta = getDesktopExtAcceptMeta(resp);
+
+      try {
+        emitDesktopExtAccept(inviter, st, target, {
+          details: meta?.details,
+          hasSdp: meta?.hasSdp,
+          source: "desktopRingbackDelegate.onAccept",
+        });
+      } catch {}
+
       window.callHistory?.addCall?.(target, "outgoing", 0, {
-        sipCode: details?.code || 200,
-        sipReason: details?.reason || "OK",
+        sipCode: meta?.details?.code || 200,
+        sipReason: meta?.details?.reason || "OK",
       });
-      ui.setStatus(info ? `Call established (${info})` : "Call established");
+      ui.setStatus(meta?.info ? `Call established (${meta.info})` : "Call established");
     },
     onRedirect: async (resp) => {
       stopRingbackTone({ trigger: "sip-3xx", reason: "redirect" });
@@ -149,20 +169,23 @@ export function createOutboundRequestDelegateDesktop({ SIP, st, ui, inviter, tar
     },
     onReject: async (resp) => {
       stopRingbackTone({ trigger: "sip-reject", reason: "reject" });
-      const info = formatSipResponse(resp);
-      const details = getSipRejectDetails(resp);
-      const human = mapSipFailureToMessage(details);
-      const q850 = details.q850Cause
-        ? `; Q.850 cause=${details.q850Cause}${details.q850Text ? ` (${details.q850Text})` : ""}`
-        : "";
-      logLine(`[${nowISO()}] [call] rejected ${info || "unknown"}${q850}`);
+      const meta = getDesktopExtRejectMeta(resp);
+      logLine(`[${nowISO()}] [call] rejected ${meta?.info || "unknown"}${meta?.q850 || ""}`);
+
+      try {
+        emitDesktopExtReject(inviter, st, target, {
+          details: meta?.details,
+          source: "desktopRingbackDelegate.onReject",
+        });
+      } catch {}
+
       window.callHistory?.addCall?.(target, "rejected", 0, {
-        sipCode: details?.code || "",
-        sipReason: details?.reason || "",
-        q850Cause: details?.q850Cause || "",
-        q850Text: details?.q850Text || "",
+        sipCode: meta?.details?.code || "",
+        sipReason: meta?.details?.reason || "",
+        q850Cause: meta?.details?.q850Cause || "",
+        q850Text: meta?.details?.q850Text || "",
       });
-      ui.setStatus(info ? `${human} (${info})` : human);
+      ui.setStatus(meta?.info ? `${meta?.human || "Call failed"} (${meta.info})` : (meta?.human || "Call failed"));
     },
   };
 }
