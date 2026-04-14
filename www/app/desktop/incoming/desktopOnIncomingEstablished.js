@@ -7,7 +7,7 @@ import { readAppAudioRouteDiagSnapshot } from "../../ui/audioRoute/state.js";
 import { scheduleMediaStatsSnapshots } from "./ext/desktopIncomingPcStats.js";
 import { getInboundDiagContext } from "./ext/desktopIncomingDiag.js";
 import { observeRemoteAudioPlay } from "./ext/desktopIncomingRemoteAudioObserve.js";
-
+import { emitDesktopInboundAudioProof, forceDesktopInboundAudioSenderToLocalStreamTrack } from "./ext/desktopInboundSenderProof.js";
 import { attachDesktopIncomingRemoteAudio } from "./desktopIncomingRemoteAudio.js";
 
 export function onDesktopIncomingEstablished(SIP, st, ui, invitation, callerUser, callerDisplay) {
@@ -156,7 +156,6 @@ export function onDesktopIncomingEstablished(SIP, st, ui, invitation, callerUser
       }, 10000);
     }
   } catch {}
-
   try {
     const pc = invitation?.sessionDescriptionHandler?.peerConnection;
     try {
@@ -167,6 +166,20 @@ export function onDesktopIncomingEstablished(SIP, st, ui, invitation, callerUser
       console.log(line);
     } catch {}
     if (pc) scheduleMediaStatsSnapshots(pc, "inbound", ctx);
+  } catch {}
+
+  try {
+    const pc = invitation?.sessionDescriptionHandler?.peerConnection || null;
+    if (pc && !pc.__desktopInboundAudioProofScheduled) {
+      pc.__desktopInboundAudioProofScheduled = true;
+      setTimeout(() => {
+        void forceDesktopInboundAudioSenderToLocalStreamTrack(invitation, ctx, "post-established-2p5s");
+        void emitDesktopInboundAudioProof(invitation, ctx, { checkpoint: "post-established-2p5s" });
+      }, 2500);
+      setTimeout(() => {
+        void emitDesktopInboundAudioProof(invitation, ctx, { checkpoint: "post-established-10s" });
+      }, 10000);
+    }
   } catch {}
 
   sendCallMediaEvent({

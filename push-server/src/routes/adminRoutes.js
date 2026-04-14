@@ -10,6 +10,8 @@ const { renderRoutingPage } = require('../admin/routingPage');
 const { queryEvents, getStats } = require('../services/callLogStore');
 const { renderCallLogPage } = require('../admin/callLogPage');
 const { buildExportBundle, renderEventsCsv } = require('../services/callLogExport');
+const { renderRegistrationsPage } = require('../admin/registrationsPage');
+const { readLiveRegistrations } = require('../services/registrations/readLiveRegistrations');
 const { attachLatestCallerExportRoutes, attachLatestCallerReceiverExportRoutes } = require('./adminCallLogExportRoutes');
 
 function createAdminRoutes({ requireWireGuardAccess }) {
@@ -93,6 +95,18 @@ function createAdminRoutes({ requireWireGuardAccess }) {
     const stats = getStats();
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(renderCallLogPage(events, stats, filter));
+  });
+
+  // ---------------------------------------------------------------------------
+  // Live registrations comparison page (Kamailio usrloc vs PBX)
+  // ---------------------------------------------------------------------------
+  router.get('/registrations', requireWireGuardAccess, async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const snapshot = await readLiveRegistrations();
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(renderRegistrationsPage(snapshot));
   });
 
   // ---------------------------------------------------------------------------

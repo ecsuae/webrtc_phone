@@ -738,12 +738,13 @@ function renderCallLogPage(events, stats, filter) {
 </style>
 </head>
 <body class="view-${escHtml(viewMode)}">
-<div class="nav-links">
+<nav>
   <a href="/dashboard">← Dashboard</a>
-  <a href="/admin/calllogs">Call Logs</a>
-  <a href="/admin/routing">Routing Config</a>
   <a href="/diagnostics/errors">Diagnostics</a>
-</div>
+  <a href="/admin/routing">Routing</a>
+  <a href="/admin/calllogs">Call Logs</a>
+  <a href="/admin/registrations">Registrations</a>
+</nav>
 <div class="nav-links">
   <span style="color: var(--dim); margin-right: 10px;">View:</span>
   <a href="${escHtml(summaryHref)}"${viewMode === 'summary' ? ' style="font-weight: 700;"' : ''}>Summary</a>

@@ -1,31 +1,36 @@
 # NOW
 
 ## Current task
-TASK-032 — desktop runtime/correctness bug fixing (post-isolation).
+TASK-032 — Desktop runtime/correctness (ext-to-ext one-way audio proof/fix).
 
 ## Current blocker(s)
-- None (desktop bootstrap + inbound stats + hard-refresh loop issues fixed).
+- Ext-to-ext one-way audio symptom: 992003 cannot hear 900900.
+- Latest logs prove this is not an ICE/connectivity failure (900900 sends RTP; 992003 receives RTP), so the likely fault boundary is desktop inbound-answer sender binding / silent-source on 900900.
 
 ## Exact next safe step
-- Verify hard refresh is one-shot: after one manual hard refresh, typing username must not reload the page.
-- Then resume TASK-032 runtime proof pass: reproduce outbound ext-to-ext 477/480 and capture the full desktop outbound event trace for one failing call.
+- Reproduce one failing ext-to-ext call and inspect inbound leg proof:
+  - `desktop-inbound-audio-proof` (~2.5s and ~10s after Established)
+  - senderTrackId == acquired local mic trackId
+  - outbound RTP packets/bytes increasing
+  - sender energy (audioLevel/totalAudioEnergy) non-zero when speaking
+- If binding is correct but energy stays near-zero, treat as local capture/silent-source; do not guess-fix outside desktop inbound boundary.
 
 ## Why this matters
-Desktop app code isolation reduces cross-platform coupling risk and makes desktop behavior (including registration) explicit, maintainable, and desktop-owned.
+TASK-032 must be resolved with proof: one-way audio can be caused by sender binding, PBX bridge, codec/SDP asymmetry, or far-end receive/render.
 
 ## Task status (truthful)
 - TASK-028: complete (push-server isolation + `/admin/calllogs` summary diagnosis work complete enough; do not reopen).
 - TASK-029: pending (missing inbound raw proof rows in raw logs).
 - TASK-030: complete enough to close (template-driven runtime config is in place and verified; optional websocket Upgrade probe is deferred).
 - TASK-031: complete/closed (desktop isolation/refactor is complete; remaining issues are runtime-only bugs).
-- TASK-032: active (runtime/correctness fixes only; no further isolation work expected).
+- TASK-032: active (runtime proof/fix in progress; do not guess-fix without evidence).
+- TASK-033: pending (admin registrations page continues later).
 
 ## Scope guardrails (for current work)
-- Scope: desktop runtime/correctness debugging only (post-isolation).
-- Do not reopen desktop isolation/refactor work unless a new isolation leak is proven.
-- Do not modify Android or iOS implementation in this step.
-- Do not mix with TASK-029 missing inbound raw proof rows.
-- Do not touch push-server summary/logging/admin.
+- Scope: desktop runtime proof/fix only (TASK-032).
+- Do not reopen desktop isolation/refactor (TASK-031).
+- Do not change SIP routing/server behavior in this step.
+- Add only minimal decisive diagnostics until the failing segment is proven.
 
 ## Already proven (TASK-031)
 - Desktop inventory recorded in `docs/tasks/TASK-031.md`:

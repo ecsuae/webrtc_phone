@@ -809,3 +809,45 @@ Examples:
 2026-04-13 06:14 PKT | FIX    | TASK-032 | Inbound stats loader unblock: `desktopIncomingPcStats.js` dynamic import path corrected from `../../pc/stats.js` (resolved to `/app/desktop/pc/stats.js` 404) to `../../../pc/stats.js` (real shared stats module). | AI: Cascade
 
 2026-04-13 06:26 PKT | FIX    | TASK-032 | Desktop hard-refresh loop fix: consume one-shot hard-refresh state on boot by clearing `__desktop_hard_refresh_click_ts` and removing `hr=1` from the URL (via `history.replaceState`) in `desktopCacheHardRefreshSetup.js`, preventing a second reload during login typing. | AI: Cascade
+
+2026-04-13 06:38 PKT | NOTE   | DOCS    | Workflow: set TASK-032 to Pending (runtime testing paused) and restore TASK-026 (Kamailio isolation/refactor) into current tracking as the active task. | AI: Cascade
+
+2026-04-13 06:45 PKT | CHANGE | TASK-026 | Kamailio isolation: extracted `route[SEND_PUSH_NOTIFICATION]` from `kamailio/kamailio.cfg` into `kamailio/routes/70-push.cfg` and included it (boundary isolation; behavior intended identical). | AI: Cascade
+
+2026-04-13 06:51 PKT | CHANGE | TASK-026 | Kamailio isolation: split `kamailio/routes/10-incoming.cfg` into `10-incoming-core.cfg` + `10-incoming-did-map.cfg` and made `10-incoming.cfg` an include wrapper; verified `kamailio -c /etc/kamailio/kamailio.cfg -I` passes before/after. | AI: Cascade
+
+2026-04-13 06:56 PKT | CHANGE | TASK-026 | Kamailio isolation: split `kamailio/routes/20-registration.cfg` into `20-registration-core.cfg` + `20-registration-helpers.cfg` and made `20-registration.cfg` an include wrapper; verified `kamailio -c /etc/kamailio/kamailio.cfg -I` passes before/after. | AI: Cascade
+
+2026-04-13 07:15 PKT | START  | TASK-033 | Admin portal: add read-only registrations comparison page (Kamailio usrloc vs PBX). | AI: Cascade
+2026-04-13 07:15 PKT | CHANGE | TASK-033 | Enabled localhost-only Kamailio JSON-RPC over HTTP on 8443 (/RPC) for live usrloc query; added /admin/registrations route + initial renderer + live Kamailio snapshot service (PBX side pending). | AI: Cascade
+
+2026-04-13 07:19 PKT | VERIFY | TASK-033 | Verified `/admin/registrations` renders (HTTP 200) after rebuilding/restarting push-server; Kamailio live source reachable via 127.0.0.1:8443/RPC; PBX source still pending wiring. | AI: Cascade
+
+2026-04-13 07:27 PKT | NOTE   | DOCS    | Restored missing `docs/tasks/TASK-032.md` from authoritative workflow history sources (change-ledger + session-log + task index + now). | AI: Cascade
+
+2026-04-13 10:04 PKT | CHANGE | TASK-033 | Admin registrations: normalized Kamailio/PBX shapes and render one merged table; added Dashboard navbar link to `/admin/registrations` (read-only; PBX remains optional/unconfigured). | AI: Cascade
+2026-04-13 10:04 PKT | VERIFY | TASK-033 | Verified `/dashboard`, `/admin/routing`, `/admin/calllogs`, `/admin/registrations` return HTTP 200 after rebuilding push-server; pages include `/admin/registrations` link. | AI: Cascade
+
+2026-04-13 10:28 PKT | CHANGE | TASK-033 | Admin registrations: added PBX DNS/domain fields to PBX normalization and rendered a PBX DNS column in the merged table (safe placeholder when missing). | AI: Cascade
+2026-04-13 10:28 PKT | VERIFY | TASK-033 | Verified `/admin/registrations` returns HTTP 200 and includes the PBX DNS column after rebuilding push-server. | AI: Cascade
+
+2026-04-13 10:36 PKT | START  | TASK-032 | Desktop ext-to-ext one-way audio: add decisive proof event and resume runtime proof pass. | AI: Cascade
+2026-04-13 10:36 PKT | CHANGE | TASK-032 | Added `desktop-outbound-audio-proof` event (post-established ~2.5s) capturing sender binding + transceiver directions + outbound RTP counters to localize one-way audio segment without guessing. | AI: Cascade
+2026-04-13 10:36 PKT | VERIFY | TASK-032 | Code inspection only: proof event emitted from desktop outbound Established path; no behavior changes intended. | AI: Cascade
+2026-04-13 10:36 PKT | STOP   | TASK-032 | Session end | worked 0m | AI: Cascade
+
+2026-04-13 10:51 PKT | START  | TASK-032 | Diagnostics parity: make outbound ext-to-ext calls emit receive/render proof and adjust verdict to treat missing proof as observability gap. | AI: Cascade
+2026-04-13 10:51 PKT | CHANGE | TASK-032 | Desktop outbound established now emits `receive-render-proof` at 5s and 10s with remote audio element state + receiver track state + RTP/energy + negotiated codec summary. | AI: Cascade
+2026-04-13 10:51 PKT | CHANGE | TASK-032 | Media verdict synthesis: classify transport+RTP present but missing `receive-render-proof` as `incomplete-observability` (diagnostics incomplete) rather than implying likely media failure. | AI: Cascade
+2026-04-13 10:51 PKT | VERIFY | TASK-032 | Code inspection only: outbound receive/render proof is emitted from desktop outbound Established path; verdict synthesis now emits `incomplete-observability` conclusion for parity gaps. | AI: Cascade
+
+2026-04-13 11:04 PKT | NOTE   | TASK-032 | Ext-to-ext call proven bidirectional-media OK (not a current one-way-media failure). Legs: outbound=3brgni4nkmug28ugh6mm; inbound=e0eeb614-b1a0-123f-5995-467af263c1d5. Proven: outbound sender bound to local mic; RTP sent/received on both legs; receive/render proof on both legs. | AI: Cascade
+
+2026-04-13 11:20 PKT | START  | TASK-032 | Desktop inbound one-way audio: add inbound sender-binding + energy proof and force sender track to acquired mic when needed (desktop-owned only). | AI: Cascade
+2026-04-13 11:20 PKT | CHANGE | TASK-032 | Inbound answer now persists acquired mic track/stream ids on the invitation; inbound Established schedules `desktop-inbound-audio-proof` (2.5s/10s) including sender vs acquired mic ids, transceiver direction, RTP/energy; applies inbound replaceTrack forcing to local stream track if sender mismatch is detected. | AI: Cascade
+2026-04-13 11:20 PKT | VERIFY | TASK-032 | Code inspection only: new inbound proof/force logic is wired from desktop inbound Established path; no SIP/Kamailio/PBX changes. | AI: Cascade
+
+2026-04-14 01:50 PKT | START  | TASK-033 | Fix /admin/registrations PBX DNS column to prefer hostname/domain over IP when available in row data. | AI: Cascade
+2026-04-14 01:50 PKT | CHANGE | TASK-033 | Updated registrations page domain resolver to prefer hostname candidates in priority order: pbxDnsName, pbxDomain, AOR host (non-IP), other hostname fields; fall back to IP only if no hostname exists; else Unknown. | AI: Cascade
+2026-04-14 01:52 PKT | VERIFY | TASK-033 | Live route (container): /admin/registrations renders HTTP 200; PBX DNS cell no longer uses non-domain labels (e.g. 'location') and falls back to IP only when no hostname exists in data. | AI: Cascade
+2026-04-14 01:52 PKT | STOP   | TASK-033 | Session end | worked 2m | AI: Cascade

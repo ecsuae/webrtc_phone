@@ -5,6 +5,7 @@ import { sendCallMediaEvent } from "../../features/callMediaLog.js";
 
 import { attachRemoteAudio } from "./desktopOutgoingMedia.js";
 import { handleOutboundEstablishedDesktop } from "./desktopOutboundEstablished.js";
+import { getLocalStream } from "../../media.js";
 
 import { syncDesktopOutboundTerminated } from "./desktopOutboundTerminationSync.js";
 import { emitDesktopAudioSenderBound } from "./ext/desktopOutboundSenderBound.js";
@@ -12,6 +13,92 @@ import { emitDesktopOutboundSenderObserved } from "./ext/desktopOutboundSenderOb
 import { emitDesktopNegotiatedAudioSnapshot } from "./ext/desktopOutboundNegotiatedAudioSnapshot.js";
 import { forceDesktopOutboundAudioSenderToLocalStreamTrack } from "./ext/desktopOutboundSenderForceTrack.js";
 import { installDesktopOutboundSenderMutationHooks } from "./ext/desktopOutboundSenderMutationHooksCore.js";
+
+async function emitDesktopOutboundAudioProof(inviter, st, peer, { checkpoint } = {}) {
+  try {
+    const pc = inviter?.sessionDescriptionHandler?.peerConnection || null;
+    if (!pc) return;
+
+    const localStream = (() => {
+      try {
+        return getLocalStream() || null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localMicTrackId = inviter?.__desktopMicTrackId || st?.__desktopMicTrackId || undefined;
+    const localMicStreamId = inviter?.__desktopMicStreamId || st?.__desktopMicStreamId || localStream?.id || undefined;
+
+    const sender = (() => {
+      try {
+        return (pc.getSenders?.() || []).find((s) => s?.track?.kind === "audio") || null;
+      } catch {
+        return null;
+      }
+    })();
+    const senderTrack = sender?.track || null;
+
+    const tr = (() => {
+      try {
+        return (pc.getTransceivers?.() || []).find((t) => t?.sender?.track?.kind === "audio" || t?.receiver?.track?.kind === "audio") || null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const stats = await pc.getStats();
+    let outPk = null;
+    let outBy = null;
+    let outAudioLevel = null;
+    let outTotalAudioEnergy = null;
+    stats.forEach((r) => {
+      try {
+        if (r?.type !== "outbound-rtp") return;
+        if (r.kind !== "audio" && r.mediaType !== "audio") return;
+        if (typeof r.packetsSent === "number") outPk = r.packetsSent;
+        if (typeof r.bytesSent === "number") outBy = r.bytesSent;
+        if (typeof r.audioLevel === "number") outAudioLevel = r.audioLevel;
+        if (typeof r.totalAudioEnergy === "number") outTotalAudioEnergy = r.totalAudioEnergy;
+      } catch {}
+    });
+
+    sendCallMediaEvent({
+      type: "desktop-outbound-audio-proof",
+      corrId: inviter?.__webrtcCorrId || st?.__webrtcCorrId || undefined,
+      callId: inviter?.outgoingRequestMessage?.callId || undefined,
+      dir: "outbound",
+      peer: peer || undefined,
+      checkpoint: checkpoint || "post-established-2p5s",
+      localMicTrackId,
+      localMicStreamId,
+      senderTrackId: senderTrack?.id || undefined,
+      senderTrackReadyState: senderTrack?.readyState || undefined,
+      senderTrackEnabled: (typeof senderTrack?.enabled === "boolean") ? senderTrack.enabled : undefined,
+      senderTrackMuted: (typeof senderTrack?.muted === "boolean") ? senderTrack.muted : undefined,
+      senderTrackIsSameObjectAsLocalStreamAudioTrack: (() => {
+        try {
+          const t0 = localStream?.getAudioTracks?.()?.[0] || null;
+          if (!t0 || !senderTrack) return undefined;
+          return senderTrack === t0;
+        } catch {
+          return undefined;
+        }
+      })(),
+      senderTrackIdMatchesLocalMicTrackId: !!(senderTrack?.id && localMicTrackId && senderTrack.id === localMicTrackId),
+      transceiverMid: (tr && (typeof tr.mid === "string" || typeof tr.mid === "number")) ? String(tr.mid) : undefined,
+      transceiverDirection: (typeof tr?.direction === "string") ? tr.direction : undefined,
+      transceiverCurrentDirection: (typeof tr?.currentDirection === "string") ? tr.currentDirection : undefined,
+      outboundAudioPacketsSent: outPk ?? undefined,
+      outboundAudioBytesSent: outBy ?? undefined,
+      outboundAudioLevel: outAudioLevel ?? undefined,
+      outboundTotalAudioEnergy: outTotalAudioEnergy ?? undefined,
+      pcSignalingState: pc?.signalingState || undefined,
+      pcConnectionState: pc?.connectionState || undefined,
+      msg: "Desktop outbound audio proof (post-established)"
+    });
+  } catch {}
+}
 
 export function onOutboundStateChangeDesktop(SIP, inviter, st, ui, { t_callStart, peer } = {}) {
   return async (s) => {
@@ -103,6 +190,17 @@ export function onOutboundStateChangeDesktop(SIP, inviter, st, ui, { t_callStart
         const pc = inviter?.sessionDescriptionHandler?.peerConnection;
         if (pc) await emitDesktopNegotiatedAudioSnapshot(inviter, st, peer, pc, "post-established", { includeSdp: true });
       } catch {}
+
+      try {
+        const pc = inviter?.sessionDescriptionHandler?.peerConnection;
+        if (pc && !pc.__desktopOutboundAudioProofScheduled) {
+          pc.__desktopOutboundAudioProofScheduled = true;
+          setTimeout(() => {
+            void emitDesktopOutboundAudioProof(inviter, st, peer, { checkpoint: "post-established-2p5s" });
+          }, 2500);
+        }
+      } catch {}
+
       handleOutboundEstablishedDesktop(inviter, st, ui, { t_callStart, peer });
       return;
     }

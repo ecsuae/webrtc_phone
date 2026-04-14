@@ -113,6 +113,21 @@ function synthesizeMediaVerdictRows(eventsByCorr, { callProblem } = {}) {
     const inboundHasRenderProof = hasType(evs, 'receive-render-proof', 'inbound');
     const outboundHasRenderProof = hasType(evs, 'receive-render-proof', 'outbound');
 
+    const hasRtpEvidence = (leg) => {
+      const recv = (leg.recvRtp !== null && leg.recvRtp > 0);
+      const sent = (leg.sentRtp !== null && leg.sentRtp > 0);
+      return recv || sent;
+    };
+
+    const diagnosticsIncompleteFor = (leg, { transportComplete, hasRenderProof } = {}) => {
+      // Explicitly detect the parity gap: transport + RTP are proven but render-proof rows are missing.
+      // This should NOT be treated as a likely media failure.
+      const transportOk = !!transportComplete;
+      const rtpOk = hasRtpEvidence(leg);
+      const dtlsOk = String(leg?.signaling?.dtls || '').toLowerCase() === 'connected';
+      return transportOk && rtpOk && dtlsOk && !hasRenderProof;
+    };
+
     const verdictEnum = (() => {
       const outboundProven = (outVerdict === 'receive+render-ok') && (outConf === 'high');
       const inboundProven = (inVerdict === 'receive+render-ok') && (inConf === 'high');
@@ -127,10 +142,16 @@ function synthesizeMediaVerdictRows(eventsByCorr, { callProblem } = {}) {
       const inboundPlaybackProofMissing = inbound.trackAttached && inboundTransportComplete && !inbound.playOk && !inboundHasRenderProof;
       const outboundPlaybackProofMissing = outbound.trackAttached && outboundTransportComplete && !outbound.playOk && !outboundHasRenderProof;
 
+      const inboundDiagIncomplete = diagnosticsIncompleteFor(inbound, { transportComplete: inboundTransportComplete, hasRenderProof: inboundHasRenderProof });
+      const outboundDiagIncomplete = diagnosticsIncompleteFor(outbound, { transportComplete: outboundTransportComplete, hasRenderProof: outboundHasRenderProof });
+
       if (reciprocalProven || reciprocalPlayOk) return 'two-way-audio-proven';
       if ((outboundProven && inboundPlaybackMissing) || (inboundProven && outboundPlaybackMissing)) return 'possible-playback-path-issue';
       if ((outboundProven && inboundPlaybackProofMissing) || (inboundProven && outboundPlaybackProofMissing)) return 'possible-playback-path-issue';
+      // If reciprocal proof is missing but transport+RTP are already proven, classify as observability gap.
+      if ((outboundProven || inboundProven) && (inboundDiagIncomplete || outboundDiagIncomplete)) return 'incomplete-observability';
       if (outboundProven || inboundProven) return 'asymmetric-media-proof';
+      if (inboundDiagIncomplete || outboundDiagIncomplete) return 'incomplete-observability';
       if (diag === 'insufficient-proof') return 'insufficient-proof';
       return diag;
     })();
@@ -151,6 +172,7 @@ function synthesizeMediaVerdictRows(eventsByCorr, { callProblem } = {}) {
 
     const conclusion = (() => {
       if (verdictEnum === 'two-way-audio-proven') return 'reciprocal strong receive+render proof on both legs';
+      if (verdictEnum === 'incomplete-observability') return 'diagnostics incomplete: transport+RTP are present but receive/render proof is missing on one or both legs (parity gap)';
       if (verdictEnum === 'possible-playback-path-issue') {
         const inboundPlaybackProofMissing = inbound.trackAttached && inboundTransportComplete && !inbound.playOk && !inboundHasRenderProof;
         const outboundPlaybackProofMissing = outbound.trackAttached && outboundTransportComplete && !outbound.playOk && !outboundHasRenderProof;

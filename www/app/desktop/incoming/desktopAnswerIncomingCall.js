@@ -3,20 +3,17 @@ import { getLocalStream } from "../../media.js";
 import { guardDesktopLteRelayReadiness } from "../desktopLteCallGuard.js";
 import { sendCallMediaEvent } from "../../features/callMediaLog.js";
 import { isMobileCompatModeEnabled } from "../../features/mobileNetworkMode.js";
-
 import {
   acquireDesktopCallAudio,
   bindDesktopCallAudioReleaseOnTerminate,
   releaseDesktopCallAudio,
 } from "../media/desktopCallAudioRuntime.js";
-
 import { stopIncomingAlert } from "./desktopIncomingAlert.js";
 import { cleanupDesktopIncomingState } from "./desktopIncomingState.js";
 import { getHeaderValue, getInboundDiagContext } from "./ext/desktopIncomingDiag.js";
 import { observeRemoteAudioPlay } from "./ext/desktopIncomingRemoteAudioObserve.js";
 import { runLteAnswerPreflight } from "./ext/desktopIncomingPreflight.js";
 import { acceptIncomingInvitation } from "./ext/desktopIncomingAccept.js";
-
 import { startDesktopIncomingEarlyMediaLoop } from "./desktopIncomingRemoteAudio.js";
 
 export async function answerIncomingCallDesktop(SIP, st, ui) {
@@ -37,7 +34,6 @@ export async function answerIncomingCallDesktop(SIP, st, ui) {
 
   const caller = invitation.remoteIdentity?.uri?.user || "Unknown";
   const callerDisplay = invitation.remoteIdentity?.displayName || caller;
-
   stopIncomingAlert();
   const t_answerClicked = new Date().toISOString();
   const mic = await acquireDesktopCallAudio(ui, "inbound-answer");
@@ -51,7 +47,6 @@ export async function answerIncomingCallDesktop(SIP, st, ui) {
   }
 
   const micId = mic?.micId || "?";
-
   try {
     const track = mic?.track || null;
     const snap = mic?.trackSnapshot || null;
@@ -78,11 +73,24 @@ export async function answerIncomingCallDesktop(SIP, st, ui) {
       msg: "Desktop mic acquired",
     });
   } catch {}
-
   try {
     invitation.__desktopMicId = micId;
   } catch {}
 
+  try {
+    const track = mic?.track || null;
+    const snap = mic?.trackSnapshot || null;
+    const trackId = (snap?.id || track?.id) || null;
+    if (trackId) {
+      invitation.__desktopMicTrackId = trackId;
+      st.__desktopMicTrackId = trackId;
+    }
+    const streamId = mic?.stream?.id || null;
+    if (streamId) {
+      invitation.__desktopMicStreamId = streamId;
+      st.__desktopMicStreamId = streamId;
+    }
+  } catch {}
   st.incomingInvitation = null;
   ui.setStatus(`Answering ${callerDisplay}...`);
 
