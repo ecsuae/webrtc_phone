@@ -46,6 +46,121 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-25T04:58:00Z — TASK-034: Desktop UI/runtime — make Save checkbox visible; hide Forget unless saved
+- **AI**: Cascade
+- **Scope**: desktop provisioning creds UI only; no backend/admin changes; no provisioning API changes; no registration logic changes.
+- **Problem**:
+  - Global CSS (`www/styles/forms.css`) hides checkboxes (`input[type=checkbox]{display:none}`), making "Save ID & PIN" appear as plain text.
+  - Forget button was always visible.
+- **Fix**:
+  - Render `chkSaveProvisioningCreds` as an explicitly visible checkbox (`display:inline-block; appearance:auto`) inside a clickable label row.
+  - Hide Forget button by default and show it only when saved ID/PIN exists (localStorage keys `desktop_auto_provision_id` / `desktop_auto_provision_pin`).
+  - After successful save, show Forget button; after Forget clears, hide it and uncheck Save.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/desktop/features/auto_provisioning/desktopAutoProvisioningStorage.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served `desktopRegistrationSection.js` contains `id="chkSaveProvisioningCreds" type="checkbox"` and Forget button defaults to `display:none`.
+  - Served modal JS contains `setForgetVisible(...)` and uses `loadSavedAutoProvisioningCreds()` / `hasSavedAutoProvisioningCreds()` to toggle visibility.
+  - Desktop page loads.
+
+### 2026-04-25T04:50:00Z — TASK-034: Desktop runtime — remove stale Save ID & PIN status string (served asset fix)
+- **AI**: Cascade
+- **Scope**: desktop runtime message path only; no backend/admin changes; no provisioning API changes; no registration logic changes.
+- **Fix**:
+  - Removed the stale success status message "Save ID & PIN will be added later.".
+  - When Save is checked and provisioning succeeds, success status now reads: "Auto provisioning complete. Registration started. ID & PIN saved on this device.".
+  - Save is still performed before showing the saved-success status.
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` contains "ID & PIN saved on this device" and does not contain "Save ID & PIN will be added later".
+  - Served modal JS includes `saveAutoProvisioningCreds({ id: provisioningId, pin })`.
+  - Served storage JS includes keys `desktop_auto_provision_id` and `desktop_auto_provision_pin`.
+
+### 2026-04-25T04:40:00Z — TASK-034: Desktop UI/runtime — explicit Autoconfigure textbox styling + Save ID & PIN localStorage
+- **AI**: Cascade
+- **Scope**: desktop UI/runtime only; no backend/provisioning API changes; no registration logic changes; no SIP/media changes; no Android/iOS changes.
+- **Fix**:
+  - Autoconfigure ID input now includes explicit textbox styling (border/radius/padding/font/background) to guarantee it renders as a real bordered input; placeholder set to `e.g. 78653467`.
+  - Added dedicated classes `auto-config-row`, `auto-config-input`, `auto-config-button` and kept arrow button fixed width beside the input.
+  - Implemented Phase A localStorage convenience: if `Save ID & PIN` is checked after successful provisioning+registration trigger, store the Provisioning ID and PIN in `localStorage` keys `desktop_auto_provision_id` + `desktop_auto_provision_pin`.
+  - On page load, prefill saved Provisioning ID; when dialog opens, prefill saved PIN; added Forget button to clear saved values.
+  - No SIP password is stored by this feature and the PIN is never logged.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningFlow.js`
+  - `www/app/desktop/features/auto_provisioning/desktopAutoProvisioningStorage.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: `https://localhost/?mode=desktop` returns 200.
+  - Served `desktopRegistrationSection.js` contains placeholder `e.g. 78653467` and explicit input style including `border: 2px solid var(--border-color)`.
+  - Served `desktopAutoProvisioningStorage.js` contains `desktop_auto_provision_id` + `desktop_auto_provision_pin` and uses localStorage; modal JS itself does not write storage directly.
+  - Manual login field IDs (`ext`, `pass`, `domain`, `wsshost`) are preserved.
+
+### 2026-04-25T04:28:00Z — TASK-034: Desktop UI bugfix — Autoconfigure input styling match; Save checkbox no longer blocks login
+- **AI**: Cascade
+- **Scope**: desktop UI/runtime only; no backend/provisioning API changes; no registration logic changes; no Android/iOS changes.
+- **Fix**:
+  - Autoconfigure ID input now uses the same base `.form-group input` styling as Username (no inline input styling overriding border/height/padding).
+  - Layout remains label-above with input and fixed-width arrow button side-by-side (no overlap).
+  - PIN dialog Login no longer stops when `Save ID & PIN` is checked; the existing provisioning + injected `startAndRegister()` flow runs regardless.
+  - After success (when checkbox was checked), shows a short note: "Save ID & PIN will be added later." (no storage implemented).
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served modal JS no longer contains "Saving ID & PIN is not implemented yet." and contains no `localStorage`/`sessionStorage` writes for provisioning creds.
+  - Desktop page loads and Autoconfigure ID field renders as a normal `<input>` under `.form-group` with the same styling rules as Username.
+  - Login still calls `runProvisioningFlow()` and then triggers injected `startAndRegister()`.
+
+### 2026-04-25T04:09:00Z — TASK-034: Desktop UI bugfix — Autoconfigure ID row input/button layout corrected
+- **AI**: Cascade
+- **Scope**: desktop UI markup only; no backend/provisioning API changes; no registration logic changes.
+- **Fix**:
+  - Autoconfigure ID is now a normal writable `provisioningId` input (`type=text`, `inputmode=numeric`, `maxlength=8`).
+  - Configure button `btnAutoProvisionStart` is fixed-width and shows a visible Unicode label (`➜`), not FontAwesome-only.
+  - Flex layout + inline styles ensure the button is beside the input and does not overlap.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served HTML contains `auto-provision-row`, `provisioningId`, and `btnAutoProvisionStart` with `➜`.
+
+### 2026-04-25T03:56:00Z — TASK-034: Desktop UI-only — integrated autoconfigure into login card; hide LTE/5G mode
+- **AI**: Cascade
+- **Scope**: desktop UI presentation only; reuse existing provisioning + registration logic; no backend changes.
+- **UI changes**:
+  - Removed separate Auto Provision button.
+  - Added compact `Autoconfigure ID` input row with icon button (`Configure with ID`) that enables only when ID is present.
+  - PIN is entered via a small centered dialog with `Login` / `Cancel`.
+  - `Save ID & PIN` checkbox shows "not implemented" message only; does not store anything.
+  - LTE/5G Mode control hidden on desktop.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/page/bootstrapPage.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served desktop HTML includes Autoconfigure row + PIN dialog; `btnAutoProvisionOpen` absent; LTE/5G Mode not rendered; served JS binds enable/disable and does not store ID/PIN.
+
 ### 2026-04-25T03:26:00Z — TASK-034: Phase A fix — auto provisioning no longer overrides desktop WSS defaults
 - **AI**: Cascade
 - **Scope**: desktop provisioning adapter only; no backend/admin changes; no SIP/media/call logic changes.

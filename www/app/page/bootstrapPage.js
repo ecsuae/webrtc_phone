@@ -44,7 +44,11 @@ export async function bootstrapPage() {
   initKeyboardToggle();
   setupCacheActions();
   setupDebugToggleUi();
-  initMobileCompatToggle();
+  try {
+    const ua = String(navigator?.userAgent || "").toLowerCase();
+    const isMobile = ua.includes("android") || ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod");
+    if (isMobile) initMobileCompatToggle();
+  } catch {}
 
   const cb = typeof window !== 'undefined' ? (window.__BUILD_CB || '') : '';
   const mainUrl = cb ? `../main.js?cb=${encodeURIComponent(cb)}` : "../main.js";

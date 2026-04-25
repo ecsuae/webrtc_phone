@@ -1,9 +1,16 @@
 import { logLine } from "../../desktopLogging.js";
-import { requestDesktopProvisioning } from "./desktopProvisioningClient.js";
-import { applyProvisionedConfigToDesktopInputs } from "./applyProvisionedConfigToDesktopInputs.js";
-import { desktopEl } from "../../ui/desktopDomRefs.js";
-import { saveSessionPassword } from "../../desktopRecoverySession.js";
-import { persistDesktopLastRegistration } from "../../registration/ext/desktopRegistrationStorage.js";
+import {
+  getTrimmedValueById,
+  runProvisioningFlow,
+  syncAutoProvisionStartButton,
+  triggerStartAndRegister,
+} from "./desktopProvisioningFlow.js";
+import {
+  clearSavedAutoProvisioningCreds,
+  hasSavedAutoProvisioningCreds,
+  loadSavedAutoProvisioningCreds,
+  saveAutoProvisioningCreds,
+} from "./desktopAutoProvisioningStorage.js";
 
 function setModalVisible(modalEl, visible) {
   if (!modalEl) return;
@@ -24,106 +31,49 @@ function clearLocalStatus() {
   statusEl.style.setProperty("display", "none");
 }
 
-function getTrimmedValueById(id) {
-  const el = document.getElementById(id);
-  const v = String(el?.value || "").trim();
-  return { el, value: v };
-}
-
-function getTempDeterministicDeviceId() {
-  const platform = String(navigator?.platform || "").replace(/\s+/g, "_").slice(0, 24);
-  const ua = String(navigator?.userAgent || "");
-  const uaCompact = ua.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 32);
-  const host = String(window?.location?.host || "").replace(/[^a-zA-Z0-9.:-]+/g, "_").slice(0, 32);
-  return `desktop_${platform || "unknown"}_${host || "local"}_${uaCompact || "ua"}`;
-}
-
-async function runProvisioningFlow() {
-  const { value: provisioningId } = getTrimmedValueById("provisioningId");
-  const { value: pin } = getTrimmedValueById("provisioningPin");
-
-  if (!provisioningId || !pin) {
-    return {
-      ok: false,
-      message: "Provisioning ID and PIN are required.",
-    };
-  }
-
-  const res = await requestDesktopProvisioning({
-    provisioningId,
-    pin,
-    deviceId: getTempDeterministicDeviceId(),
-    deviceName: "Desktop WebRTC",
-    platform: "desktop",
-    appVersion: "",
-  });
-
-  if (!res?.ok) {
-    return {
-      ok: false,
-      message: res?.message || "Provisioning request failed",
-    };
-  }
-
-  const applied = applyProvisionedConfigToDesktopInputs({
-    config: res?.config,
-    desktopEl,
-    saveSessionPassword,
-    persistDesktopLastRegistration,
-  });
-
-  if (!applied?.ok) {
-    return {
-      ok: false,
-      message: applied?.message || "Failed to apply provisioned settings",
-    };
-  }
-
-  try {
-    const a = applied?.applied || {};
-    const ext = String(a?.ext || "");
-    const domain = String(a?.domain || "");
-    const wss = String(a?.wss || "");
-    logLine(`[ui] Auto Provision: applied ext=${ext} domain=${domain} wsshost=${wss}`);
-  } catch {}
-
-  return { ok: true };
-}
-
-function triggerStartAndRegister(startAndRegister) {
-  if (typeof startAndRegister !== "function") {
-    return {
-      ok: false,
-      error_code: "MISSING_START_AND_REGISTER",
-      message: "Registration trigger is not available.",
-    };
-  }
-  try {
-    void startAndRegister();
-  } catch (err) {
-    return {
-      ok: false,
-      error_code: "START_AND_REGISTER_FAILED",
-      message: err?.message || String(err),
-    };
-  }
-  return { ok: true };
+function setForgetVisible(forgetBtn, visible) {
+  if (!forgetBtn) return;
+  forgetBtn.style.setProperty("display", visible ? "inline-flex" : "none");
 }
 
 export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = {}) {
-  const openBtn = document.getElementById("btnAutoProvisionOpen");
+  const startBtn = document.getElementById("btnAutoProvisionStart");
   const cancelBtn = document.getElementById("btnAutoProvisionCancel");
-  const configureBtn = document.getElementById("btnAutoProvisionConfigure");
+  const loginBtn = document.getElementById("btnAutoProvisionConfigure");
   const modalEl = document.getElementById("autoProvisionModal");
+  const idEl = document.getElementById("provisioningId");
+  const saveChk = document.getElementById("chkSaveProvisioningCreds");
+  const forgetBtn = document.getElementById("btnForgetProvisioningCreds");
 
-  if (!openBtn || !cancelBtn || !configureBtn || !modalEl) return;
+  if (!startBtn || !cancelBtn || !loginBtn || !modalEl || !idEl) return;
 
-  if (openBtn.__autoProvisionBound) return;
-  openBtn.__autoProvisionBound = true;
+  if (startBtn.__autoProvisionBound) return;
+  startBtn.__autoProvisionBound = true;
 
-  openBtn.addEventListener("click", () => {
+  try {
+    const saved = loadSavedAutoProvisioningCreds();
+    if (!String(idEl?.value || "").trim() && saved?.id) idEl.value = saved.id;
+    if (saveChk && (saved?.id || saved?.pin)) saveChk.checked = true;
+    setForgetVisible(forgetBtn, !!(saved?.id || saved?.pin));
+  } catch {}
+
+  try {
+    syncAutoProvisionStartButton();
+    idEl.addEventListener("input", () => syncAutoProvisionStartButton());
+  } catch {}
+
+  startBtn.addEventListener("click", () => {
+    const v = String(idEl?.value || "").trim();
+    if (!v) return;
     clearLocalStatus();
     setModalVisible(modalEl, true);
+    try {
+      const pinEl = document.getElementById("provisioningPin");
+      const saved = loadSavedAutoProvisioningCreds();
+      if (pinEl && !String(pinEl.value || "").trim() && saved?.pin) pinEl.value = saved.pin;
+      if (saveChk && (saved?.id || saved?.pin)) saveChk.checked = true;
+      document.getElementById("provisioningPin")?.focus?.();
+    } catch {}
   });
 
   cancelBtn.addEventListener("click", () => {
@@ -131,10 +81,15 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
     setModalVisible(modalEl, false);
   });
 
-  configureBtn.addEventListener("click", async () => {
+  loginBtn.addEventListener("click", async () => {
     clearLocalStatus();
 
-    configureBtn.disabled = true;
+    let wantsSave = false;
+    try {
+      wantsSave = !!saveChk?.checked;
+    } catch {}
+
+    loginBtn.disabled = true;
     try {
       showLocalStatus("Contacting provisioning service...");
 
@@ -142,6 +97,17 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
       if (!out?.ok) {
         showLocalStatus(out?.message || "Auto provisioning failed");
         return;
+      }
+
+      if (wantsSave) {
+        const { value: provisioningId } = getTrimmedValueById("provisioningId");
+        const { value: pin } = getTrimmedValueById("provisioningPin");
+        saveAutoProvisioningCreds({ id: provisioningId, pin });
+        try {
+          setForgetVisible(forgetBtn, hasSavedAutoProvisioningCreds());
+        } catch {
+          setForgetVisible(forgetBtn, true);
+        }
       }
 
       const reg = triggerStartAndRegister(startAndRegister);
@@ -153,11 +119,37 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
       try {
         logLine("[ui] Auto Provision: config applied to desktop inputs");
       } catch {}
-      showLocalStatus("Auto provisioning complete. Registration started.");
+
+      showLocalStatus(
+        wantsSave
+          ? "Auto provisioning complete. Registration started. ID & PIN saved on this device."
+          : "Auto provisioning complete. Registration started."
+      );
     } catch (err) {
       showLocalStatus(err?.message || String(err));
     } finally {
-      configureBtn.disabled = false;
+      loginBtn.disabled = false;
     }
   });
+
+  try {
+    forgetBtn?.addEventListener?.("click", () => {
+      clearSavedAutoProvisioningCreds();
+      try {
+        if (saveChk) saveChk.checked = false;
+      } catch {}
+      try {
+        const pinEl = document.getElementById("provisioningPin");
+        if (pinEl) pinEl.value = "";
+      } catch {}
+      try {
+        if (idEl) idEl.value = "";
+        syncAutoProvisionStartButton();
+      } catch {}
+      try {
+        setForgetVisible(forgetBtn, false);
+      } catch {}
+      showLocalStatus("Saved ID & PIN cleared.");
+    });
+  } catch {}
 }

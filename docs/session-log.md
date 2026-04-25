@@ -1004,3 +1004,33 @@ Examples:
 2026-04-25 08:26 PKT | CHANGE | TASK-034 | Desktop auto-provisioning adapter no longer writes provisioned `websocket_url` to desktop `wsshost`. Adapter now applies only ext/password/domain and preserves existing WSS field value; persisted last-registration uses existing `wsshost` value. | AI: Cascade
 2026-04-25 08:26 PKT | VERIFY | TASK-034 | Docker-only: confirmed served JS has no `websocket_url` references and does not overwrite `wsshost`; desktop page loads; UA debug logs still avoid password logging. | AI: Cascade
 2026-04-25 08:26 PKT | STOP   | TASK-034 | Session end | worked 2m | AI: Cascade
+
+2026-04-25 08:56 PKT | START  | TASK-034 | Desktop UI-only: make provisioning feel like primary login flow | AI: Cascade
+2026-04-25 08:56 PKT | CHANGE | TASK-034 | Desktop login UI: removed separate Auto Provision button and bulky modal/card. Added compact `Autoconfigure ID` row with icon button that enables when ID present, plus small centered PIN dialog (`Save ID & PIN` checkbox shows not-implemented message; no storage). Manual Username/Password login unchanged. Hid LTE/5G Mode on desktop. | AI: Cascade
+2026-04-25 08:56 PKT | VERIFY | TASK-034 | Docker-only: served desktop HTML includes Autoconfigure row + PIN dialog; `btnAutoProvisionOpen` absent; LTE/5G Mode not rendered on desktop; served JS binds new start button enable/disable and shows not-implemented message for Save ID & PIN; no ID/PIN storage added; desktop page loads. | AI: Cascade
+2026-04-25 08:56 PKT | STOP   | TASK-034 | Session end | worked 6m | AI: Cascade
+
+2026-04-25 09:09 PKT | START  | TASK-034 | Desktop UI bugfix: Autoconfigure ID row layout/input usability | AI: Cascade
+2026-04-25 09:09 PKT | FIX    | TASK-034 | Desktop Account UI: Autoconfigure ID input is now a normal writable input (`type=text`, numeric inputmode, maxlength=8). Configure button is a fixed-width visible `➜` beside the input (no FontAwesome-only icon; no overlap). | AI: Cascade
+2026-04-25 09:09 PKT | VERIFY | TASK-034 | Docker-only: served desktop HTML contains `auto-provision-row`, `provisioningId`, and `btnAutoProvisionStart` with visible `➜` label; inline flex styles prevent overlap; desktop page loads. | AI: Cascade
+2026-04-25 09:09 PKT | STOP   | TASK-034 | Session end | worked 2m | AI: Cascade
+
+2026-04-25 09:28 PKT | START  | TASK-034 | Desktop UI bugfixes: Autoconfigure input styling + Save checkbox non-blocking login | AI: Cascade
+2026-04-25 09:28 PKT | FIX    | TASK-034 | Desktop UI-only: Autoconfigure ID input now uses the same base styling rules as Username (no inline input styles overriding border/height/padding). Layout remains label-above with input and fixed-width arrow button side-by-side. PIN dialog: Save ID & PIN checkbox no longer blocks Login; provisioning+registration flow runs regardless; after success shows a note that saving will be added later (no storage implemented). | AI: Cascade
+2026-04-25 09:28 PKT | VERIFY | TASK-034 | Docker-only: served modal JS no longer contains "Saving ID & PIN is not implemented yet." and contains no `localStorage`/`sessionStorage` usage for provisioning creds; served desktop HTML contains `provisioningId` input under `.form-group` and `btnAutoProvisionStart` fixed width; desktop page loads. | AI: Cascade
+2026-04-25 09:28 PKT | STOP   | TASK-034 | Session end | worked 2m | AI: Cascade
+
+2026-04-25 09:40 PKT | START  | TASK-034 | Desktop UI/runtime: explicit Autoconfigure textbox styling + implement Save ID & PIN localStorage | AI: Cascade
+2026-04-25 09:40 PKT | FIX    | TASK-034 | Desktop: Autoconfigure ID input now has explicit border/radius/padding/font/background to guarantee textbox appearance; placeholder set to `e.g. 78653467`; layout uses dedicated classes and keeps arrow button fixed width beside input. Implemented Save ID & PIN: if checked after successful provisioning+registration trigger, store ID+PIN in `localStorage` keys `desktop_auto_provision_id` + `desktop_auto_provision_pin`; prefill saved ID on page load and saved PIN when dialog opens; added Forget button to clear saved values. No SIP password storage; no PIN logging. | AI: Cascade
+2026-04-25 09:40 PKT | VERIFY | TASK-034 | Docker-only: `https://localhost/?mode=desktop` returns 200; served `desktopRegistrationSection.js` contains placeholder `e.g. 78653467` and explicit input style including `border: 2px solid var(--border-color)`; served `desktopAutoProvisioningStorage.js` contains the isolated localStorage keys; served modal JS contains no "Saving ID & PIN is not implemented yet.". | AI: Cascade
+2026-04-25 09:40 PKT | STOP   | TASK-034 | Session end | worked 6m | AI: Cascade
+
+2026-04-25 09:50 PKT | START  | TASK-034 | Desktop runtime: remove stale Save ID & PIN status message | AI: Cascade
+2026-04-25 09:50 PKT | FIX    | TASK-034 | Desktop: replaced stale success status "Save ID & PIN will be added later." with "Auto provisioning complete. Registration started. ID & PIN saved on this device." when Save is checked; save call remains before status is shown. | AI: Cascade
+2026-04-25 09:50 PKT | VERIFY | TASK-034 | Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` contains "ID & PIN saved on this device" and does not contain "Save ID & PIN will be added later"; served JS contains `saveAutoProvisioningCreds({ id: provisioningId, pin })`; desktop page loads. | AI: Cascade
+2026-04-25 09:50 PKT | STOP   | TASK-034 | Session end | worked 2m | AI: Cascade
+
+2026-04-25 09:58 PKT | START  | TASK-034 | Desktop UI/runtime: Save/Forget provisioning creds UI behavior fixes | AI: Cascade
+2026-04-25 09:58 PKT | FIX    | TASK-034 | Desktop: Save ID & PIN checkbox is now explicitly visible/clickable (global CSS hid checkboxes). Forget button is hidden by default and only shown when saved ID/PIN exists; after successful save it is shown; after Forget clears it is hidden and Save checkbox is unchecked. | AI: Cascade
+2026-04-25 09:58 PKT | VERIFY | TASK-034 | Docker-only: served `desktopRegistrationSection.js` contains `chkSaveProvisioningCreds` as `type=checkbox` and Forget button defaults to `display:none`; served modal JS contains `setForgetVisible()` + toggles based on saved creds; desktop page loads. | AI: Cascade
+2026-04-25 09:58 PKT | STOP   | TASK-034 | Session end | worked 4m | AI: Cascade

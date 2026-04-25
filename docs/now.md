@@ -4,12 +4,12 @@
 TASK-034 — Desktop auto provisioning (Provisioning ID + PIN + device limits + admin controls).
 
 ## Current blocker(s)
-- Desktop auto provisioning now applies config and triggers registration, but manual desktop test is still pending to confirm end-to-end behavior.
+- Desktop auto provisioning Phase A flow is working; next step is manual UX verification of the compact Autoconfigure ID + PIN dialog on desktop.
 - Admin provisioning now stores retrievable `provisioning_pin` (Phase A convenience) and can reveal/hide it in WireGuard-only admin UI; browser-click verification is still pending (API/HTML inspection verification is present).
 - Backend/admin provisioning controls (account update, device revoke/unrevoke, PIN reset) are implemented.
 
 ## Exact next safe step
-- Desktop-only: manual end-to-end test Auto Provision Configure against a real provisioning account (ensure config applies and registration succeeds); do not store Provisioning ID/PIN yet.
+- Desktop-only: manual UX verification that Autoconfigure ID arrow button opens PIN dialog and Login triggers provisioning + registration whether Save ID & PIN is checked or not; confirm nothing is stored yet and a small note is shown after success when Save is checked.
 
 ## Why this matters
 Desktop auto provisioning reduces manual credential entry while keeping existing manual configuration and registration/calling behavior unchanged.
