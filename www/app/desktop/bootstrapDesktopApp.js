@@ -78,6 +78,7 @@ export function bootstrapDesktopApp(SIP = window.SIP) {
     SIP,
     callHistory,
     runOneTapEnableFlow: registration.runOneTapEnableFlow,
+    startAndRegister: registration.startAndRegister,
     stopAndUnregister: registration.stopAndUnregister,
     releaseWakeLock: registration.releaseWakeLock,
   });

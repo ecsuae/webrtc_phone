@@ -1,6 +1,32 @@
 import { wireDesktopIncomingInvitation } from "../../incoming/desktopIncomingEstablished.js";
 import { startIncomingAlert } from "../../incoming/desktopIncomingAlert.js";
 
+function safeErrDetails(err) {
+  const name = (() => {
+    try {
+      return String(err?.name || "");
+    } catch {
+      return "";
+    }
+  })();
+  const message = (() => {
+    try {
+      return String(err?.message || err || "");
+    } catch {
+      return "";
+    }
+  })();
+  const stackLine = (() => {
+    try {
+      const s = String(err?.stack || "");
+      return (s.split("\n")[0] || "").trim();
+    } catch {
+      return "";
+    }
+  })();
+  return { name, message, stackLine };
+}
+
 function buildSipUri(SIP, ext, domain) {
   try {
     if (SIP?.UserAgent?.makeURI) return SIP.UserAgent.makeURI(`sip:${ext}@${domain}`);
@@ -13,13 +39,6 @@ function buildSipUri(SIP, ext, domain) {
 }
 
 export async function startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass, wss }) {
-  try {
-    console.log(
-      `[DESKTOP_REG_DEBUG] startDesktopUaAndRegister entered ext=${String(ext || "")} domain=${String(
-        domain || ""
-      )} wss=${String(wss || "")}`
-    );
-  } catch {}
   if (!SIP) {
     ui.setStatus("SIP.js not loaded");
     return null;
@@ -46,10 +65,27 @@ export async function startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass
     },
   };
 
+  try {
+    const passSet = !!String(pass || "");
+    console.log(
+      `[DESKTOP_REG_DEBUG] UA opts ext=${String(ext || "")} domain=${String(domain || "")} wss=${String(
+        wss || ""
+      )} server=${String(userAgentOptions?.transportOptions?.server || "")} pass_set=${String(passSet)}`
+    );
+  } catch {}
+
   let ua;
   try {
     ua = new SIP.UserAgent(userAgentOptions);
   } catch (err) {
+    try {
+      const d = safeErrDetails(err);
+      console.log(
+        `[DESKTOP_REG_DEBUG] UA ctor threw name=${String(d.name)} message=${String(d.message)} stack0=${String(
+          d.stackLine
+        )}`
+      );
+    } catch {}
     st.registering = false;
     ui.setStatus("UA start failed");
     ui.setTransport("-");
@@ -92,6 +128,14 @@ export async function startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass
   try {
     await ua.start();
   } catch (err) {
+    try {
+      const d = safeErrDetails(err);
+      console.log(
+        `[DESKTOP_REG_DEBUG] ua.start threw name=${String(d.name)} message=${String(d.message)} stack0=${String(
+          d.stackLine
+        )}`
+      );
+    } catch {}
     st.registering = false;
     st.ua = null;
     ui.setStatus("UA start failed");

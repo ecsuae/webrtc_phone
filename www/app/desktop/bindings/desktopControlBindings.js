@@ -8,6 +8,7 @@ import { logLine } from "../desktopLogging.js";
 import { startCall } from "../outgoing/desktopStartCall.js";
 import { answerIncomingCallDesktop } from "../incoming/desktopAnswerIncomingCall.js";
 import { desktopEl } from "../ui/desktopDomRefs.js";
+import { bindDesktopAutoProvisioningModalHandlers } from "../features/auto_provisioning/desktopProvisioningModal.js";
 
 export function bindDesktopControlHandlers({
   el,
@@ -16,6 +17,7 @@ export function bindDesktopControlHandlers({
   SIP,
   callHistory,
   runOneTapEnableFlow,
+  startAndRegister,
   stopAndUnregister,
   releaseWakeLock,
 }) {
@@ -112,6 +114,10 @@ export function bindDesktopControlHandlers({
         joinConferenceBtn.disabled = false;
       }
     });
+
+  try {
+    bindDesktopAutoProvisioningModalHandlers({ startAndRegister });
+  } catch {}
 
   setupDesktopTabNavigation(st);
   setupDesktopCallControls(SIP, st, ui);

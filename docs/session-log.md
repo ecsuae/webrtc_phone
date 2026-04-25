@@ -256,10 +256,33 @@ Examples:
 2026-04-07 10:41 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines deriveAsymmetricDirectionDiagnosis; node syntax check passed | AI: Cascade
 2026-04-07 10:42 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
 2026-04-07 10:43 PKT | START  | TASK-028 | Push-server isolation step 20: extract PROBLEM_ROW_TYPES and WARN_ROW_TYPES into a dedicated admin helper module | AI: Cascade
+
+2026-04-25 03:46 PKT | NOTE  | TASK-034 | Correction: verification/runtime commands must be Docker/container-only; earlier host Node syntax/import checks are superseded going forward | AI: Cascade
 2026-04-07 10:45 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogRowTypeSets.js and updated callLogPage.js to import PROBLEM_ROW_TYPES and WARN_ROW_TYPES (no behavior change intended) | AI: Cascade
 2026-04-07 10:46 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines PROBLEM_ROW_TYPES/WARN_ROW_TYPES locally; node syntax check passed | AI: Cascade
 2026-04-07 10:47 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
 2026-04-07 10:51 PKT | START  | TASK-028 | Push-server isolation step 21: extract renderLegSummaryBlock into a dedicated admin helper module | AI: Cascade
+
+2026-04-25 03:52 PKT | CHANGE | TASK-034 | Admin provisioning: added device revoke/unrevoke control (POST /admin/provisioning/device/revoke) and devices table actions on /admin/provisioning | AI: Cascade
+2026-04-25 03:52 PKT | VERIFY | TASK-034 | Docker-only: push-server syntax checks passed; live POST /admin/provisioning/device/revoke returns sanitized device JSON; /admin/provisioning HTML contains no sip_password or pin_hash | AI: Cascade
+2026-04-25 03:59 PKT | CHANGE | TASK-034 | UI-only refactor: split provisioning admin page into provisioningPage.js + provisioningPageParts.js (row renderers + client script) to keep files under 200 lines; behavior preserved | AI: Cascade
+2026-04-25 03:59 PKT | VERIFY | TASK-034 | Docker-only: node syntax checks pass; live GET /admin/provisioning returns 200 and HTML contains no sip_password or pin_hash | AI: Cascade
+
+2026-04-25 04:05 PKT | CHANGE | TASK-034 | Route refactor: split adminRoutes.js into small assembler + attach modules (adminRoutingRoutes/adminCallLogsRoutes/adminRegistrationsRoutes/adminProvisioningRoutes) with no route behavior changes | AI: Cascade
+2026-04-25 04:05 PKT | VERIFY | TASK-034 | Docker-only: syntax checks pass for all new route modules; live GET /admin/(routing|calllogs|registrations|provisioning) returns 200; provisioning update+revoke endpoints still sanitized; /admin/provisioning HTML contains no sip_password or pin_hash | AI: Cascade
+
+2026-04-25 04:16 PKT | CHANGE | TASK-034 | Admin provisioning: added PIN reset control (POST /admin/provisioning/account/reset-pin) and minimal Reset PIN UI button (prompt-based); responses remain sanitized | AI: Cascade
+2026-04-25 04:16 PKT | VERIFY | TASK-034 | Docker-only: syntax checks pass; missing pepper returns SERVER_MISCONFIGURED 500; invalid PIN returns 400; success reset returns 200 with sanitized account JSON; /admin/provisioning HTML contains no sip_password or pin_hash | AI: Cascade
+
+2026-04-25 04:30 PKT | CHANGE | TASK-034 | Admin provisioning: added SIP password change endpoint (POST /admin/provisioning/account/change-sip-password), backend route only; responses remain sanitized | AI: Cascade
+2026-04-25 04:30 PKT | VERIFY | TASK-034 | Docker-only: syntax check pass; invalid password returns 400; success returns 200 with sanitized account JSON; /admin/provisioning HTML contains no sip_password or pin_hash | AI: Cascade
+
+2026-04-25 04:33 PKT | CHANGE | TASK-034 | UI-only refactor: split provisioning page helper into provisioningPageParts.js + provisioningPageScripts.js (client script), keep files under ceiling; behavior preserved | AI: Cascade
+2026-04-25 04:33 PKT | VERIFY | TASK-034 | Docker-only: syntax checks pass; live GET /admin/provisioning returns 200; expected action strings present; HTML contains no sip_password or pin_hash | AI: Cascade
+
+2026-04-25 04:39 PKT | CHANGE | TASK-034 | Docs: added Docker-only seed + POST /api/provisioning/desktop backend API test procedure (dummy SIP values only) | AI: Cascade
+2026-04-25 04:39 PKT | VERIFY | TASK-034 | Code inspection only: procedure matches current route/service contracts and uses container-only commands | AI: Cascade
+
 2026-04-07 10:53 PKT | CHANGE | TASK-028 | Added push-server/src/admin/callLogLegSummaryBlock.js and updated callLogPage.js to import renderLegSummaryBlock (no behavior change intended) | AI: Cascade
 2026-04-07 10:54 PKT | VERIFY | TASK-028 | Code inspection: callLogPage.js no longer defines renderLegSummaryBlock; node syntax check passed | AI: Cascade
 2026-04-07 10:55 PKT | STOP   | TASK-028 | Session end | worked 4m | AI: Cascade
@@ -851,3 +874,133 @@ Examples:
 2026-04-14 01:50 PKT | CHANGE | TASK-033 | Updated registrations page domain resolver to prefer hostname candidates in priority order: pbxDnsName, pbxDomain, AOR host (non-IP), other hostname fields; fall back to IP only if no hostname exists; else Unknown. | AI: Cascade
 2026-04-14 01:52 PKT | VERIFY | TASK-033 | Live route (container): /admin/registrations renders HTTP 200; PBX DNS cell no longer uses non-domain labels (e.g. 'location') and falls back to IP only when no hostname exists in data. | AI: Cascade
 2026-04-14 01:52 PKT | STOP   | TASK-033 | Session end | worked 2m | AI: Cascade
+
+2026-04-25 03:05 PKT | START  | TASK-034 | Desktop auto provisioning: docs/workflow setup only. | AI: Cascade
+2026-04-25 03:05 PKT | CHANGE | TASK-034 | Created task history file `docs/tasks/TASK-034.md`; updated now/task index/ledgers to stage isolation-first implementation plan. | AI: Cascade
+2026-04-25 03:05 PKT | VERIFY | TASK-034 | Code inspection only (docs-only step). | AI: Cascade
+2026-04-25 03:05 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Cascade
+
+2026-04-25 03:09 PKT | NOTE   | TASK-034 | Docs correction: set TASK-034 start date to 2026-04-25 in task index and add Start date line in TASK-034 task file. | AI: Cascade
+
+2026-04-25 03:12 PKT | CHANGE | TASK-034 | Docs: updated `docs/tasks/TASK-034.md` with inspected desktop settings/password/registration boundaries and approved adapter design (no code changes). | AI: Cascade
+2026-04-25 03:12 PKT | VERIFY | TASK-034 | Code inspection only (docs-only step). | AI: Cascade
+
+2026-04-25 03:15 PKT | CHANGE | TASK-034 | Docs: updated `docs/tasks/TASK-034.md` with inspected backend/admin boundaries and security findings (no code changes). | AI: Cascade
+2026-04-25 03:15 PKT | VERIFY | TASK-034 | Code inspection only (docs-only step). | AI: Cascade
+
+2026-04-25 03:17 PKT | CHANGE | TASK-034 | Docs: updated `docs/tasks/TASK-034.md` with route/admin integration patterns and next implementation recommendation (no code changes). | AI: Cascade
+2026-04-25 03:17 PKT | VERIFY | TASK-034 | Code inspection only (docs-only step). | AI: Cascade
+
+2026-04-25 03:19 PKT | CHANGE | TASK-034 | Backend: added storage-only provisioning stores under push-server/src/services/provisioning (accounts/devices/path helpers); no routes/admin UI mounted yet. | AI: Cascade
+2026-04-25 03:19 PKT | VERIFY | TASK-034 | Verified Node require/import succeeds for new provisioning store modules (host node -e require(...)). | AI: Cascade
+
+2026-04-25 03:22 PKT | CHANGE | TASK-034 | Backend: added provisioning service layer `desktopProvisioningService.provisionDesktop` (validations + device limit + revoke checks; minimal config response; no route mounts). | AI: Cascade
+2026-04-25 03:22 PKT | VERIFY | TASK-034 | Verified host Node require check and smoke test with temporary PROVISIONING_DATA_DIR (success + device limit reached + invalid pin cases). | AI: Cascade
+
+2026-04-25 03:24 PKT | CHANGE | TASK-034 | Backend: provisioning service now rejects requests if PROVISIONING_PIN_PEPPER is missing (SERVER_MISCONFIGURED 500). | AI: Cascade
+2026-04-25 03:24 PKT | VERIFY | TASK-034 | Verified host smoke tests: missing pepper => SERVER_MISCONFIGURED; pepper set => provisioning success. | AI: Cascade
+
+2026-04-25 03:26 PKT | CHANGE | TASK-034 | Backend: added provisioning route module `push-server/src/routes/provisioningRoutes.js` (POST /desktop) delegating to service; not mounted yet. | AI: Cascade
+2026-04-25 03:26 PKT | VERIFY | TASK-034 | Verified host require check and router factory creation succeeds. | AI: Cascade
+
+2026-04-25 03:29 PKT | CHANGE | TASK-034 | Docs: recorded provisioning route module details in `docs/tasks/TASK-034.md` (no code changes). | AI: Cascade
+2026-04-25 03:29 PKT | VERIFY | TASK-034 | Code inspection only (docs-only step). | AI: Cascade
+
+2026-04-25 03:30 PKT | CHANGE | TASK-034 | Backend: mounted `/api/provisioning` in push-server server.js (minimal shared edit). | AI: Cascade
+2026-04-25 03:30 PKT | VERIFY | TASK-034 | Live route (container): POST /api/provisioning/desktop returns SERVER_MISCONFIGURED 500 when PROVISIONING_PIN_PEPPER is missing. | AI: Cascade
+
+2026-04-25 03:34 PKT | CHANGE | TASK-034 | Backend: added read-only admin page `GET /admin/provisioning` (accounts/devices summary; no secrets). | AI: Cascade
+2026-04-25 03:34 PKT | VERIFY | TASK-034 | Live route (container): /admin/provisioning returns 200 and does not contain sip_password or pin_hash in HTML. | AI: Cascade
+
+2026-04-25 03:39 PKT | CHANGE | TASK-034 | Backend: added WireGuard-only admin POST `/admin/provisioning/account/update` for enabled/auto/max_devices only; provisioning page now has per-row Save controls. | AI: Cascade
+2026-04-25 03:39 PKT | VERIFY | TASK-034 | Live route (container): POST update returns ok:true for seeded test account; /admin/provisioning remains free of sip_password/pin_hash strings. | AI: Cascade
+
+2026-04-25 03:44 PKT | NOTE   | TASK-034 | Workflow: TASK-034 verification must be Docker/container-only; earlier host Node checks are superseded going forward. | AI: Cascade
+2026-04-25 03:44 PKT | CHANGE | TASK-034 | Security: sanitized admin update response so it never returns sip_password or pin_hash (only safe account fields). | AI: Cascade
+
+2026-04-25 04:50 PKT | CHANGE | TASK-034 | Desktop UI-only refactor: split desktop layout sections so Account/registration markup moved into `www/app/desktop/ui/ext/desktopRegistrationSection.js`; `desktopLayoutSections.js` remains assembler/export; DOM IDs preserved (`ext`, `pass`, `domain`, `wsshost`); hidden domain/WSS row preserved. | AI: Cascade
+2026-04-25 04:50 PKT | VERIFY | TASK-034 | Docker-only: verified desktop page loads after split (HTTP 200 for `/?mode=desktop`). | AI: Cascade
+
+2026-04-25 04:55 PKT | CHANGE | TASK-034 | Desktop UI-only: added Auto Provision button + hidden modal skeleton in `www/app/desktop/ui/ext/desktopRegistrationSection.js` (no API call, no storage, no settings write, no registration trigger). | AI: Cascade
+2026-04-25 04:55 PKT | VERIFY | TASK-034 | Docker-only: desktop page loads (HTTP 200 for `/?mode=desktop`); served module `/app/desktop/ui/ext/desktopRegistrationSection.js` contains Auto Provision IDs/text and preserves manual field IDs (`ext`, `pass`, `domain`, `wsshost`). | AI: Cascade
+
+2026-04-25 05:00 PKT | CHANGE | TASK-034 | Desktop UI-only: added modal bindings module `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` and wired it from `www/app/desktop/bindings/desktopControlBindings.js` (show/hide modal; Configure shows local not-wired status; no API/storage/settings/registration). | AI: Cascade
+2026-04-25 05:00 PKT | VERIFY | TASK-034 | Docker-only: desktop page loads; served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` contains `bindDesktopAutoProvisioningModalHandlers`; modal skeleton IDs remain in `desktopRegistrationSection.js`. | AI: Cascade
+
+2026-04-25 05:05 PKT | CHANGE | TASK-034 | Desktop runtime: added isolated provisioning API client `www/app/desktop/features/auto_provisioning/desktopProvisioningClient.js` exporting `requestDesktopProvisioning(...)` (no UI wiring; no storage; no settings write; no registration trigger). | AI: Cascade
+2026-04-25 05:05 PKT | VERIFY | TASK-034 | Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningClient.js` contains endpoint string `/api/provisioning/desktop` and export `requestDesktopProvisioning`. | AI: Cascade
+
+2026-04-25 05:10 PKT | CHANGE | TASK-034 | Desktop runtime: added isolated settings-write adapter `www/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js` exporting `applyProvisionedConfigToDesktopInputs(...)` (write to existing desktop inputs + call `saveSessionPassword` + call `persistDesktopLastRegistration`; no API call; no registration trigger). | AI: Cascade
+2026-04-25 05:10 PKT | VERIFY | TASK-034 | Docker-only: served `/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js` contains export `applyProvisionedConfigToDesktopInputs` and does not reference `registration.startAndRegister`. | AI: Cascade
+
+2026-04-25 06:07 PKT | CHANGE | TASK-034 | Desktop runtime: wired Auto Provision modal Configure click to validate Provisioning ID + PIN, call `requestDesktopProvisioning(...)`, and apply returned config via `applyProvisionedConfigToDesktopInputs(...)` (no credential storage; no registration trigger). | AI: Cascade
+2026-04-25 06:07 PKT | VERIFY | TASK-034 | Docker-only: desktop page loads (HTTP 200 for `https://localhost/?mode=desktop`); served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` includes imports for client+adapter and does not reference `registration.startAndRegister`; POST `/api/provisioning/desktop` still returns JSON. | AI: Cascade
+
+2026-04-25 06:12 PKT | START  | TASK-034 | Wire startAndRegister after successful desktop auto provisioning | AI: Cascade
+2026-04-25 06:13 PKT | CHANGE | TASK-034 | Desktop runtime: Auto Provision modal now triggers registration by calling injected `startAndRegister()` after successful provisioning + apply (no registration internals changed; no Provisioning ID/PIN storage). | AI: Cascade
+2026-04-25 06:13 PKT | VERIFY | TASK-034 | Docker-only: `https://localhost/?mode=desktop` returns 200; served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` contains `startAndRegister` only via injected param+wrapper and contains no `localStorage`/`sessionStorage` usage; POST `/api/provisioning/desktop` still returns JSON. | AI: Cascade
+2026-04-25 06:13 PKT | STOP   | TASK-034 | Session end | worked 1m | AI: Cascade
+
+2026-04-25 06:24 PKT | START  | TASK-034 | Phase A admin: create provisioning account flow (manual) | AI: Cascade
+2026-04-25 06:25 PKT | CHANGE | TASK-034 | Backend/admin: added POST `/admin/provisioning/account/create` (validation + duplicate check + PIN hash with pepper + sanitized response) and added `/admin/provisioning` create form with Generate buttons for 8-digit Provisioning ID and 4-digit PIN. | AI: Cascade
+2026-04-25 06:25 PKT | VERIFY | TASK-034 | Docker-only: `docker compose exec push-server node -e require(...)` succeeds; `http://localhost:3001/admin/provisioning` returns 200 and contains create form IDs + generator handlers; HTML contains no `sip_password` or `pin_hash` strings; create returns SERVER_MISCONFIGURED when pepper missing; invalid provisioning ID/PIN return 400. | AI: Cascade
+2026-04-25 06:25 PKT | STOP   | TASK-034 | Session end | worked 1m | AI: Cascade
+
+2026-04-25 06:33 PKT | START  | TASK-034 | Admin create form fixes (PIN show/hide + sip_password payload key) | AI: Cascade
+2026-04-25 06:36 PKT | CHANGE | TASK-034 | Admin provisioning: added create PIN show/hide toggle and changed create request/route to use `sip_password` (not `sip_pass`); extracted create client script into `provisioningPageCreateScripts.js` to keep files <200 lines. | AI: Cascade
+2026-04-25 06:36 PKT | VERIFY | TASK-034 | Docker-only: push-server require check passes; `/admin/provisioning` returns 200 and includes create PIN toggle button + `toggleCreatePin()`; create request uses `sip_password`; create route still returns SERVER_MISCONFIGURED when pepper missing and JSON contains no `sip_password`/`pin_hash`. | AI: Cascade
+2026-04-25 06:36 PKT | STOP   | TASK-034 | Session end | worked 3m | AI: Cascade
+
+2026-04-25 06:42 PKT | START  | TASK-034 | Admin create form: WebSocket URL auto-fill from SIP domain | AI: Cascade
+2026-04-25 06:42 PKT | CHANGE | TASK-034 | Admin provisioning create form: WebSocket URL auto-fill on SIP domain blur/change (only if WebSocket URL empty) + Auto-fill button; template `wss://<sip_domain>:7443` centralized in create script. | AI: Cascade
+2026-04-25 06:42 PKT | VERIFY | TASK-034 | Docker-only: `/admin/provisioning` returns 200; HTML contains Auto-fill button; served JS contains `autoFillWebsocketUrlFromDomain()` + `WS_URL_TEMPLATE`; create payload still uses `sip_password`; no `pin_hash` string in HTML. | AI: Cascade
+2026-04-25 06:42 PKT | STOP   | TASK-034 | Session end | worked 1m | AI: Cascade
+
+2026-04-25 06:48 PKT | START  | TASK-034 | Infra/config: PROVISIONING_PIN_PEPPER plug-and-play in Docker | AI: Cascade
+2026-04-25 06:48 PKT | CHANGE | TASK-034 | Added `PROVISIONING_PIN_PEPPER` placeholder to `.env.example` (no real secret) and documented it as required for provisioning PIN hashing (admin create + desktop provisioning). | AI: Cascade
+2026-04-25 06:49 PKT | VERIFY | TASK-034 | Docker-only: `docker-compose.yml` already passes `PROVISIONING_PIN_PEPPER=${PROVISIONING_PIN_PEPPER}`; `PROVISIONING_PIN_PEPPER=test-pepper docker compose up -d --build push-server` results in env var present inside container and admin create returns 201; without pepper, create returns SERVER_MISCONFIGURED 500. | AI: Cascade
+2026-04-25 06:49 PKT | STOP   | TASK-034 | Session end | worked 1m | AI: Cascade
+
+2026-04-25 06:50 PKT | START  | TASK-034 | Local Docker config: set PROVISIONING_PIN_PEPPER in .env | AI: Cascade
+2026-04-25 06:51 PKT | CHANGE | TASK-034 | Updated local `.env` to include non-empty `PROVISIONING_PIN_PEPPER` (generated long random value) if missing/empty; did not overwrite any existing non-empty value. | AI: Cascade
+2026-04-25 06:51 PKT | VERIFY | TASK-034 | Docker-only: `docker compose up -d --build push-server`; inside container `PROVISIONING_PIN_PEPPER` is non-empty; admin create endpoint returns 201 (no SERVER_MISCONFIGURED). | AI: Cascade
+2026-04-25 06:51 PKT | STOP   | TASK-034 | Session end | worked 1m | AI: Cascade
+
+2026-04-25 06:58 PKT | START  | TASK-034 | Workflow sync: update now.md after pepper + admin create success | AI: Cascade
+2026-04-25 06:58 PKT | CHANGE | TASK-034 | Updated `docs/now.md` to reflect `PROVISIONING_PIN_PEPPER` is now set and admin create works; next safe step updated to admin provisioning account management UI/backend improvements (delete + reset PIN UX + disabled display). | AI: Cascade
+2026-04-25 06:58 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Cascade
+
+2026-04-25 07:02 PKT | START  | TASK-034 | Admin provisioning management: edit/delete/reset PIN UX + disabled display | AI: Cascade
+2026-04-25 07:07 PKT | CHANGE | TASK-034 | Admin provisioning: Accounts badge renamed to `manual Phase A`; account rows now support Edit/Save for non-secret fields; enabled=false shows `Disabled / Revoked`; Reset PIN now generates a new 4-digit PIN client-side and shows it once; added WireGuard-only delete account endpoint + UI delete with confirm (also deletes associated devices). | AI: Cascade
+2026-04-25 07:07 PKT | VERIFY | TASK-034 | Docker-only: `docker compose up -d --build push-server`; `/admin/provisioning` returns 200 and contains Edit/Delete/Generate New PIN; HTML contains no `pin_hash`/`sip_password`; live POST update works for non-secret fields; live POST delete removes row; live POST reset-pin returns sanitized JSON. | AI: Cascade
+2026-04-25 07:07 PKT | STOP   | TASK-034 | Session end | worked 5m | AI: Cascade
+
+2026-04-25 07:10 PKT | START  | TASK-034 | Store retrievable provisioning PIN for admin (Phase A) | AI: Cascade
+2026-04-25 07:14 PKT | CHANGE | TASK-034 | Added `provisioning_pin` field to provisioning accounts JSON; stored on admin create + reset-pin alongside `pin_hash` (pin_hash remains auth source). Admin provisioning table now shows masked PIN `••••` with reveal/hide toggle on WireGuard-only admin page. Removed remaining `read-only` text. | AI: Cascade
+2026-04-25 07:14 PKT | VERIFY | TASK-034 | Docker-only: rebuilt push-server; created account stores `pin_hash` and `provisioning_pin` in `data/provisioning/accounts.json`; reset-pin updates both; `/admin/provisioning` contains PIN column with masked default + reveal toggle; admin HTML contains no `pin_hash`/`sip_password` and no `read-only`; desktop `/api/provisioning/desktop` responses contain no `provisioning_pin`/`pin_hash`/`sip_password`. | AI: Cascade
+2026-04-25 07:14 PKT | STOP   | TASK-034 | Session end | worked 4m | AI: Cascade
+
+2026-04-25 07:28 PKT | START  | TASK-034 | Admin UI bugfix: enabled checkbox label should show enabled/revoked | AI: Cascade
+2026-04-25 07:32 PKT | CHANGE | TASK-034 | Admin provisioning accounts table: enabled checkbox label is now `enabled` when checked and `revoked` when unchecked; label updates immediately on toggle (no API changes). | AI: Cascade
+2026-04-25 07:32 PKT | VERIFY | TASK-034 | Docker-only: rebuilt push-server; `/admin/provisioning` renders disabled account with label `revoked` and enabled account with label `enabled`; served JS contains `syncEnabledLabel` binder; HTML contains no `pin_hash` or `sip_password`. | AI: Cascade
+2026-04-25 07:32 PKT | STOP   | TASK-034 | Session end | worked 4m | AI: Cascade
+
+2026-04-25 07:36 PKT | START  | TASK-034 | Admin UI bugfix: Accounts table revoked column should reflect account state | AI: Cascade
+2026-04-25 07:39 PKT | CHANGE | TASK-034 | Admin provisioning Accounts table: renamed "Revoked" to "Account revoked" and changed values to Yes/No based on account enabled state (not revoked device count). Devices section still shows device revoked state separately. | AI: Cascade
+2026-04-25 07:39 PKT | VERIFY | TASK-034 | Docker-only: rebuilt push-server; disabled account shows Account revoked=Yes, enabled account shows Account revoked=No; Devices table still has Revoked column; HTML contains no `pin_hash` or `sip_password`. | AI: Cascade
+2026-04-25 07:39 PKT | STOP   | TASK-034 | Session end | worked 3m | AI: Cascade
+
+2026-04-25 08:06 PKT | START  | TASK-034 | Desktop auto-provisioning: investigate UA start failed after provisioning | AI: Cascade
+2026-04-25 08:10 PKT | CHANGE | TASK-034 | Desktop auto-provisioning adapter: `websocket_url` is now optional for Phase A PBX flow; when provided it is normalized to host:port before writing to `wsshost` input (strip scheme/path), and when empty it does not overwrite existing WSS input. Added safe diagnostics logging of applied ext/domain/wsshost (never password). | AI: Cascade
+2026-04-25 08:10 PKT | VERIFY | TASK-034 | Docker-only: desktop JS reflects optional websocket handling + normalization; modal logs ext/domain/wsshost only; verified no password logging added; desktop page loads. | AI: Cascade
+2026-04-25 08:10 PKT | STOP   | TASK-034 | Session end | worked 4m | AI: Cascade
+
+2026-04-25 08:14 PKT | START  | TASK-034 | Desktop registration diagnostics: capture real UA ctor/start exceptions | AI: Cascade
+2026-04-25 08:17 PKT | CHANGE | TASK-034 | Added safe UA startup diagnostics: log ext/domain/wss/server and pass_set before UA ctor; on UA ctor and ua.start failures log error name/message and first stack line only. Removed password-length logging. No registration behavior change. | AI: Cascade
+2026-04-25 08:17 PKT | VERIFY | TASK-034 | Docker-only: confirmed served JS in nginx includes new `[DESKTOP_REG_DEBUG] UA opts` and exception detail logs; grep shows no passLen logging and no password value logging added; desktop page loads. | AI: Cascade
+2026-04-25 08:17 PKT | STOP   | TASK-034 | Session end | worked 3m | AI: Cascade
+
+2026-04-25 08:24 PKT | START  | TASK-034 | Phase A fix: auto provisioning must not override working desktop WSS defaults | AI: Cascade
+2026-04-25 08:26 PKT | CHANGE | TASK-034 | Desktop auto-provisioning adapter no longer writes provisioned `websocket_url` to desktop `wsshost`. Adapter now applies only ext/password/domain and preserves existing WSS field value; persisted last-registration uses existing `wsshost` value. | AI: Cascade
+2026-04-25 08:26 PKT | VERIFY | TASK-034 | Docker-only: confirmed served JS has no `websocket_url` references and does not overwrite `wsshost`; desktop page loads; UA debug logs still avoid password logging. | AI: Cascade
+2026-04-25 08:26 PKT | STOP   | TASK-034 | Session end | worked 2m | AI: Cascade

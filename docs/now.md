@@ -1,22 +1,18 @@
 # NOW
 
 ## Current task
-TASK-032 — Desktop runtime/correctness (ext-to-ext one-way audio proof/fix).
+TASK-034 — Desktop auto provisioning (Provisioning ID + PIN + device limits + admin controls).
 
 ## Current blocker(s)
-- Ext-to-ext one-way audio symptom: 992003 cannot hear 900900.
-- Latest logs prove this is not an ICE/connectivity failure (900900 sends RTP; 992003 receives RTP), so the likely fault boundary is desktop inbound-answer sender binding / silent-source on 900900.
+- Desktop auto provisioning now applies config and triggers registration, but manual desktop test is still pending to confirm end-to-end behavior.
+- Admin provisioning now stores retrievable `provisioning_pin` (Phase A convenience) and can reveal/hide it in WireGuard-only admin UI; browser-click verification is still pending (API/HTML inspection verification is present).
+- Backend/admin provisioning controls (account update, device revoke/unrevoke, PIN reset) are implemented.
 
 ## Exact next safe step
-- Reproduce one failing ext-to-ext call and inspect inbound leg proof:
-  - `desktop-inbound-audio-proof` (~2.5s and ~10s after Established)
-  - senderTrackId == acquired local mic trackId
-  - outbound RTP packets/bytes increasing
-  - sender energy (audioLevel/totalAudioEnergy) non-zero when speaking
-- If binding is correct but energy stays near-zero, treat as local capture/silent-source; do not guess-fix outside desktop inbound boundary.
+- Desktop-only: manual end-to-end test Auto Provision Configure against a real provisioning account (ensure config applies and registration succeeds); do not store Provisioning ID/PIN yet.
 
 ## Why this matters
-TASK-032 must be resolved with proof: one-way audio can be caused by sender binding, PBX bridge, codec/SDP asymmetry, or far-end receive/render.
+Desktop auto provisioning reduces manual credential entry while keeping existing manual configuration and registration/calling behavior unchanged.
 
 ## Task status (truthful)
 - TASK-028: complete (push-server isolation + `/admin/calllogs` summary diagnosis work complete enough; do not reopen).
@@ -25,12 +21,14 @@ TASK-032 must be resolved with proof: one-way audio can be caused by sender bind
 - TASK-031: complete/closed (desktop isolation/refactor is complete; remaining issues are runtime-only bugs).
 - TASK-032: active (runtime proof/fix in progress; do not guess-fix without evidence).
 - TASK-033: pending (admin registrations page continues later).
+- TASK-034: active (desktop auto provisioning; isolation-first).
 
 ## Scope guardrails (for current work)
-- Scope: desktop runtime proof/fix only (TASK-032).
-- Do not reopen desktop isolation/refactor (TASK-031).
-- Do not change SIP routing/server behavior in this step.
-- Add only minimal decisive diagnostics until the failing segment is proven.
+- Scope: TASK-034 only (desktop-only auto provisioning + backend/admin provisioning controls).
+- Do not touch Android.
+- Do not touch iOS.
+- Do not refactor existing working registration/calling/media logic.
+- Do not disturb existing manual configuration flow.
 
 ## Already proven (TASK-031)
 - Desktop inventory recorded in `docs/tasks/TASK-031.md`:
@@ -65,16 +63,3 @@ TASK-032 must be resolved with proof: one-way audio can be caused by sender bind
 - Step 5 progress: desktop conference join is desktop-owned (`www/app/desktop/conference/desktopJoinConference.js`); desktop control bindings no longer import shared `www/app/conference/join.js`.
 - Step 5 progress: desktop LTE relay readiness guard is desktop-owned (`www/app/desktop/desktopLteCallGuard.js`); desktop call flows no longer import shared `www/app/features/lteCallGuard.js`.
 - Step 5 progress: desktop outbound-call-start support is desktop-owned (`www/app/desktop/outgoing/desktopStartCallSupport.js`, `www/app/desktop/outgoing/desktopStartCallPreflight.js`); desktopStartCall no longer imports shared `www/app/outgoing/call/*`.
-
-## Current blocker
-- Runtime bug: desktop outbound extension-to-extension calls may reject/terminate early (477/480).
-- Runtime issue: OS/browser mic indicator may remain on after hangup despite app-level release proof.
-- Note: these are runtime/correctness bugs; desktop isolation/refactor is not the blocker.
-
-## Files most likely involved (TASK-031)
-- `docs/tasks/TASK-031.md`
-- Desktop app source tree (to be identified via inventory)
-- Any current desktop entrypoints/build wiring (to be identified via inventory)
-
-## Exact next safe step
-Desktop isolation/refactor is complete. Next safe step: runtime-only debugging to reproduce and fix 477/480 early termination and any mic-stuck indicators (no refactors unless a file grows beyond the ceiling).

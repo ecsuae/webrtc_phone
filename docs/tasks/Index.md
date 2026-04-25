@@ -1,6 +1,6 @@
 # Task Index
 
-_Last updated: 2026-04-13 05:36 UTC_
+_Last updated: 2026-04-24 22:05 UTC_
 
 | Task | Title | Status | Start date | End date | One-line summary |
 |---|---|---|---|---|---|
@@ -12,6 +12,7 @@ _Last updated: 2026-04-13 05:36 UTC_
 | TASK-031 | Desktop isolation/refactor | Complete | 2026-04-09 | 2026-04-13 | Desktop app isolation completed; remaining runtime/correctness work moved to TASK-032. |
 | TASK-032 | Desktop runtime/correctness | Active | 2026-04-13 | — | Prove and fix ext-to-ext one-way audio / early termination (477/480) without reopening desktop isolation/refactor work. |
 | TASK-033 | Admin portal registered extensions page | Pending | 2026-04-13 | — | Add a read-only admin page showing live extension registrations from both Kamailio and PBX, including dual-registration match status. |
+| TASK-034 | Desktop auto provisioning | Active | 2026-04-25 | — | Add desktop-only auto provisioning (Provisioning ID + PIN) with backend account/device limits and admin controls; keep existing manual config flow unchanged. |
 
 ## Status legend
 - Active

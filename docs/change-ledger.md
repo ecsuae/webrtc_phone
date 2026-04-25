@@ -46,6 +46,698 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-25T03:26:00Z — TASK-034: Phase A fix — auto provisioning no longer overrides desktop WSS defaults
+- **AI**: Cascade
+- **Scope**: desktop provisioning adapter only; no backend/admin changes; no SIP/media/call logic changes.
+- **Problem**:
+  - Provisioning was writing `websocket_url` into desktop `wsshost`, forcing `wss://<domain>:7443/ws` which fails (WS close code 1006) and breaks previously working registration.
+- **Fix**:
+  - Auto provisioning now applies only `ext` + `password` + `domain`.
+  - Adapter preserves the existing manual/default `wsshost` field value (does not overwrite from provisioning config).
+  - Persisted last-registration uses the existing `wsshost` value.
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served JS has no `websocket_url` references in the adapter and does not overwrite `wsshost`.
+
+### 2026-04-25T03:17:00Z — TASK-034: Desktop diagnostics — log real SIP.js UA ctor/start exceptions (no password)
+- **AI**: Cascade
+- **Scope**: desktop registration diagnostics only; no backend/admin changes; no media/call logic changes.
+- **Behavior**:
+  - Added safe logging of `ext/domain/wss/server` + `pass_set` immediately before SIP.js `new UserAgent(...)`.
+  - On UA constructor failure and `ua.start()` failure, logs error `name`, `message`, and first stack line only.
+  - Removed password-length logging; never logs password value.
+- **Files changed**:
+  - `www/app/desktop/registration/ext/desktopRegistrationUa.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served desktop JS contains new `[DESKTOP_REG_DEBUG] UA opts` and exception details; no password logging added.
+
+### 2026-04-25T03:10:00Z — TASK-034: Desktop auto-provisioning fix — normalize/optional WSS host to avoid UA start failed
+- **AI**: Cascade
+- **Scope**: desktop provisioning adapter only; no backend/admin changes; no Android/iOS; no media/call logic changes.
+- **Behavior**:
+  - `websocket_url` is now optional in provisioned config for Phase A PBX flow.
+  - If provided, provisioned websocket value is normalized to host:port (strip scheme/path) before writing to the desktop `wsshost` input.
+  - If empty/missing, adapter does not overwrite the existing `wsshost` field.
+  - Added safe diagnostics logging of applied `ext/domain/wsshost` only (never password).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: served desktop JS reflects normalization/empty handling; no password logging added; desktop page loads.
+
+### 2026-04-25T02:39:00Z — TASK-034: Admin UI fix — Accounts table Account revoked reflects account state (not device revocations)
+- **AI**: Cascade
+- **Scope**: dashboard-only (admin provisioning UI); no backend logic changes; no storage/model changes; desktop unchanged.
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: disabled account rows show Account revoked=Yes; enabled account rows show Account revoked=No.
+  - Docker-only: Devices table still has its own Revoked column for per-device revoke state.
+  - Docker-only: HTML contains no `pin_hash` or `sip_password`.
+
+### 2026-04-25T02:32:00Z — TASK-034: Admin UI fix — enabled checkbox label now shows enabled/revoked dynamically
+- **AI**: Cascade
+- **Scope**: dashboard-only (admin provisioning UI); no backend logic changes; no storage/model changes; desktop unchanged.
+- **Files changed**:
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `push-server/src/admin/provisioningPageAccountRowScripts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: `/admin/provisioning` renders enabled accounts with label `enabled` and disabled accounts with label `revoked`.
+  - Docker-only: served JS contains `syncEnabledLabel` + DOMContentLoaded binder.
+  - Docker-only: HTML contains no `pin_hash` or `sip_password`.
+
+### 2026-04-25T02:14:00Z — TASK-034: Phase A store retrievable provisioning_pin (admin-only) + masked reveal UI
+- **AI**: Cascade
+- **Scope**: backend/storage/dashboard (admin provisioning only; desktop unchanged).
+- **Security note**:
+  - Intentionally stores a retrievable 4-digit PIN (`provisioning_pin`) for Phase A convenience.
+  - Authentication continues to use `pin_hash` only.
+  - Desktop API does not return `provisioning_pin`.
+- **Files changed**:
+  - `push-server/src/routes/adminProvisioningCreateAccountRoute.js`
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/services/provisioning/provisioningAccountStore.js`
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `push-server/src/admin/provisioningPageScripts.js`
+  - `push-server/src/admin/provisioningPageAccountRowScripts.js`
+  - `push-server/src/admin/provisioningPageDeviceRowScripts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/now.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: accounts JSON contains both `pin_hash` and `provisioning_pin` after create/reset-pin.
+  - Docker-only: `/admin/provisioning` shows masked PIN by default with reveal/hide toggle.
+  - Docker-only: admin HTML contains no `pin_hash`/`sip_password` and no `read-only`.
+  - Docker-only: desktop `/api/provisioning/desktop` responses contain no `provisioning_pin`/`pin_hash`/`sip_password`.
+- **Next safe step**:
+  - Decide whether to keep `provisioning_pin` beyond Phase A; if keeping, consider at-rest encryption and retention/rotation policies.
+
+### 2026-04-25T02:07:00Z — TASK-034: Admin provisioning management (Phase A): edit/delete/reset PIN UX + disabled display
+- **AI**: Cascade
+- **Scope**: backend/storage/dashboard (admin provisioning only; no desktop changes; no FusionPBX).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `push-server/src/admin/provisioningPageScripts.js`
+  - `push-server/src/admin/provisioningPageCreateScripts.js`
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/routes/adminProvisioningAccountManagementRoutes.js`
+  - `push-server/src/services/provisioning/provisioningAccountStore.js`
+  - `push-server/src/services/provisioning/provisionedDeviceStore.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: `/admin/provisioning` returns 200, shows `manual Phase A` badge, and includes Edit/Delete/Generate New PIN controls.
+  - Docker-only: HTML contains no `pin_hash` or `sip_password` strings.
+  - Docker-only: POST update accepts non-secret fields; enabled=false displays `Disabled / Revoked` after reload.
+  - Docker-only: POST delete removes account and associated devices.
+- **Next safe step**:
+  - Decide whether to add separate SIP password change UI (still keep secret hidden) or defer; then do desktop end-to-end provisioning manual test.
+
+### 2026-04-25T01:58:00Z — TASK-034: Workflow sync — update now.md after pepper + admin create success
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Implement admin provisioning account management improvements (delete endpoint + reset PIN UX + disabled/revoked display) as a single isolated safe step.
+
+### 2026-04-25T01:51:00Z — TASK-034: Local config — set PROVISIONING_PIN_PEPPER in .env
+- **AI**: Cascade
+- **Scope**: local infra/service config only (no code changes).
+- **Files changed**:
+  - `.env`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: `docker compose up -d --build push-server` and container has non-empty `PROVISIONING_PIN_PEPPER`.
+  - Docker-only: admin create provisioning account returns 201 (no SERVER_MISCONFIGURED).
+- **Notes**:
+  - Pepper value is a generated long random secret; do not share/commit a production value.
+
+### 2026-04-25T01:49:00Z — TASK-034: Infra — document PROVISIONING_PIN_PEPPER for Docker plug-and-play
+- **AI**: Cascade
+- **Scope**: infra/config only (no runtime behavior changes).
+- **Files changed**:
+  - `.env.example`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Verified result**:
+  - Docker-only: compose passes `PROVISIONING_PIN_PEPPER` into push-server when set.
+  - Docker-only: with `PROVISIONING_PIN_PEPPER=test-pepper docker compose up -d --build push-server`, admin create returns 201 and response JSON contains no `sip_password`/`pin_hash`.
+  - Docker-only: without pepper, admin create returns SERVER_MISCONFIGURED 500.
+- **Next safe step**:
+  - Put a long random value in `.env` `PROVISIONING_PIN_PEPPER`, restart push-server, then do end-to-end admin create + duplicate-id checks.
+
+### 2026-04-25T01:42:00Z — TASK-034: Admin provisioning — WebSocket URL auto-fill in create form
+- **AI**: Cascade
+- **Scope**: admin create form only (WebSocket URL auto-fill from SIP domain; no backend changes; no FusionPBX; no desktop changes).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageCreateScripts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: `/admin/provisioning` includes WebSocket Auto-fill button; served JS includes `autoFillWebsocketUrlFromDomain()` and centralized template for `wss://<sip_domain>:7443`.
+  - Docker-only: create payload still uses `sip_password`; HTML contains no `pin_hash`.
+
+### 2026-04-25T01:36:00Z — TASK-034: Admin provisioning — create form fixes (PIN toggle + sip_password key)
+- **AI**: Cascade
+- **Scope**: admin create form only (PIN show/hide; create submit uses `sip_password`; no FusionPBX; no desktop changes).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageScripts.js`
+  - `push-server/src/admin/provisioningPageCreateScripts.js`
+  - `push-server/src/routes/adminProvisioningCreateAccountRoute.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: `/admin/provisioning` returns 200 and contains create PIN toggle button + `toggleCreatePin()`.
+  - Docker-only: served JS uses `sip_password` (not `sip_pass`).
+  - Docker-only: create route returns SERVER_MISCONFIGURED when pepper missing; response JSON contains no `sip_password`/`pin_hash`.
+- **Next safe step**:
+  - Set `PROVISIONING_PIN_PEPPER` and verify create succeeds + duplicate provisioning_id rejection + created account appears in table (no secrets rendered).
+
+### 2026-04-25T01:25:00Z — TASK-034: Admin provisioning — create account flow (Phase A manual)
+- **AI**: Cascade
+- **Scope**: backend/admin provisioning only (manual account creation; no FusionPBX; no desktop changes).
+- **Files changed**:
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageScripts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/now.md`
+- **Restart required**:
+  - Yes (push-server): `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: `http://localhost:3001/admin/provisioning` returns 200 and includes create form + Generate buttons.
+  - Docker-only: HTML contains no `sip_password` or `pin_hash` strings.
+  - Docker-only: create endpoint returns 400 for invalid provisioning ID/PIN and returns SERVER_MISCONFIGURED 500 when `PROVISIONING_PIN_PEPPER` is unset.
+- **Next safe step**:
+  - Set `PROVISIONING_PIN_PEPPER` and verify create succeeds + duplicate provisioning_id is rejected + response JSON remains sanitized.
+
+### 2026-04-25T01:13:00Z — TASK-034: Desktop runtime — trigger startAndRegister after provisioning
+- **AI**: Cascade
+- **Scope**: desktop-only auto provisioning (after config apply, trigger registration via injected `startAndRegister`; no Provisioning ID/PIN storage; no registration engine changes).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/runtime/desktop/callFlowDesktop.js`
+  - `www/app/desktop/bootstrapDesktopApp.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/now.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Docker-only: `https://localhost/?mode=desktop` returns 200.
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` references `startAndRegister` only via injected param + local wrapper and contains no `localStorage`/`sessionStorage` usage.
+  - Docker-only: served modal JS still imports provisioning client + settings adapter.
+  - Docker-only: POST `/api/provisioning/desktop` still returns JSON.
+- **Next safe step**:
+  - Desktop-only: manual end-to-end test of Auto Provision Configure applying config and starting registration (do not save Provisioning ID/PIN yet).
+
+### 2026-04-25T01:07:00Z — TASK-034: Desktop runtime — wire Auto Provision Configure to call API + apply config
+- **AI**: Cascade
+- **Scope**: platform-specific runtime (desktop only; wire modal Configure click; no registration trigger; no Provisioning ID/PIN storage).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/now.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Docker-only: desktop page loads (HTTP 200 for `https://localhost/?mode=desktop`).
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` includes imports for `desktopProvisioningClient.js` and `applyProvisionedConfigToDesktopInputs.js`.
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` does not reference `registration.startAndRegister`.
+  - Docker-only: POST `/api/provisioning/desktop` still returns JSON.
+- **Next safe step**:
+  - Desktop-only: perform end-to-end UI test of Auto Provision Configure filling desktop inputs (no registration trigger; do not save Provisioning ID/PIN yet).
+
+### 2026-04-25T00:10:00Z — TASK-034: Desktop runtime — isolated settings-write adapter
+- **AI**: Cascade
+- **Scope**: platform-specific runtime (adapter module only; not wired into UI; no registration trigger).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Docker-only: served `/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js` contains export `applyProvisionedConfigToDesktopInputs` and does not reference `registration.startAndRegister`.
+- **Next safe step**:
+  - Desktop-only: wire modal Configure click to call API client + apply settings adapter (no registration trigger yet).
+
+### 2026-04-25T00:05:00Z — TASK-034: Desktop runtime — isolated provisioning API client module
+- **AI**: Cascade
+- **Scope**: platform-specific runtime (desktop client module only; not wired into UI).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningClient.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningClient.js` contains `/api/provisioning/desktop` and export `requestDesktopProvisioning`.
+- **Next safe step**:
+  - Desktop-only: add isolated settings write adapter (no registration trigger).
+
+### 2026-04-25T00:00:00Z — TASK-034: Desktop UI-only — Auto Provision modal bindings
+- **AI**: Cascade
+- **Scope**: desktop UI only (show/hide modal; Configure shows local not-wired status only).
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Docker-only: `/?mode=desktop` loads.
+  - Docker-only: served `/app/desktop/features/auto_provisioning/desktopProvisioningModal.js` contains `bindDesktopAutoProvisioningModalHandlers`.
+- **Next safe step**:
+  - Desktop UI only: add an isolated provisioning API client module (no settings write; no registration trigger).
+
+### 2026-04-24T23:55:00Z — TASK-034: Desktop UI-only — Auto Provision button + modal skeleton
+- **AI**: Cascade
+- **Scope**: desktop UI only (markup skeleton; no API call; no storage; no registration trigger).
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Live route (container): desktop page loads (HTTP 200 for `/?mode=desktop`).
+  - Live route (container): served module `/app/desktop/ui/ext/desktopRegistrationSection.js` contains `btnAutoProvisionOpen` + modal skeleton IDs and preserves manual field IDs (`ext`, `pass`, `domain`, `wsshost`).
+- **Next safe step**:
+  - Desktop UI only: add show/hide bindings for the modal (no API call, no storage writes).
+
+### 2026-04-24T23:50:30Z — TASK-034: UI-only split — desktop registration section
+- **AI**: Cascade
+- **Scope**: UI-only refactor/split (no backend changes; no registration logic changes).
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopLayoutSections.js`
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `docs/tasks/TASK-034.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Live route (container): desktop page loads (HTTP 200 for `/?mode=desktop`).
+- **Next safe step**:
+  - Add desktop Auto Provision button/modal skeleton inside the desktop registration section (UI only; no API/settings/registration trigger).
+
+### 2026-04-24T23:50:00Z — TASK-034: docs — Docker-only backend API seed + test procedure
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only: documented procedure matches current `/api/provisioning/desktop` route/service contracts and uses Docker/container-only commands with dummy SIP credentials.
+- **Next safe step**:
+  - Implement desktop auto provisioning UI (desktop-only).
+
+### 2026-04-24T23:45:00Z — TASK-034: UI-only split — provisioning page parts/scripts
+- **AI**: Cascade
+- **Scope**: UI-only refactor/split (no route changes; no new admin features).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `push-server/src/admin/provisioningPageScripts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: syntax checks pass; live GET `/admin/provisioning` returns 200; expected action strings still present; HTML contains no `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Add SIP password change UI (admin provisioning page) using the new scripts module while keeping secrets hidden.
+
+### 2026-04-24T23:40:00Z — TASK-034: admin SIP password change endpoint (backend only)
+- **AI**: Cascade
+- **Scope**: backend route only (no UI).
+- **Files changed**:
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: POST `/admin/provisioning/account/change-sip-password` validates `sip_password` length>=6, updates `sip_password` only, and returns sanitized account JSON (no `sip_password`/`pin_hash`); `/admin/provisioning` HTML contains no `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Implement desktop auto provisioning UI (desktop-only) and keep backend/admin provisioning controls stable.
+
+### 2026-04-24T23:35:00Z — TASK-034: admin PIN reset control
+- **AI**: Cascade
+- **Scope**: admin PIN reset control only (no SIP password changes; no account creation).
+- **Files changed**:
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `docker-compose.yml`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: POST `/admin/provisioning/account/reset-pin` validates numeric PIN length>=4, requires `PROVISIONING_PIN_PEPPER` (500 SERVER_MISCONFIGURED when missing), updates `pin_hash` only, and returns sanitized account JSON; `/admin/provisioning` HTML contains no `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Implement desktop auto provisioning UI (desktop-only) and keep backend/admin provisioning controls stable.
+
+### 2026-04-24T23:25:00Z — TASK-034: route split — adminRoutes.js into attach modules
+- **AI**: Cascade
+- **Scope**: route refactor/split only (no behavior changes; no new admin features).
+- **Files changed**:
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/routes/adminRoutingRoutes.js`
+  - `push-server/src/routes/adminCallLogsRoutes.js`
+  - `push-server/src/routes/adminCallLogsExportRoutes.js`
+  - `push-server/src/routes/adminRegistrationsRoutes.js`
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: syntax checks pass for all new route modules; live GET `/admin/routing`, `/admin/calllogs`, `/admin/registrations`, `/admin/provisioning` return 200; provisioning update+revoke endpoints still return sanitized JSON; `/admin/provisioning` HTML contains no `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Implement PIN reset (WireGuard-only) with strict sanitization + container-only verification.
+
+### 2026-04-24T23:15:00Z — TASK-034: UI-only split — provisioning admin page
+- **AI**: Cascade
+- **Scope**: UI-only refactor/split of provisioning admin page (no route changes).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: Node syntax checks pass for both modules; live GET `/admin/provisioning` returns 200; HTML does not contain `sip_password` or `pin_hash`; existing update/revoke controls still present.
+- **Next safe step**:
+  - Implement PIN reset (WireGuard-only) with strict sanitization + container-only verification.
+
+### 2026-04-24T23:05:00Z — TASK-034: admin device revoke/unrevoke control
+- **AI**: Cascade
+- **Scope**: backend/admin device revoke/unrevoke only.
+- **Files changed**:
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/admin/provisioningPage.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: POST `/admin/provisioning/device/revoke` accepts `{provisioning_id, device_id, revoked}` and returns sanitized `device` JSON; `/admin/provisioning` renders devices table with revoke/unrevoke action and does not include `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Implement PIN reset (WireGuard-only) with strict response sanitization and container-only verification.
+
+### 2026-04-24T22:48:00Z — TASK-034: correction — Docker-only verification required
+- **AI**: Cascade
+- **Scope**: docs/workflow correction only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Policy-only: TASK-034 verification/runtime commands are Docker/container-only; earlier host Node syntax/import checks are superseded going forward.
+- **Next safe step**:
+  - Use `docker compose exec push-server node -c <file>` and container-exposed HTTP routes for all checks.
+
+### 2026-04-24T22:44:00Z — TASK-034: container-only verification rule + admin response sanitizer
+- **AI**: Cascade
+- **Scope**: workflow hardening + security bug fix only.
+- **Files changed**:
+  - `push-server/src/routes/adminRoutes.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Docker-only: POST `/admin/provisioning/account/update` response JSON does not include `sip_password` or `pin_hash`; `/admin/provisioning` HTML remains free of both strings.
+- **Next safe step**:
+  - Continue admin provisioning controls (PIN reset / device revoke) only after security review of responses.
+
+### 2026-04-24T22:39:00Z — TASK-034: minimal admin write controls (account flags only)
+- **AI**: Cascade
+- **Scope**: admin write controls limited to existing accounts (enabled/auto/max_devices).
+- **Files changed**:
+  - `push-server/src/routes/adminRoutes.js`
+  - `push-server/src/admin/provisioningPage.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Live route (container): POST `/admin/provisioning/account/update` returns `{ok:true}` for seeded account; `/admin/provisioning` HTML does not include `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Add admin create-account + PIN reset + device revoke controls (WireGuard-only), keeping SIP password hidden.
+
+### 2026-04-24T22:34:00Z — TASK-034: read-only admin provisioning page
+- **AI**: Cascade
+- **Scope**: admin read-only page only (no write actions).
+- **Files changed**:
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/routes/adminRoutes.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Live route (container): `/admin/provisioning` returns HTTP 200 and HTML does not include `sip_password` or `pin_hash`.
+- **Next safe step**:
+  - Add WireGuard-only admin write controls for provisioning accounts/devices (minimal POST endpoints + input validation).
+
+### 2026-04-24T22:30:00Z — TASK-034: mount provisioning API route
+- **AI**: Cascade
+- **Scope**: minimal shared edit (mount `/api/provisioning` only; no admin UI).
+- **Files changed**:
+  - `push-server/server.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server`
+- **Verified result**:
+  - Live route (container): `POST /api/provisioning/desktop` returns structured JSON error (SERVER_MISCONFIGURED 500) with no stack trace.
+- **Next safe step**:
+  - Add WireGuard-only admin controls for provisioning accounts/devices.
+
+### 2026-04-24T22:29:00Z — TASK-034: docs correction (record provisioning route module details)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Mount `/api/provisioning` in `push-server/server.js` (minimal shared edit) and verify live route behavior.
+
+### 2026-04-24T22:26:00Z — TASK-034: provisioning API route module (not mounted)
+- **AI**: Cascade
+- **Scope**: backend route module only (no server.js mount; no admin UI).
+- **Files changed**:
+  - `push-server/src/routes/provisioningRoutes.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Host require check succeeded; router factory returns an Express router.
+- **Next safe step**:
+  - Mount `/api/provisioning` in `push-server/server.js` (minimal shared edit) and add a live route verification.
+
+### 2026-04-24T22:24:00Z — TASK-034: harden provisioning service (require PROVISIONING_PIN_PEPPER)
+- **AI**: Cascade
+- **Scope**: backend service hardening only (no routes mounted; no admin UI).
+- **Files changed**:
+  - `push-server/src/services/provisioning/desktopProvisioningService.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Host smoke tests: missing pepper returns `SERVER_MISCONFIGURED` (500); pepper set still provisions successfully.
+- **Next safe step**:
+  - Implement `/api/provisioning/desktop` route module and mount `/api/provisioning` in `push-server/server.js` (minimal shared edit).
+
+### 2026-04-24T22:22:00Z — TASK-034: provisioning service layer (no route mounts)
+- **AI**: Cascade
+- **Scope**: backend service-only (no routes mounted; no admin UI).
+- **Files changed**:
+  - `push-server/src/services/provisioning/desktopProvisioningService.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Host Node require check succeeded; smoke test verified success + device-limit + invalid-credentials.
+- **Next safe step**:
+  - Add `/api/provisioning/desktop` route module and mount it in `push-server/server.js` (minimal shared edit), keeping admin UI deferred.
+
+### 2026-04-24T22:19:00Z — TASK-034: storage-only provisioning stores (push-server)
+- **AI**: Cascade
+- **Scope**: backend storage-only (no routes mounted; no admin UI).
+- **Files changed**:
+  - `push-server/src/services/provisioning/provisioningPaths.js`
+  - `push-server/src/services/provisioning/provisioningAccountStore.js`
+  - `push-server/src/services/provisioning/provisionedDeviceStore.js`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Host Node require check succeeded for new modules.
+- **Next safe step**:
+  - Implement provisioning service logic (validation + device limit enforcement) without mounting routes yet.
+
+### 2026-04-24T22:17:00Z — TASK-034: docs update (record route/admin integration patterns)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Implement backend provisioning account/device stores (storage-only; no route mounts yet).
+
+### 2026-04-24T22:15:00Z — TASK-034: docs update (record inspected backend/admin boundaries)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Inspect route mount/admin route patterns only (inspection only; no edits) to plan the smallest route integration step.
+
+### 2026-04-24T22:12:00Z — TASK-034: docs update (record inspected desktop boundaries)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Inspect backend/admin structure for provisioning model/route/admin location (inspection only; no edits).
+
+### 2026-04-24T22:09:00Z — TASK-034: docs correction (record start date)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/Index.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only.
+- **Next safe step**:
+  - Inspect desktop settings storage + registration trigger boundary (no edits) before implementing desktop auto provisioning UI.
+
+### 2026-04-24T22:05:00Z — TASK-034: docs/workflow staging (desktop auto provisioning)
+- **AI**: Cascade
+- **Scope**: docs/workflow only.
+- **Files changed**:
+  - `docs/tasks/TASK-034.md`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/tasks/Index.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code inspection only (docs-only step).
+- **Next safe step**:
+  - Inspect desktop settings storage + registration trigger boundary to design a single safe adapter for writing provisioned config.
+
 ### 2026-04-13T20:52:00Z — TASK-033: PBX DNS column prefers hostname over IP when present
 - **AI**: Cascade
 - **Scope**: admin registrations page renderer only (read-only).

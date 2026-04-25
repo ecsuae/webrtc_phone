@@ -78,10 +78,11 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
     const wss = normalizeWssServer(ui.wss(), ui.wssFallback());
 
     try {
+      const passSet = !!String(pass || "");
       console.log(
         `[DESKTOP_REG_DEBUG] computed ext=${String(ext || "")} domain=${String(domain || "")} wss=${String(
           wss || ""
-        )} passLen=${String((pass || "").length)}`
+        )} pass_set=${String(passSet)}`
       );
     } catch {}
 

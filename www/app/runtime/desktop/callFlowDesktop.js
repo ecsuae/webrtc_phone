@@ -8,6 +8,7 @@ export function setupDesktopCallFlow({
   SIP,
   callHistory,
   runOneTapEnableFlow,
+  startAndRegister,
   stopAndUnregister,
   releaseWakeLock,
 }) {
@@ -18,6 +19,7 @@ export function setupDesktopCallFlow({
     SIP,
     callHistory,
     runOneTapEnableFlow,
+    startAndRegister,
     stopAndUnregister,
     releaseWakeLock,
   });

@@ -19,6 +19,7 @@ const { createSubscriptionStore } = require('./src/services/push/subscriptionSto
 const { createPushRoutes } = require('./src/routes/pushRoutes');
 const { createLogRoutes } = require('./src/routes/logRoutes');
 const { createConferenceRoutes } = require('./src/routes/conferenceRoutes');
+const { createProvisioningRoutes } = require('./src/routes/provisioningRoutes');
 const { createSystemRoutes } = require('./src/routes/systemRoutes');
 const { createDiagRoutes } = require('./src/routes/diagRoutes');
 const { createAdminRoutes } = require('./src/routes/adminRoutes');
@@ -70,6 +71,8 @@ app.use(
     },
   })
 );
+
+app.use('/api/provisioning', createProvisioningRoutes());
 
 app.use(
   '/diagnostics',
