@@ -1,6 +1,6 @@
 # Task Index
 
-_Last updated: 2026-04-24 22:05 UTC_
+_Last updated: 2026-04-28 00:31 PKT_
 
 | Task | Title | Status | Start date | End date | One-line summary |
 |---|---|---|---|---|---|
@@ -10,9 +10,11 @@ _Last updated: 2026-04-24 22:05 UTC_
 | TASK-029 | Frontend inbound raw proof rows | Pending | Unknown | — | Add missing inbound raw proof event rows in real merged-parent call logs (frontend-only; raw remains additive). |
 | TASK-030 | Nginx isolation/refactor | Complete | 2026-04-09 | 2026-04-09 | Made nginx runtime config template-driven via repo-owned wrapper with behavior-preserving routing. |
 | TASK-031 | Desktop isolation/refactor | Complete | 2026-04-09 | 2026-04-13 | Desktop app isolation completed; remaining runtime/correctness work moved to TASK-032. |
-| TASK-032 | Desktop runtime/correctness | Active | 2026-04-13 | — | Prove and fix ext-to-ext one-way audio / early termination (477/480) without reopening desktop isolation/refactor work. |
+| TASK-032 | Desktop runtime/correctness | Pending | 2026-04-13 | — | Audio-delay work paused after real-number IVR was heard properly; resume only by explicit request. |
 | TASK-033 | Admin portal registered extensions page | Pending | 2026-04-13 | — | Add a read-only admin page showing live extension registrations from both Kamailio and PBX, including dual-registration match status. |
-| TASK-034 | Desktop auto provisioning | Active | 2026-04-25 | — | Add desktop-only auto provisioning (Provisioning ID + PIN) with backend account/device limits and admin controls; keep existing manual config flow unchanged. |
+| TASK-034 | Desktop auto provisioning | Active | 2026-04-25 | — | Docker/API active-slot logout and stale TTL release pass; browser real logout click-path proof is still required. |
+| TASK-035 | Desktop dialer UI/runtime polish | Active | 2026-04-26 | — | Remove desktop mobile-keyboard icon and fix duplicate physical-key digit entry without touching mobile or SIP/media behavior. |
+| TASK-036 | Docker timezone verification | Complete | 2026-04-26 | 2026-04-26 | Verified every active project container uses `TZ=Asia/Karachi` and reports PKT time; no compose change required. |
 
 ## Status legend
 - Active

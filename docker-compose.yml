@@ -121,6 +121,7 @@ services:
     volumes:
       - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./backups/mobile-logs:/app/../backups/mobile-logs
+      - ./data/push-server/provisioning:/app/data/provisioning
       - ./routing-config.json:/app/routing-config.json
 
   nginx:

@@ -28,15 +28,14 @@ Active
 - Do not change SIP routing or server-side behavior.
 
 ## Current blocker
-- Ext-to-ext one-way audio symptom: 992003 cannot hear 900900.
-- Latest logs prove ICE/connectivity are not the issue (RTP is sent/received), so the likely fault boundary is desktop inbound-answer sender binding / silent-source on 900900.
+- Desktop feature-code/MOH calls still feel slow before audio starts.
+- User logs show btnCall at 2026-04-26T01:41:36.503Z, mic granted at 01:41:36.919Z, dialing at 01:41:36.920Z, and INVITE/session establishing at 01:41:42.357Z (~5.4s pre-INVITE).
+- SIP.js default ICE gathering timeout was reduced for desktop outbound calls only; user runtime test showed mic-grant to INVITE improved to about 2s.
+- Remaining perceived delay appears post-answer/media-render, around Established/ICE connected/selected-pair/RTP/audio playback.
+- Latest render diagnostics show play attempt/resolved and `audio-playing` before SIP Established, and first inbound RTP about 0.55s after Established; remaining evidence points toward early RTP silence or server/PBX content timing.
 
 ## Exact next safe step
-- Reproduce one failing ext-to-ext call and confirm inbound leg emits:
-  - `desktop-inbound-audio-proof` (~2.5s and ~10s post-established)
-  - senderTrackId vs acquired local mic trackId match
-  - outbound RTP packets/bytes and sender energy (audioLevel/totalAudioEnergy)
-- If sender binding is correct but energy stays near-zero while speaking, treat as local capture/silent-source issue.
+- Runtime/browser call test for feature code/MOH: use `[desktop:audio-energy]` logs to determine whether early RTP has audio energy or silent packets.
 
 ## Timestamped task history
 - 2026-04-13T05:15:00Z | START  | TASK-032 | Start state (runtime/correctness only; post-isolation). Blockers: ext-to-ext early termination (477/480), mic indicator stuck after hangup. Next: reproduce reliably, then add observability-only instrumentation. | AI: Cascade
@@ -50,3 +49,12 @@ Active
 - 2026-04-13 10:51 PKT | CHANGE | TASK-032 | Diagnostics parity: desktop outbound established calls now emit `receive-render-proof` at 5s/10s; media verdict synthesis classifies transport+RTP present but missing render-proof as `incomplete-observability` (diagnostics incomplete) instead of implying likely media failure. | AI: Cascade
 - 2026-04-13 11:04 PKT | NOTE   | TASK-032 | Ext-to-ext call proven bidirectional-media OK (not a current one-way-media failure). Legs: outbound=3brgni4nkmug28ugh6mm; inbound=e0eeb614-b1a0-123f-5995-467af263c1d5. Proven: sender bound to local mic on outbound; RTP sent/received on both legs; receive/render proof on both legs. | AI: Cascade
  - 2026-04-13 11:20 PKT | CHANGE | TASK-032 | Inbound sender binding hardening: persist acquired mic track/stream ids on inbound answer; on inbound Established schedule `desktop-inbound-audio-proof` with sender binding + RTP/energy evidence and force audio sender to local stream audio track (replaceTrack) if needed (desktop-owned only). | AI: Cascade
+- 2026-04-26 06:48 PKT | CHANGE | TASK-032 | Desktop outbound INVITE setup: set desktop-only outbound `iceGatheringTimeout` to 1500ms and added invite-call-start timing diagnostics around `inviter.invite()`; no backend/admin/provisioning/registration/mobile changes. | AI: Codex
+- 2026-04-26 06:48 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served outbound Inviter JS contains desktop-only 1500ms `iceGatheringTimeout`; served invite flow contains `desktop-invite-call-start` timing; registration UA has no ICE override; touched files under 200 lines. Runtime/browser call timing still pending. | AI: Codex
+- 2026-04-26 06:56 PKT | CHANGE | TASK-032 | Desktop outbound media diagnostics: added render timing for remote track, audio src set, play attempt/resolved/rejected, audio element events, and first nonzero inbound RTP; no playback behavior changes. | AI: Codex
+- 2026-04-26 06:56 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS contains render timing diagnostics; served outgoing JS has no password/PIN logging matches; touched runtime files are under 200 lines. Runtime/browser call timing still pending. | AI: Codex
+- 2026-04-26 07:07 PKT | CHANGE | TASK-032 | Desktop outbound render diagnostics now also emit obvious `[desktop:render-timing]` console/logLine entries from the same remote-audio bind path and include elapsed timing from `t_callStart`; no playback behavior changes. | AI: Codex
+- 2026-04-26 07:07 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS has `[desktop:render-timing]`; old `[outgoing:media] Remote ... bound` path imports/calls render helper; no password/PIN logging matches. Runtime/browser call timing still pending. | AI: Codex
+- 2026-04-26 07:15 PKT | NOTE   | TASK-032 | User runtime logs show play attempt/resolved and `audio-playing` before Established; first inbound RTP arrives ~0.55s after Established, but audible music is still delayed. | AI: Codex
+- 2026-04-26 07:15 PKT | CHANGE | TASK-032 | Added desktop outbound `[desktop:audio-energy]` diagnostics for inbound RTP packets/bytes, audioLevel, totalAudioEnergy, concealed samples, packets-with-zero-energy, and first nonzero energy; no playback/PBX behavior changes. | AI: Codex
+- 2026-04-26 07:15 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS has audio-energy labels/fields and render helper calls probe; no password/PIN logging matches. Runtime/browser audio-energy timing still pending. | AI: Codex

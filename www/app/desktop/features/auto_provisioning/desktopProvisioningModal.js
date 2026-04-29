@@ -36,6 +36,25 @@ function setForgetVisible(forgetBtn, visible) {
   forgetBtn.style.setProperty("display", visible ? "inline-flex" : "none");
 }
 
+function setSavedHintVisible(visible) {
+  const hintEl = document.getElementById("autoProvisionSavedHint");
+  if (!hintEl) return;
+  hintEl.style.setProperty("display", visible ? "block" : "none");
+}
+
+function syncSavedUi({ forgetBtn, saveChk } = {}) {
+  const hasSaved = hasSavedAutoProvisioningCreds();
+  setForgetVisible(forgetBtn, hasSaved);
+  setSavedHintVisible(hasSaved);
+  if (saveChk && hasSaved) saveChk.checked = true;
+  return hasSaved;
+}
+
+export function closeAutoProvisioningModal({ clearStatus = true } = {}) {
+  setModalVisible(document.getElementById("autoProvisionModal"), false);
+  if (clearStatus) clearLocalStatus();
+}
+
 export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = {}) {
   const startBtn = document.getElementById("btnAutoProvisionStart");
   const cancelBtn = document.getElementById("btnAutoProvisionCancel");
@@ -53,8 +72,7 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
   try {
     const saved = loadSavedAutoProvisioningCreds();
     if (!String(idEl?.value || "").trim() && saved?.id) idEl.value = saved.id;
-    if (saveChk && (saved?.id || saved?.pin)) saveChk.checked = true;
-    setForgetVisible(forgetBtn, !!(saved?.id || saved?.pin));
+    syncSavedUi({ forgetBtn, saveChk });
   } catch {}
 
   try {
@@ -77,8 +95,7 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
   });
 
   cancelBtn.addEventListener("click", () => {
-    clearLocalStatus();
-    setModalVisible(modalEl, false);
+    closeAutoProvisioningModal();
   });
 
   loginBtn.addEventListener("click", async () => {
@@ -104,9 +121,10 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
         const { value: pin } = getTrimmedValueById("provisioningPin");
         saveAutoProvisioningCreds({ id: provisioningId, pin });
         try {
-          setForgetVisible(forgetBtn, hasSavedAutoProvisioningCreds());
+          syncSavedUi({ forgetBtn, saveChk });
         } catch {
           setForgetVisible(forgetBtn, true);
+          setSavedHintVisible(true);
         }
       }
 
@@ -148,6 +166,7 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
       } catch {}
       try {
         setForgetVisible(forgetBtn, false);
+        setSavedHintVisible(false);
       } catch {}
       showLocalStatus("Saved ID & PIN cleared.");
     });

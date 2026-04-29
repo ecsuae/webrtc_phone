@@ -4,6 +4,7 @@
 
 # backups & archives
 backups/
+data/
 *.tar.gz
 
 # conference PIN mapping (server-side secret)

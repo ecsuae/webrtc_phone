@@ -1034,3 +1034,70 @@ Examples:
 2026-04-25 09:58 PKT | FIX    | TASK-034 | Desktop: Save ID & PIN checkbox is now explicitly visible/clickable (global CSS hid checkboxes). Forget button is hidden by default and only shown when saved ID/PIN exists; after successful save it is shown; after Forget clears it is hidden and Save checkbox is unchecked. | AI: Cascade
 2026-04-25 09:58 PKT | VERIFY | TASK-034 | Docker-only: served `desktopRegistrationSection.js` contains `chkSaveProvisioningCreds` as `type=checkbox` and Forget button defaults to `display:none`; served modal JS contains `setForgetVisible()` + toggles based on saved creds; desktop page loads. | AI: Cascade
 2026-04-25 09:58 PKT | STOP   | TASK-034 | Session end | worked 4m | AI: Cascade
+2026-04-26 04:42 PKT | START  | TASK-034 | Phase A closeout/status verification docs-only | AI: Codex
+2026-04-26 04:42 PKT | VERIFY | TASK-034 | Code/docs inspection only: workflow docs checked against user-reported Phase A completion; no runtime/code changes | AI: Codex
+2026-04-26 04:42 PKT | CHANGE | TASK-034 | Updated workflow docs to mark Phase A complete and defer remaining work to Phase B | AI: Codex
+2026-04-26 04:42 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Codex
+2026-04-26 06:38 PKT | START  | TASK-034 | Reopen Phase A for logout PIN dialog UI polish | AI: Codex
+2026-04-26 06:38 PKT | CHANGE | TASK-034 | Desktop logout now closes auto provisioning PIN dialog without clearing saved ID/PIN; saved-ID hint added | AI: Codex
+2026-04-26 06:38 PKT | VERIFY | TASK-034 | Docker-only served asset checks: desktop page loads; logout binding calls modal close helper; no saved ID/PIN clear on logout | AI: Codex
+2026-04-26 06:38 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Codex
+2026-04-26 06:48 PKT | START  | TASK-032 | Investigate desktop outbound feature-code/MOH pre-INVITE delay | AI: Codex
+2026-04-26 06:48 PKT | CHANGE | TASK-032 | Desktop outbound Inviter now uses 1500ms ICE gathering timeout and emits invite-call-start timing diagnostics | AI: Codex
+2026-04-26 06:48 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS has 1500ms timeout + invite timing; no credential/PIN logging found in touched served JS | AI: Codex
+2026-04-26 06:48 PKT | STOP   | TASK-032 | Session end | worked 0m | AI: Codex
+2026-04-26 06:56 PKT | START  | TASK-032 | Add desktop outbound post-answer render timing diagnostics | AI: Codex
+2026-04-26 06:56 PKT | CHANGE | TASK-032 | Added desktop outbound remote track/src/play/audio-element/first-RTP timing diagnostics only | AI: Codex
+2026-04-26 06:56 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS contains render timing diagnostics; served outgoing JS has no password/PIN logging matches | AI: Codex
+2026-04-26 06:56 PKT | STOP   | TASK-032 | Session end | worked 0m | AI: Codex
+2026-04-26 07:07 PKT | START  | TASK-032 | Make outbound render timing diagnostics visible in browser logs | AI: Codex
+2026-04-26 07:07 PKT | CHANGE | TASK-032 | Added `[desktop:render-timing]` console/logLine output at existing remote-audio bind diagnostics path | AI: Codex
+2026-04-26 07:07 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS has `[desktop:render-timing]`; old bind log path imports/calls render helper; no password/PIN logging matches | AI: Codex
+2026-04-26 07:07 PKT | STOP   | TASK-032 | Session end | worked 0m | AI: Codex
+2026-04-26 07:15 PKT | START  | TASK-032 | Add desktop outbound RTP audio-energy diagnostics | AI: Codex
+2026-04-26 07:15 PKT | NOTE   | TASK-032 | User logs show playback active before Established and first RTP ~0.55s after Established; audible delay remains | AI: Codex
+2026-04-26 07:15 PKT | CHANGE | TASK-032 | Added `[desktop:audio-energy]` inbound RTP/energy/silence diagnostics only | AI: Codex
+2026-04-26 07:15 PKT | VERIFY | TASK-032 | Docker-only: desktop page loads; served JS has audio-energy labels/fields and render helper calls probe; no password/PIN logging matches | AI: Codex
+2026-04-26 07:15 PKT | STOP   | TASK-032 | Session end | worked 0m | AI: Codex
+2026-04-26 07:34 PKT | START  | TASK-035 | Desktop dialer UI/runtime polish | AI: Codex
+2026-04-26 07:34 PKT | CHANGE | TASK-035 | Removed desktop mobile keyboard icon and gated document key handler when dial input owns the key | AI: Codex
+2026-04-26 07:34 PKT | VERIFY | TASK-035 | Docker-only: desktop page loads; served desktop dialer markup has no keyboard icon/button; key handler gated for #dial; no Android/iOS files touched | AI: Codex
+2026-04-26 07:34 PKT | STOP   | TASK-035 | Session end | worked 0m | AI: Codex
+2026-04-26 07:57 PKT | START  | TASK-036 | Verify Docker timezone across active project containers | AI: Codex
+2026-04-26 07:57 PKT | VERIFY | TASK-036 | docker-compose.yml has TZ=Asia/Karachi for coturn/rtpengine/kamailio/push-server/nginx; no override compose present | AI: Codex
+2026-04-26 07:57 PKT | VERIFY | TASK-036 | In-container date/TZ checks: coturn, kamailio, phone-nginx, push-server, rtpengine all report TZ=Asia/Karachi and PKT date | AI: Codex
+2026-04-26 07:57 PKT | STOP   | TASK-036 | Session end | worked 0m | AI: Codex
+2026-04-26 08:01 PKT | START  | TASK-034 | Reopen Phase A for provisioning max-device bugfix | AI: Codex
+2026-04-26 08:01 PKT | CHANGE | TASK-034 | Desktop provisioning now sends a stored per-browser device ID; max-device error code aligned to MAX_DEVICES_REACHED | AI: Codex
+2026-04-26 08:04 PKT | VERIFY | TASK-034 | Docker-only: same dev-a provision twice succeeds; new dev-b blocked with MAX_DEVICES_REACHED; revoke dev-a lets dev-b succeed | AI: Codex
+2026-04-26 08:04 PKT | VERIFY | TASK-034 | Admin HTML has no sip_password/pin_hash; desktop API has no pin_hash/provisioning_pin; config.sip_password remains required Phase A output | AI: Codex
+2026-04-26 08:04 PKT | STOP   | TASK-034 | Session end | worked 3m | AI: Codex
+2026-04-26 08:28 PKT | START  | TASK-034 | Reopen provisioning for persistence/admin display/logout credential privacy bugs | AI: Codex
+2026-04-26 08:33 PKT | CHANGE | TASK-034 | Added durable provisioning data mount, admin SIP-user/short-device display, and auto-provision logout visible credential cleanup | AI: Codex
+2026-04-26 08:35 PKT | VERIFY | TASK-034 | Docker rebuild preserved seeded account PIN/hash/device/revoked state; admin HTML hid sip_password/pin_hash; desktop served cleanup JS present | AI: Codex
+2026-04-26 08:36 PKT | STOP   | TASK-034 | Session end | worked 8m | AI: Codex
+2026-04-26 08:40 PKT | START  | TASK-034 | Reopen max_devices semantics to count active auto-provision sessions only | AI: Codex
+2026-04-26 08:46 PKT | CHANGE | TASK-034 | Added active device state, desktop logout release endpoint, admin Active/Login/Logout columns, and desktop release-on-logout hook | AI: Codex
+2026-04-26 08:48 PKT | VERIFY | TASK-034 | Docker-only: dev-a login blocks dev-b; dev-a logout releases slot; dev-b login works; revoke frees slot and revoked device stays blocked | AI: Codex
+2026-04-26 08:49 PKT | STOP   | TASK-034 | Session end | worked 9m | AI: Codex
+2026-04-26 09:52 PKT | START  | TASK-034 | Reopen active-slot release and auto-provision logout privacy follow-up | AI: Codex
+2026-04-26 09:56 PKT | CHANGE | TASK-034 | Fixed desktop stop button to call stopAndUnregister(false), added strict silent coercion, and normalized missing active fields to false | AI: Codex
+2026-04-26 09:58 PKT | VERIFY | TASK-034 | Docker-only: released two stale active slots; old missing-active devices normalized false; max_devices=1 login/logout/login sequence passed | AI: Codex
+2026-04-26 10:00 PKT | STOP   | TASK-034 | Session end | worked 8m | AI: Codex
+2026-04-26 10:03 PKT | START  | TASK-034 | Runtime evidence: browser logout not releasing active slot or clearing visible credentials | AI: Codex
+2026-04-26 10:07 PKT | CHANGE | TASK-034 | Added durable non-secret active-session metadata and `[auto-prov-logout]` browser diagnostics around release/clear path | AI: Codex
+2026-04-26 10:09 PKT | VERIFY | TASK-034 | Docker-only: released stuck 51666785 active device; served JS has logout diagnostics; API dev-a logout lets dev-b login | AI: Codex
+2026-04-26 10:10 PKT | STOP   | TASK-034 | Session end | worked 7m | AI: Codex
+2026-04-26 10:13 PKT | START  | TASK-034 | Runtime still broken; add click-path proof logs and admin Release Active recovery | AI: Codex
+2026-04-26 10:17 PKT | CHANGE | TASK-034 | Added logout-click/runtime cleanup logs and WireGuard-only release-active endpoint/button | AI: Codex
+2026-04-26 10:19 PKT | VERIFY | TASK-034 | Docker-only: released stuck 51666785 device; served JS has required logs; API logout and admin Release Active tests passed | AI: Codex
+2026-04-26 10:20 PKT | STOP   | TASK-034 | Session end | worked 7m | AI: Codex
+2026-04-26 22:12 PKT | START  | TASK-034 | Regression stop: verify admin provisioning Create account before further logout/max-device work | AI: Codex
+2026-04-26 22:12 PKT | VERIFY | TASK-034 | Docker-only syntax checks passed for admin provisioning route/page/script modules; rebuilt push-server | AI: Codex
+2026-04-26 22:12 PKT | VERIFY | TASK-034 | Live create returned 201; duplicate 409; invalid input 400; store has PIN/hash/SIP password only in mounted data; admin HTML/API stayed sanitized | AI: Codex
+2026-04-26 22:12 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Codex
+2026-04-28 00:31 PKT | START  | TASK-034 | Harden desktop auto-provision active-slot logout after browser runtime failure | AI: Codex
+2026-04-28 00:31 PKT | CHANGE | TASK-034 | Added 30-minute stale active TTL release, awaited desktop logout release proof, exact runtime logs, and skipped generic last-registration persistence for auto-provision logins | AI: Codex
+2026-04-28 00:31 PKT | VERIFY | TASK-034 | Docker/API: max_devices=1 login/block/logout/login passed; stale active did not block; revoked device blocked; admin Release Active released without revoking | AI: Codex
+2026-04-28 00:31 PKT | VERIFY | TASK-034 | Served desktop JS contains required logout/provisioning/cleanup logs; current stale active 51666785 slot released by TTL recovery | AI: Codex
+2026-04-28 00:31 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Codex

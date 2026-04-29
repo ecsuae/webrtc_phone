@@ -42,6 +42,40 @@ async function toggleRevoke(provisioningId, deviceId, rowId, revoked) {
   }
   if (btn) btn.disabled = false;
 }
+
+async function releaseActiveDevice(provisioningId, deviceId, rowId) {
+  const btn = document.getElementById(rowId + '_releasebtn');
+  const msg = document.getElementById(rowId + '_msg');
+  if (btn) btn.disabled = true;
+  if (msg) {
+    msg.className = 'row-msg';
+    msg.textContent = 'Releasing...';
+  }
+  try {
+    const resp = await fetch('/admin/provisioning/device/release-active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provisioning_id: provisioningId, device_id: deviceId }),
+    });
+    const data = await resp.json();
+    if (resp.ok && data && data.ok) {
+      if (msg) {
+        msg.className = 'row-msg ok';
+        msg.textContent = 'Released active slot. Refreshing...';
+      }
+      setTimeout(() => window.location.reload(), 400);
+    } else if (msg) {
+      msg.className = 'row-msg err';
+      msg.textContent = data && data.errors ? data.errors.join('; ') : 'Release failed';
+    }
+  } catch (e) {
+    if (msg) {
+      msg.className = 'row-msg err';
+      msg.textContent = 'Request failed';
+    }
+  }
+  if (btn) btn.disabled = false;
+}
 `;
 
 module.exports = { DEVICE_SCRIPT };

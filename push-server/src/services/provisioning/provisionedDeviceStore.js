@@ -3,13 +3,17 @@
 const fs = require('fs');
 
 const { devicesPath } = require('./provisioningPaths');
+const { normalizeProvisionedDeviceRows } = require('./provisionedDeviceNormalize');
 
 function safeReadDevices() {
   const filePath = devicesPath();
   if (!fs.existsSync(filePath)) return [];
   try {
     const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.devices) ? parsed.devices : []);
+    const rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.devices) ? parsed.devices : []);
+    const normalized = normalizeProvisionedDeviceRows(rows);
+    if (normalized.changed) safeWriteDevices(normalized.devices);
+    return normalized.devices;
   } catch {
     return [];
   }
@@ -28,6 +32,7 @@ function normalizeDevice(incoming) {
   if (!provisioningId || !deviceId) return null;
 
   const now = new Date().toISOString();
+  const active = d.active === true;
   return {
     provisioning_id: provisioningId,
     device_id: deviceId,
@@ -37,9 +42,15 @@ function normalizeDevice(incoming) {
 
     first_provisioned_at: String(d.first_provisioned_at || '').trim() || now,
     last_provisioned_at: String(d.last_provisioned_at || '').trim() || now,
+    first_seen: String(d.first_seen || d.first_provisioned_at || '').trim() || now,
+    last_seen: String(d.last_seen || d.last_provisioned_at || '').trim() || now,
 
     revoked: d.revoked === true,
     revoked_at: d.revoked_at ? String(d.revoked_at) : (d.revoked === true ? now : ''),
+    active,
+    active_since: active ? (String(d.active_since || '').trim() || now) : '',
+    last_login_at: String(d.last_login_at || '').trim(),
+    last_logout_at: String(d.last_logout_at || '').trim(),
   };
 }
 
@@ -75,17 +86,27 @@ function upsertProvisionedDevice(device) {
   const now = new Date().toISOString();
   if (idx >= 0) {
     const prev = all[idx] || {};
+    const active = normalized.active === true;
     all[idx] = {
       ...prev,
       ...normalized,
       first_provisioned_at: prev.first_provisioned_at || normalized.first_provisioned_at || now,
       last_provisioned_at: now,
+      first_seen: prev.first_seen || prev.first_provisioned_at || now,
+      last_seen: now,
+      active,
+      active_since: active ? (prev.active_since || now) : '',
+      last_login_at: active ? now : (prev.last_login_at || ''),
     };
   } else {
     all.push({
       ...normalized,
       first_provisioned_at: normalized.first_provisioned_at || now,
       last_provisioned_at: now,
+      first_seen: normalized.first_seen || normalized.first_provisioned_at || now,
+      last_seen: now,
+      active_since: normalized.active ? (normalized.active_since || now) : '',
+      last_login_at: normalized.active ? now : (normalized.last_login_at || ''),
     });
   }
 
@@ -110,10 +131,39 @@ function revokeProvisionedDevice(provisioningId, deviceId, revoked = true) {
     ...prev,
     revoked: !!revoked,
     revoked_at: revoked ? (prev.revoked_at || now) : '',
+    active: revoked ? false : prev.active === true,
+    active_since: revoked ? '' : (prev.active_since || ''),
+    last_logout_at: revoked && prev.active === true ? now : (prev.last_logout_at || ''),
+    last_seen: now,
   };
 
   safeWriteDevices(all);
   return { ok: true, provisioning_id: pid, device_id: did, revoked: !!revoked };
+}
+
+function releaseProvisionedDevice(provisioningId, deviceId) {
+  const pid = String(provisioningId || '').trim();
+  const did = String(deviceId || '').trim();
+  if (!pid || !did) return { ok: false, error: 'missing-provisioning-id-or-device-id' };
+
+  const all = safeReadDevices();
+  const idx = all.findIndex(
+    (d) => String(d?.provisioning_id || '').trim() === pid && String(d?.device_id || '').trim() === did
+  );
+  if (idx < 0) return { ok: false, error: 'not-found' };
+
+  const now = new Date().toISOString();
+  const prev = all[idx] || {};
+  all[idx] = {
+    ...prev,
+    active: false,
+    active_since: '',
+    last_logout_at: now,
+    last_seen: now,
+  };
+
+  safeWriteDevices(all);
+  return { ok: true, provisioning_id: pid, device_id: did, active: false, last_logout_at: now };
 }
 
 function deleteProvisionedDevicesForAccount(provisioningId) {
@@ -132,5 +182,6 @@ module.exports = {
   findProvisionedDevice,
   upsertProvisionedDevice,
   revokeProvisionedDevice,
+  releaseProvisionedDevice,
   deleteProvisionedDevicesForAccount,
 };

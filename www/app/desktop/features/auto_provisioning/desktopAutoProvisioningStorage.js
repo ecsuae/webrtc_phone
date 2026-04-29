@@ -1,5 +1,13 @@
 const KEY_ID = "desktop_auto_provision_id";
 const KEY_PIN = "desktop_auto_provision_pin";
+const KEY_DEVICE_ID = "desktop_auto_provision_device_id";
+
+function makeDeviceId() {
+  try {
+    if (crypto?.randomUUID) return `desktop_${crypto.randomUUID()}`;
+  } catch {}
+  return `desktop_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
 
 export function loadSavedAutoProvisioningCreds() {
   try {
@@ -37,5 +45,17 @@ export function hasSavedAutoProvisioningCreds() {
     return !!(id || pin);
   } catch {
     return false;
+  }
+}
+
+export function getDesktopAutoProvisionDeviceId() {
+  try {
+    const existing = String(localStorage.getItem(KEY_DEVICE_ID) || "").trim();
+    if (existing) return existing;
+    const next = makeDeviceId();
+    localStorage.setItem(KEY_DEVICE_ID, next);
+    return next;
+  } catch {
+    return makeDeviceId();
   }
 }

@@ -3,7 +3,8 @@ import { requestDesktopProvisioning } from "./desktopProvisioningClient.js";
 import { applyProvisionedConfigToDesktopInputs } from "./applyProvisionedConfigToDesktopInputs.js";
 import { desktopEl } from "../../ui/desktopDomRefs.js";
 import { saveSessionPassword } from "../../desktopRecoverySession.js";
-import { persistDesktopLastRegistration } from "../../registration/ext/desktopRegistrationStorage.js";
+import { getDesktopAutoProvisionDeviceId } from "./desktopAutoProvisioningStorage.js";
+import { markPendingDesktopAutoProvisioningLogin } from "./desktopProvisioningSession.js";
 
 export function syncAutoProvisionStartButton() {
   const btn = document.getElementById("btnAutoProvisionStart");
@@ -19,14 +20,6 @@ export function getTrimmedValueById(id) {
   return { el, value: v };
 }
 
-function getTempDeterministicDeviceId() {
-  const platform = String(navigator?.platform || "").replace(/\s+/g, "_").slice(0, 24);
-  const ua = String(navigator?.userAgent || "");
-  const uaCompact = ua.replace(/[^a-zA-Z0-9]+/g, "_").slice(0, 32);
-  const host = String(window?.location?.host || "").replace(/[^a-zA-Z0-9.:-]+/g, "_").slice(0, 32);
-  return `desktop_${platform || "unknown"}_${host || "local"}_${uaCompact || "ua"}`;
-}
-
 export async function runProvisioningFlow() {
   const { value: provisioningId } = getTrimmedValueById("provisioningId");
   const { value: pin } = getTrimmedValueById("provisioningPin");
@@ -35,10 +28,11 @@ export async function runProvisioningFlow() {
     return { ok: false, message: "Provisioning ID and PIN are required." };
   }
 
+  const deviceId = getDesktopAutoProvisionDeviceId();
   const res = await requestDesktopProvisioning({
     provisioningId,
     pin,
-    deviceId: getTempDeterministicDeviceId(),
+    deviceId,
     deviceName: "Desktop WebRTC",
     platform: "desktop",
     appVersion: "",
@@ -52,7 +46,6 @@ export async function runProvisioningFlow() {
     config: res?.config,
     desktopEl,
     saveSessionPassword,
-    persistDesktopLastRegistration,
   });
 
   if (!applied?.ok) {
@@ -60,6 +53,7 @@ export async function runProvisioningFlow() {
   }
 
   try {
+    markPendingDesktopAutoProvisioningLogin({ provisioningId, deviceId });
     const a = applied?.applied || {};
     const ext = String(a?.ext || "");
     const domain = String(a?.domain || "");

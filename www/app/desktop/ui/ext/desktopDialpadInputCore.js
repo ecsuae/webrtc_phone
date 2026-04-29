@@ -48,7 +48,7 @@ export function initDesktopDialpadInputCore({
     try {
       const t = e?.target;
       if (!t || !(t instanceof Element)) return true;
-      if (t.id === "dial") return true;
+      if (t.id === "dial") return false;
       const tag = (t.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea") return false;
       if (t.isContentEditable) return false;

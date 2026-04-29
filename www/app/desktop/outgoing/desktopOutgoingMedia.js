@@ -1,6 +1,7 @@
 import { nowISO, logLine } from "../desktopLogging.js";
 import { getDesktopPlatformAdapter } from "../runtime/platformAdapterRegistry.js";
 import { getAudioRouteState, readMode } from "../../ui/audioRoute/state.js";
+import { observeDesktopOutboundRemoteAudio } from "./ext/desktopOutboundRenderTiming.js";
 
 function updateButtonUi(button, mode, sinkSupported) {
   if (!button) return;
@@ -77,6 +78,7 @@ export function attachRemoteAudio(session, ui) {
       } catch {}
 
       const p = audioEl.play?.();
+      observeDesktopOutboundRemoteAudio(session, audioEl, { stream, track: nextTrack, trackKind, reason, srcChanged: !sameTrack, playPromise: p });
       if (p && typeof p.catch === "function") {
         p.catch((e) => {
           console.warn("[EARLY-MEDIA] Play blocked:", e?.name, e?.message);

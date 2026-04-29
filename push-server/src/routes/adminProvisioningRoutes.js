@@ -14,6 +14,7 @@ const {
 const {
   listProvisionedDevices,
   findProvisionedDevice,
+  releaseProvisionedDevice,
   revokeProvisionedDevice,
   deleteProvisionedDevicesForAccount,
 } = require('../services/provisioning/provisionedDeviceStore');
@@ -41,6 +42,12 @@ function sanitizeProvisionedDeviceForAdmin(d) {
     app_version: d?.app_version,
     first_provisioned_at: d?.first_provisioned_at,
     last_provisioned_at: d?.last_provisioned_at,
+    first_seen: d?.first_seen,
+    last_seen: d?.last_seen,
+    active: d?.active,
+    active_since: d?.active_since,
+    last_login_at: d?.last_login_at,
+    last_logout_at: d?.last_logout_at,
     revoked: d?.revoked,
     revoked_at: d?.revoked_at,
   };
@@ -141,6 +148,21 @@ function attachAdminProvisioningRoutes(router, { requireWireGuardAccess }) {
     if (!r?.ok) {
       return res.status(404).json({ ok: false, errors: [r.error || 'revoke-failed'] });
     }
+
+    const device = findProvisionedDevice(provisioningId, deviceId);
+    return res.json({ ok: true, device: sanitizeProvisionedDeviceForAdmin(device) });
+  });
+
+  router.post('/provisioning/device/release-active', requireWireGuardAccess, (req, res) => {
+    const provisioningId = typeof req.body?.provisioning_id === 'string' ? req.body.provisioning_id.trim() : '';
+    const deviceId = typeof req.body?.device_id === 'string' ? req.body.device_id.trim() : '';
+    const errors = [];
+    if (!provisioningId) errors.push('provisioning_id is required');
+    if (!deviceId) errors.push('device_id is required');
+    if (errors.length > 0) return res.status(400).json({ ok: false, errors });
+
+    const r = releaseProvisionedDevice(provisioningId, deviceId);
+    if (!r?.ok) return res.status(404).json({ ok: false, errors: [r.error || 'release-failed'] });
 
     const device = findProvisionedDevice(provisioningId, deviceId);
     return res.json({ ok: true, device: sanitizeProvisionedDeviceForAdmin(device) });

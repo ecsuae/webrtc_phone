@@ -26,6 +26,7 @@ export function desktopRegistrationSection() {
           <div class="auto-config-row" style="display:flex; gap:10px; align-items: stretch; width:100%;">
             <div style="flex:1; min-width:0;">
               <input id="provisioningId" name="provisioningId" class="auto-config-input" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="e.g. 78653467" style="width: 100%; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; font-size: 15px; background: #fff; box-sizing: border-box;" />
+              <div id="autoProvisionSavedHint" style="display:none; margin-top:6px; font-size:12px; color: var(--muted-color, #64748b);">Autoconfigure ID saved</div>
             </div>
             <button id="btnAutoProvisionStart" type="button" class="btn-outline auto-config-button" title="Configure with ID" disabled style="width:58px; min-width:58px; flex:0 0 58px; padding: 0; display:inline-flex; align-items:center; justify-content:center; font-size:18px;">
               ➜

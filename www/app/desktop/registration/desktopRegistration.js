@@ -9,8 +9,13 @@ import {
   persistDesktopLastRegistration,
 } from "./ext/desktopRegistrationStorage.js";
 import { waitForDesktopRegistration } from "./ext/desktopRegistrationWait.js";
-
-
+import {
+  clearAutoProvisionedVisibleCredentials,
+  consumePendingDesktopAutoProvisioningLogin,
+  getActiveDesktopAutoProvisioningSession,
+  logDesktopAutoProvisioningLogout,
+  releaseDesktopAutoProvisioningSession,
+} from "../features/auto_provisioning/desktopProvisioningSession.js";
 
 export function createDesktopAppState() {
   return {
@@ -31,9 +36,7 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
   const { acquireWakeLock, releaseWakeLock } = createWakeLockManager({ st, logLine, nowISO });
 
   async function startAndRegister() {
-    try {
-      console.log("[DESKTOP_REG_DEBUG] startAndRegister entered");
-    } catch {}
+    try { console.log("[DESKTOP_REG_DEBUG] startAndRegister entered"); } catch {}
     const passFromDom = (() => {
       try {
         return desktopEl.pass?.value ?? "";
@@ -96,12 +99,17 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
 
     if (st.ua) await stopAndUnregister(true);
 
-    persistDesktopLastRegistration({ ext, domain, wss });
+    const autoProvisioningInfo = consumePendingDesktopAutoProvisioningLogin();
+    st._autoProvisioningInfo = autoProvisioningInfo;
+    st._autoProvisionedLogin = !!autoProvisioningInfo;
+    if (!autoProvisioningInfo) persistDesktopLastRegistration({ ext, domain, wss });
 
     return startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass, wss });
   }
 
   async function stopAndUnregister(silent = false) {
+    silent = silent === true;
+    try { console.log(`[logout-runtime] stopAndUnregister entered silent=${silent}`); } catch {}
     if (!silent) {
       try {
         logLine?.(`[${nowISO?.() || ""}] [boot] stopAndUnregister clicked`);
@@ -113,6 +121,13 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
       st._reregTimer = null;
     }
 
+    const autoProvisionedLogin = st._autoProvisionedLogin === true;
+    const autoProvisioningInfo = st._autoProvisioningInfo || getActiveDesktopAutoProvisioningSession();
+    if (!silent) {
+      logDesktopAutoProvisioningLogout(
+        `start provisioning_id_present=${!!autoProvisioningInfo?.provisioningId} device_id_present=${!!autoProvisioningInfo?.deviceId}`
+      );
+    }
     if (!silent) clearDesktopSavedCredentials();
 
     try {
@@ -127,6 +142,14 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
     st.ua = null;
     st.registered = false;
     st.registering = false;
+    st._autoProvisionedLogin = false;
+    st._autoProvisioningInfo = null;
+
+    if (!silent && (autoProvisionedLogin || autoProvisioningInfo)) {
+      await releaseDesktopAutoProvisioningSession(autoProvisioningInfo);
+      clearAutoProvisionedVisibleCredentials(desktopEl);
+      try { console.log(`[logout-runtime] visible credentials after cleanup ext_empty=${!desktopEl.ext?.value} pass_empty=${!desktopEl.pass?.value} ext_len=${String(desktopEl.ext?.value || "").length} pass_len=${String(desktopEl.pass?.value || "").length}`); } catch {}
+    }
 
     try {
       stopLocalAudioStream();
@@ -153,9 +176,7 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
   }
 
   async function runOneTapEnableFlow() {
-    try {
-      console.log("[DESKTOP_REG_DEBUG] runOneTapEnableFlow entered");
-    } catch {}
+    try { console.log("[DESKTOP_REG_DEBUG] runOneTapEnableFlow entered"); } catch {}
     return enableCalls();
   }
 

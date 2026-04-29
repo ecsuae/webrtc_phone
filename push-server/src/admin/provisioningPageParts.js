@@ -29,6 +29,18 @@ function deviceRowId(d) {
   const did = String(d?.device_id || '');
   return `dev_${(pid + '__' + did).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 }
+function shortDeviceId(deviceId) {
+  const did = String(deviceId || '');
+  return did.length > 15 ? `${did.slice(0, 12)}...` : did;
+}
+function accountMap(accounts) {
+  const map = new Map();
+  (Array.isArray(accounts) ? accounts : []).forEach((a) => {
+    const pid = String(a?.provisioning_id || '').trim();
+    if (pid) map.set(pid, a);
+  });
+  return map;
+}
 function renderProvisioningAccountRows({ rows, devices }) {
   return rows.length === 0
     ? '<tr><td colspan="13" class="muted">No provisioning accounts found.</td></tr>'
@@ -81,28 +93,36 @@ function renderProvisioningAccountRows({ rows, devices }) {
         })
         .join('');
 }
-function renderProvisionedDeviceRows(devRows) {
+function renderProvisionedDeviceRows(devRows, accounts) {
+  const accountsById = accountMap(accounts);
   return devRows.length === 0
-    ? '<tr><td colspan="9" class="muted">No provisioned devices found.</td></tr>'
+    ? '<tr><td colspan="13" class="muted">No provisioned devices found.</td></tr>'
     : devRows
         .map((d) => {
           const rowId = deviceRowId(d);
           const pid = String(d?.provisioning_id || '');
           const did = String(d?.device_id || '');
+          const sipUser = String(accountsById.get(pid)?.sip_username || '');
+          const active = d?.active === true;
           const revoked = d?.revoked === true;
           const btnClass = revoked ? 'btn btn-secondary' : 'btn btn-danger';
           const btnLabel = revoked ? 'Unrevoke' : 'Revoke';
           return `<tr>
                 <td style="font-family:monospace">${h(pid)}</td>
-                <td style="font-family:monospace">${h(did)}</td>
+                <td style="font-family:monospace">${h(sipUser)}</td>
+                <td style="font-family:monospace" title="${h(did)}" data-full-device-id="${h(did)}">${h(shortDeviceId(did))}</td>
                 <td style="font-family:monospace">${h(d?.device_name || '')}</td>
                 <td style="font-family:monospace">${h(d?.platform || '')}</td>
                 <td style="font-family:monospace">${h(d?.app_version || '')}</td>
+                <td style="font-family:monospace">${h(toFlag(active))}</td>
                 <td style="font-family:monospace">${h(d?.first_provisioned_at || '')}</td>
                 <td style="font-family:monospace">${h(d?.last_provisioned_at || '')}</td>
+                <td style="font-family:monospace">${h(d?.last_login_at || '')}</td>
+                <td style="font-family:monospace">${h(d?.last_logout_at || '')}</td>
                 <td style="font-family:monospace">${h(toFlag(revoked))}</td>
                 <td>
                   <div class="row-actions">
+                    ${active && !revoked ? `<button class="btn btn-secondary" type="button" id="${h(rowId)}_releasebtn" onclick="releaseActiveDevice('${h(pid)}','${h(did)}','${h(rowId)}')">Release Active</button>` : ''}
                     <button class="${btnClass}" type="button" id="${h(rowId)}_btn" onclick="toggleRevoke('${h(pid)}','${h(did)}','${h(rowId)}',${revoked ? 'false' : 'true'})">${btnLabel}</button>
                   </div>
                   <div class="row-msg" id="${h(rowId)}_msg"></div>

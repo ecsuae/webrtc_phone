@@ -4,6 +4,8 @@ import { sendCallMediaEvent } from "../../../features/callMediaLog.js";
 import { g711OnlyModifier } from "../../../sdp.js";
 import { getLocalStream } from "../../../media.js";
 
+const DESKTOP_OUTBOUND_ICE_GATHERING_TIMEOUT_MS = 1500;
+
 export function getDesktopOutboundDiagContext(st, target, inviter) {
   const username = st.account?.rawUsername || st.account?.username || undefined;
   const domain = st.account?.domain || undefined;
@@ -114,6 +116,7 @@ export function createDesktopInviter({ SIP, st, targetUri, corrId, selectedProfi
       mode: selectedProfile === "lte" ? "lte" : "wifi",
       lteMode: selectedProfile === "lte",
       icePolicy: selectedProfile === "lte" ? "relay" : "all",
+      iceGatheringTimeoutMs: DESKTOP_OUTBOUND_ICE_GATHERING_TIMEOUT_MS,
       reason: "before-invite",
       localMicTrackId: localMicTrackId || undefined,
       localMicStreamId: stream?.id || null,
@@ -136,6 +139,7 @@ export function createDesktopInviter({ SIP, st, targetUri, corrId, selectedProfi
     sessionDescriptionHandlerModifiers: [g711OnlyModifier],
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false },
+      iceGatheringTimeout: DESKTOP_OUTBOUND_ICE_GATHERING_TIMEOUT_MS,
       localMediaStream: getLocalStream() || undefined,
     },
   });

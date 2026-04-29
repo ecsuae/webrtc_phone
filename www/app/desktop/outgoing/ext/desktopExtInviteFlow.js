@@ -55,7 +55,7 @@ export async function runDesktopExtInviteFlow(SIP, st, ui, {
 
   try {
     const audioEl = ui?.remoteAudio?.();
-    if (audioEl) audioEl.__callMediaDiagContext = getDesktopOutboundDiagContext(st, target, inviter);
+    if (audioEl) audioEl.__callMediaDiagContext = { ...getDesktopOutboundDiagContext(st, target, inviter), t_callStart };
   } catch {}
 
   st.session = inviter;
@@ -77,14 +77,25 @@ export async function runDesktopExtInviteFlow(SIP, st, ui, {
   });
 
   try {
+    const t_inviteCallStart = new Date().toISOString();
+    sendCallMediaEvent({
+      type: "desktop-invite-call-start",
+      ...getDesktopOutboundDiagContext(st, target, inviter),
+      t_callStart,
+      t_inviteCallStart,
+      msg: "Calling SIP.js inviter.invite()",
+    });
+
     await inviter.invite({ requestDelegate });
+    const t_inviteSent = new Date().toISOString();
     ui.setStatus("Calling...");
 
     sendCallMediaEvent({
       type: "invite-sent",
       ...getDesktopOutboundDiagContext(st, target, inviter),
       t_callStart,
-      t_inviteSent: new Date().toISOString(),
+      t_inviteCallStart,
+      t_inviteSent,
       msg: "INVITE sent",
     });
 
@@ -92,7 +103,8 @@ export async function runDesktopExtInviteFlow(SIP, st, ui, {
       type: "outbound-invite-sent",
       ...getDesktopOutboundDiagContext(st, target, inviter),
       t_callStart,
-      t_inviteSent: new Date().toISOString(),
+      t_inviteCallStart,
+      t_inviteSent,
       msg: "Outbound INVITE sent",
     });
   } catch (e) {

@@ -158,18 +158,22 @@ function renderProvisioningPage({ accounts, devices }) {
       <thead>
         <tr>
           <th>Provisioning ID</th>
+          <th>SIP user</th>
           <th>Device ID</th>
           <th>Name</th>
           <th>Platform</th>
           <th>App</th>
+          <th>Active</th>
           <th>First</th>
           <th>Last</th>
+          <th>Login</th>
+          <th>Logout</th>
           <th>Revoked</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        ${renderProvisionedDeviceRows(devRows)}
+        ${renderProvisionedDeviceRows(devRows, rows)}
       </tbody>
     </table>
   </div>

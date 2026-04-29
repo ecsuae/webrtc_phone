@@ -1,65 +1,53 @@
 # NOW
 
 ## Current task
-TASK-034 — Desktop auto provisioning (Provisioning ID + PIN + device limits + admin controls).
+TASK-034 — Desktop auto provisioning max_devices/logout runtime proof.
 
 ## Current blocker(s)
-- Desktop auto provisioning Phase A flow is working; next step is manual UX verification of the compact Autoconfigure ID + PIN dialog on desktop.
-- Admin provisioning now stores retrievable `provisioning_pin` (Phase A convenience) and can reveal/hide it in WireGuard-only admin UI; browser-click verification is still pending (API/HTML inspection verification is present).
-- Backend/admin provisioning controls (account update, device revoke/unrevoke, PIN reset) are implemented.
+- Browser runtime evidence still must prove the real power/logout icon releases the active provisioning slot and clears visible PBX Username/Password.
+- Docker/API verification now passes for active-slot logout and stale active TTL release.
+- TASK-034 must not close until browser console logs and the admin Devices row confirm `active=false` after real browser logout.
 
 ## Exact next safe step
-- Desktop-only: manual UX verification that Autoconfigure ID arrow button opens PIN dialog and Login triggers provisioning + registration whether Save ID & PIN is checked or not; confirm nothing is stored yet and a small note is shown after success when Save is checked.
+- User hard refreshes desktop, logs in via Autoconfigure ID/PIN, clicks the actual power/logout icon, and confirms the expected console logs plus admin Devices `active=false`.
 
 ## Why this matters
-Desktop auto provisioning reduces manual credential entry while keeping existing manual configuration and registration/calling behavior unchanged.
+`max_devices` must mean active desktop auto-provision sessions, not stuck historical browser records.
 
 ## Task status (truthful)
-- TASK-028: complete (push-server isolation + `/admin/calllogs` summary diagnosis work complete enough; do not reopen).
-- TASK-029: pending (missing inbound raw proof rows in raw logs).
-- TASK-030: complete enough to close (template-driven runtime config is in place and verified; optional websocket Upgrade probe is deferred).
-- TASK-031: complete/closed (desktop isolation/refactor is complete; remaining issues are runtime-only bugs).
-- TASK-032: active (runtime proof/fix in progress; do not guess-fix without evidence).
-- TASK-033: pending (admin registrations page continues later).
-- TASK-034: active (desktop auto provisioning; isolation-first).
+- TASK-028: complete.
+- TASK-029: pending.
+- TASK-030: complete.
+- TASK-031: complete/closed.
+- TASK-032: pending; audio-delay work paused unless explicitly requested.
+- TASK-033: pending.
+- TASK-034: active; Docker/API fixed, awaiting browser runtime proof.
+- TASK-035: active but paused while TASK-034 runtime proof is handled.
+- TASK-036: complete.
 
-## Scope guardrails (for current work)
-- Scope: TASK-034 only (desktop-only auto provisioning + backend/admin provisioning controls).
-- Do not touch Android.
-- Do not touch iOS.
-- Do not refactor existing working registration/calling/media logic.
-- Do not disturb existing manual configuration flow.
+## Scope guardrails
+- Scope: desktop auto-provision logout/session handling and backend provisioning active-slot logic only.
+- Do not touch admin Create account.
+- Do not touch SIP/media/audio.
+- Do not touch Android/iOS.
+- Do not touch FusionPBX Phase B.
+- Do not expose `sip_password`, `pin_hash`, or provisioning PIN in admin HTML/API responses.
 
-## Already proven (TASK-031)
-- Desktop inventory recorded in `docs/tasks/TASK-031.md`:
-  - Desktop entrypoints/build wiring identified (`www/index.html` → `app/page/bootstrapPage.js` → `app/main.js` → `runtime/desktop/bootstrapDesktop.js`).
-  - Desktop currently depends on shared/common modules (including shared/common registration via `sipRegister.js` / `registration/*`).
-- Step 1 implemented (behavior-preserving): desktop branch now boots via desktop-owned entrypoint `www/app/desktop/bootstrapDesktopApp.js`.
-- Step 2 implemented (desktop-owned registration): desktop bootstrap now uses `www/app/desktop/registration/desktopRegistration.js` and no longer routes desktop registration through `sipRegister.js` / `runtime/registerFlow.js` / `registration/*`.
-- Step 3 implemented (desktop-owned call-control bindings): desktop call flow no longer imports `www/app/runtime/shared/controlBindingsCore.js`.
-- Step 4 implemented (desktop-owned runtime hooks): desktop bootstrap no longer imports `www/app/runtime/mobileRecovery.js` or `www/app/runtime/swWakeHandler.js`.
-- Step 5 in progress: desktop-owned platform adapter registry exists (`www/app/desktop/runtime/platformAdapterRegistry.js`) and desktop bootstrap no longer imports `www/app/runtime/shared/platformAdapter.js`.
-- Step 5 progress: desktop outbound call uses desktop-owned ringback/provisional delegate (`www/app/desktop/outgoing/*`) and no longer routes ringback/provisional handling through shared `www/app/outgoing/ringback/index.js`.
-- Step 5 progress: desktop outbound media/audio-route enforcement is desktop-owned (`www/app/desktop/outgoing/desktopOutgoingMedia.js`) and no longer routes through shared `www/app/outgoing/media.js` (shared `requirePlatformAdapter()` dependency).
-- Step 5 progress: desktop incoming ringtone priming is desktop-owned (`www/app/desktop/incoming/desktopIncomingAlert.js`) and no longer routes through shared `www/app/incoming/alert/ringtone.js` (shared `requirePlatformAdapter()` dependency).
-- Step 5 progress: desktop incoming stop/cleanup alert path is desktop-owned (`www/app/desktop/incoming/desktopIncomingAlert.js`) and desktop no longer imports shared `www/app/incoming/alert.js` / `www/app/incoming/alert/*`.
-- Step 5 progress: desktop layout now includes incoming alert banner nodes (`incomingAlertBanner`/`incomingAlertTitle`) required by `desktopIncomingAlert.startIncomingAlert`.
-- Step 5 progress: desktop now renders a desktop-owned registration+dialpad layout module (`www/app/desktop/ui/desktopAppLayout.js`) on desktop only.
-- Step 5 progress: desktop app shell sections are desktop-owned (`www/app/desktop/ui/desktopShellSections.js`); desktop no longer imports shared layout header/status/log sections for desktop shell.
-- Step 5 progress: desktop now uses desktop-owned DOM refs cache (`www/app/desktop/ui/desktopDomRefs.js`) for registration+dialpad+incoming-alert UI (shared `www/app/dom.js` not used in this boundary).
-- Step 5 progress: desktop incoming attach-audio is desktop-owned (`www/app/desktop/incoming/desktopIncomingRemoteAudio.js`) and desktop answer flow no longer uses shared `www/app/incoming/media/attachIncomingRemoteAudio.js` (shared `requirePlatformAdapter()` dependency).
-- Step 5 progress: desktop global audio-route enforcement is desktop-owned (`www/app/desktop/ui/*`) and desktop no longer imports shared `www/app/ui/audioRoute/enforce.js` (shared `requirePlatformAdapter()` dependency).
-- Step 5 progress: desktop Established-state incoming attach path is desktop-owned (`www/app/desktop/incoming/desktopOnIncomingEstablished.js`) and desktop no longer depends on shared `www/app/incoming/handlers/onEstablished.js` for established handling / attach.
-- Step 5 progress: desktop outbound hangup is desktop-owned (`www/app/desktop/outgoing/desktopHangupCall.js`) and desktop no longer imports shared `www/app/outgoing/call/hangupCall.js` (which pulls shared ringback/platform adapter).
-- Step 5 progress: desktop UI orchestration is desktop-owned (`www/app/desktop/ui/desktopAppUi.js`); desktop bootstrap no longer imports shared `www/app/ui/appUi.js`.
-- Step 5 progress: desktop history/timer UI support is desktop-owned (`www/app/desktop/ui/desktopUiSupport*.js`); desktop bootstrap no longer imports shared `www/app/ui/historyActivity.js` or `www/app/ui/callTimer.js`.
-- Step 5 progress: desktop logging + timestamps are desktop-owned (`www/app/desktop/desktopLogging.js`); desktop bootstrap no longer imports shared `www/app/log.js` or `www/app/config.js`.
-- Step 5 progress: desktop runtime modules now use desktop-owned logging (`desktopLogging.js`) throughout (12 modules updated: desktopStartCall, desktopIncomingAlert, desktopHangupCall, desktopOutboundStateChange, desktopAnswerIncomingCall, desktopIncomingEstablished, desktopOnIncomingEstablished, desktopCallControls, desktopIncomingRemoteAudio, desktopIncomingRemoteAudioSupport, desktopRingbackDelegate, desktopOutgoingMedia, desktopControlBindings).
-- Step 5 progress: desktop session recovery is desktop-owned (`www/app/desktop/desktopRecoverySession.js`); desktop bootstrap and registration no longer import shared `www/app/push/recoverySession.js`.
-- Step 5 progress: desktop remote logging is now wrapped in desktop-owned module (`www/app/desktop/desktopRemoteLogs.js`); desktop bootstrap no longer directly imports shared `www/app/remoteLogs.js`.
-- Step 5 progress: desktop incoming call reject is desktop-owned (`www/app/desktop/incoming/desktopRejectIncomingCall.js`); desktop control bindings no longer import shared `www/app/sipCallIncoming.js` for reject.
-- Step 5 progress: desktop tab navigation is desktop-owned (`www/app/desktop/ui/desktopTabNavigation.js`); desktop control bindings no longer import shared `www/app/ui/tabNavigation.js`.
-- Step 5 progress: desktop incoming state cleanup is desktop-owned (`www/app/desktop/incoming/desktopIncomingState.js`); desktop answer flow no longer imports shared `www/app/incoming/handlers/state.js`.
-- Step 5 progress: desktop conference join is desktop-owned (`www/app/desktop/conference/desktopJoinConference.js`); desktop control bindings no longer import shared `www/app/conference/join.js`.
-- Step 5 progress: desktop LTE relay readiness guard is desktop-owned (`www/app/desktop/desktopLteCallGuard.js`); desktop call flows no longer import shared `www/app/features/lteCallGuard.js`.
-- Step 5 progress: desktop outbound-call-start support is desktop-owned (`www/app/desktop/outgoing/desktopStartCallSupport.js`, `www/app/desktop/outgoing/desktopStartCallPreflight.js`); desktopStartCall no longer imports shared `www/app/outgoing/call/*`.
+## Already proven in this step
+- Backend counts only same-account, non-revoked, `active === true` devices.
+- Missing/non-boolean `active` remains normalized to `false`.
+- `/api/provisioning/desktop/logout` is idempotent for existing devices and returns sanitized `active_after=false` proof.
+- Active devices stale for more than 30 minutes are released and no longer block `max_devices`.
+- Admin `Release Active` still releases without revoking/deleting.
+- Current stale active device for provisioning account `51666785` was released by TTL recovery; active non-revoked count is now `0`.
+- Served desktop JS contains the required logout click, stopAndUnregister, provisioning logout, and visible credential cleanup log paths.
+
+## Browser proof still required
+- Expected console lines after hard refresh + real power/logout click:
+  - `[logout-click-runtime] actual power/logout clicked`
+  - `[logout-runtime] stopAndUnregister entered silent=false`
+  - `[auto-prov-logout] start provisioning_id_present=true device_id_present=true`
+  - `[auto-prov-logout] fetch endpoint called yes`
+  - `[auto-prov-logout] response status=200`
+  - `[auto-prov-logout] backend active_after=false`
+  - `[logout-runtime] visible credentials after cleanup ext_empty=true pass_empty=true`

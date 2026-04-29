@@ -6,9 +6,13 @@ const {
 } = require('./provisioningAccountStore');
 const {
   findProvisionedDevice,
-  listProvisionedDevicesForAccount,
   upsertProvisionedDevice,
+  releaseProvisionedDevice,
 } = require('./provisionedDeviceStore');
+const {
+  countLiveActiveDevicesForAccount,
+  releaseStaleActiveDevicesForAccount,
+} = require('./provisioningActiveSlotStore');
 
 function err(error_code, message, status = 400) {
   return { ok: false, status, error_code, message };
@@ -36,10 +40,6 @@ function pickConfigFromAccount(a) {
 function validateConfigShape(cfg) {
   if (!cfg.sip_username || !cfg.sip_password || !cfg.sip_domain) return false;
   return true;
-}
-
-function countActiveDevices(devices) {
-  return (devices || []).filter((d) => d && d.revoked !== true).length;
 }
 
 function hashProvisioningPin(pin) {
@@ -85,13 +85,12 @@ async function provisionDesktop(payload) {
     return err('DEVICE_REVOKED', 'This device has been revoked.', 403);
   }
 
-  if (!existing) {
-    const allDevices = listProvisionedDevicesForAccount(provisioning_id);
+  if (!existing || existing.active !== true) {
     const maxDevicesRaw = Number(account.max_devices);
     const maxDevices = Number.isFinite(maxDevicesRaw) && maxDevicesRaw > 0 ? maxDevicesRaw : 1;
-    const activeCount = countActiveDevices(allDevices);
+    const activeCount = countLiveActiveDevicesForAccount(provisioning_id);
     if (activeCount >= maxDevices) {
-      return err('DEVICE_LIMIT_REACHED', 'Maximum allowed devices reached.', 403);
+      return err('MAX_DEVICES_REACHED', 'Maximum allowed devices reached.', 403);
     }
   }
 
@@ -107,12 +106,42 @@ async function provisionDesktop(payload) {
     platform: normalizeId(payload?.platform),
     app_version: normalizeId(payload?.app_version),
     revoked: false,
+    active: true,
   };
   upsertProvisionedDevice(devicePatch);
 
   return ok(config, { provisioning_id, device_id });
 }
 
+async function logoutDesktopProvisioning(payload) {
+  const provisioning_id = normalizeId(payload?.provisioning_id);
+  const device_id = normalizeId(payload?.device_id);
+  if (!provisioning_id || !device_id) {
+    return err('INVALID_REQUEST', 'Missing provisioning_id or device_id.', 400);
+  }
+
+  const existing = findProvisionedDevice(provisioning_id, device_id);
+  if (!existing) return err('DEVICE_NOT_FOUND', 'Provisioned device not found.', 404);
+
+  const released = releaseProvisionedDevice(provisioning_id, device_id);
+  if (!released?.ok) return err('RELEASE_FAILED', 'Failed to release provisioned device.', 500);
+  const stale = releaseStaleActiveDevicesForAccount(provisioning_id);
+  return {
+    ok: true,
+    status: 200,
+    device: {
+      provisioning_id,
+      device_id,
+      active: false,
+      active_after: false,
+      revoked: existing.revoked === true,
+      last_logout_at: released.last_logout_at || '',
+      stale_released: stale.released || 0,
+    },
+  };
+}
+
 module.exports = {
   provisionDesktop,
+  logoutDesktopProvisioning,
 };

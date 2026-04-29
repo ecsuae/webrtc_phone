@@ -35,6 +35,9 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 - TASK-029: `docs/tasks/TASK-029.md`
 - TASK-030: `docs/tasks/TASK-030.md`
 - TASK-031: `docs/tasks/TASK-031.md`
+- TASK-035: `docs/tasks/TASK-035.md`
+- TASK-036: `docs/tasks/TASK-036.md`
+- TASK-034: `docs/tasks/TASK-034.md`
 
 ### Archives
 - April 2026 archive (verbatim ledger snapshot): `docs/archive/change-ledger-2026-04.md`
@@ -42,9 +45,273 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 ### Recent activity pointers
 
 - TASK-031 (desktop isolation/refactor): complete; full history: `docs/tasks/TASK-031.md`
-- TASK-032 (desktop runtime/correctness): active; keep this ledger focused on runtime bug-fix work only.
+- TASK-032 (desktop runtime/correctness): pending; audio-delay work paused after real-number IVR was heard properly.
+- TASK-034 (desktop auto provisioning): active pending browser click-path confirmation; runtime logs and admin Release Active added.
+- TASK-035 (desktop dialer UI/runtime polish): active; remove desktop-only mobile keyboard icon and duplicate key entry.
+- TASK-036 (Docker timezone verification): complete; all active containers confirmed `Asia/Karachi` / `PKT`.
 
 ## Current week entries
+
+### 2026-04-26T10:20:00+05:00 — TASK-034: logout click-path proof + admin Release Active
+- **AI**: Codex
+- **Scope**: desktop logout runtime proof logs and admin active-slot recovery only; no SIP/media, Android/iOS, FusionPBX Phase B, manual login behavior, or historical device deletion changes.
+- **Files changed**:
+  - `www/app/desktop/ui/desktopShellSections.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `push-server/src/admin/provisioningPageDeviceRowScripts.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - `docker compose up -d --build push-server` completed; browser hard reload required for served JS.
+- **Verified result**:
+  - Docker-only: current stuck `51666785` active device released; served JS has `[logout-click-runtime]`, `[logout-runtime] stopAndUnregister entered`, `[auto-prov-logout] fetch endpoint called yes`, and visible cleanup log; API logout lets dev-b login with `max_devices=1`; admin Release Active sets active=false/revoked unchanged; admin HTML hides secrets.
+- **Next safe step**:
+  - User browser hard refresh and runtime console/admin confirmation; do not close TASK-034 until browser click path logs match.
+
+### 2026-04-26T10:10:00+05:00 — TASK-034: runtime logout diagnostics and stuck-device release
+- **AI**: Codex
+- **Scope**: desktop auto-provision logout diagnostics/metadata robustness and Docker recovery for stuck active device only; no SIP/media, Android/iOS, FusionPBX Phase B, admin redesign, or manual login behavior changes.
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningSession.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No container restart required for served desktop JS; browser reload required. Docker recovery command released the stuck active device.
+- **Verified result**:
+  - Docker-only: current `51666785` stuck active device was released without deleting/revoking history; served JS contains `[auto-prov-logout]` diagnostics and logout endpoint path; API dev-a login/logout then dev-b login works with `max_devices=1`; admin HTML hides secrets and shows Active/logout timestamp.
+- **Next safe step**:
+  - User browser runtime confirmation with console logs; add admin Release Active button or heartbeat/TTL if crash/stale slots remain common.
+
+### 2026-04-26T10:00:00+05:00 — TASK-034: active-slot release and logout privacy follow-up
+- **AI**: Codex
+- **Scope**: desktop auto-provision logout release/cleanup and provisioning device active-field normalization only; no SIP/media, Android/iOS, FusionPBX Phase B, admin redesign, or manual login behavior changes.
+- **Files changed**:
+  - `push-server/src/services/provisioning/provisionedDeviceNormalize.js`
+  - `push-server/src/services/provisioning/provisionedDeviceStore.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - `docker compose up -d --build push-server` completed.
+- **Verified result**:
+  - Docker-only: old missing-active records normalize to `active:false`; two stale active real records were released without deleting history; `max_devices=1` login dev-a/block dev-b/logout dev-a/login dev-b/logout dev-b/login dev-a sequence passed; rebuild with inactive history did not block login; served desktop JS now calls `stopAndUnregister(false)` and contains logout endpoint/visible credential clear path.
+- **Next safe step**:
+  - Browser runtime confirmation for clean auto-provision logout; add heartbeat/TTL later if crash cleanup is required.
+
+### 2026-04-26T08:49:00+05:00 — TASK-034: active-session max_devices correction
+- **AI**: Codex
+- **Scope**: provisioning active-session/device state and desktop auto-provision logout release only; no SIP/media, Android/iOS, FusionPBX Phase B, or manual login behavior changes.
+- **Files changed**:
+  - `push-server/src/services/provisioning/provisionedDeviceStore.js`
+  - `push-server/src/services/provisioning/desktopProvisioningService.js`
+  - `push-server/src/routes/provisioningRoutes.js`
+  - `push-server/src/routes/adminProvisioningRoutes.js`
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningSession.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningFlow.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/tasks/Index.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - `docker compose up -d --build push-server` completed.
+- **Verified result**:
+  - Docker-only: `max_devices=1` now counts active non-revoked devices only; `dev-a` logout released the slot so `dev-b` could login; revoke sets active false and revoked devices remain blocked; active/revoked/logout state persisted across rebuild; admin HTML hides secrets and shows Active/Login/Logout columns; served desktop JS calls `/api/provisioning/desktop/logout`.
+- **Next safe step**:
+  - Browser runtime confirmation for auto-provisioned logout release; add heartbeat/expiry later if crash cleanup is required.
+
+### 2026-04-26T08:36:00+05:00 — TASK-034: provisioning persistence/admin display/logout privacy
+- **AI**: Codex
+- **Scope**: provisioning persistence/admin display plus desktop auto-provision logout privacy only; no SIP/media, Android/iOS, FusionPBX Phase B, or max-device semantic changes.
+- **Files changed**:
+  - `docker-compose.yml`
+  - `.gitignore`
+  - `push-server/src/admin/provisioningPage.js`
+  - `push-server/src/admin/provisioningPageParts.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningSession.js`
+  - `www/app/desktop/features/auto_provisioning/applyProvisionedConfigToDesktopInputs.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/tasks/Index.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - `docker compose up -d --build push-server` completed twice for mount activation and persistence verification.
+- **Verified result**:
+  - Docker-only: `/app/data/provisioning` is mounted from `./data/push-server/provisioning`; a seeded account/device/revoked state survived rebuild; admin HTML hides `sip_password`/`pin_hash`, shows SIP user column, and shortens long device IDs with full ID in attributes; served desktop JS contains auto-provision logout visible credential cleanup.
+- **Next safe step**:
+  - Browser runtime check for auto-provision logout privacy if user wants live UI confirmation.
+
+### 2026-04-26T08:01:00+05:00 — TASK-034: provisioning max-device same-device bugfix
+- **AI**: Codex
+- **Scope**: desktop auto-provisioning identity + backend provisioning max-device error semantics only; no SIP/media, registration, Android/iOS, admin account create, or deprovision-on-logout changes.
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopAutoProvisioningStorage.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningFlow.js`
+  - `push-server/src/services/provisioning/desktopProvisioningService.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/tasks/Index.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - `docker compose up -d --build push-server` completed.
+- **Verified result**:
+  - Docker-only: container syntax checks passed; seeded max_devices=1 account; `dev-a` succeeded twice; `dev-b` was blocked with `MAX_DEVICES_REACHED`; revoking `dev-a` let `dev-b` provision; admin HTML had no `sip_password`/`pin_hash`; desktop API had no `pin_hash`/`provisioning_pin` (Phase A still returns `config.sip_password` as required by desktop config apply).
+- **Next safe step**:
+  - Resume TASK-035 browser/runtime dialer confirmation when requested.
+
+### 2026-04-26T07:57:00+05:00 — TASK-036: Docker timezone verification
+- **AI**: Codex
+- **Scope**: Docker/compose/timezone verification only; no source, desktop UI, SIP/media, backend/admin, provisioning, or feature changes.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/tasks/TASK-036.md`
+  - `docs/tasks/Index.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No restart/recreate required.
+- **Verified result**:
+  - Docker-only: active compose services are `coturn`, `rtpengine`, `kamailio`, `push-server`, `nginx`; rendered config has `TZ: Asia/Karachi` for all; running containers `coturn`, `kamailio`, `phone-nginx`, `push-server`, `rtpengine` all report `TZ=Asia/Karachi` and `date` in `PKT`.
+- **Next safe step**:
+  - Resume TASK-035 browser/runtime dialer confirmation when requested.
+
+### 2026-04-26T07:34:00+05:00 — TASK-035: desktop dialer mobile icon + duplicate key entry
+- **AI**: Codex
+- **Scope**: desktop UI/runtime only; no backend, admin, provisioning, registration, SIP/media, Android, iOS, or timezone config changes.
+- **Files changed**:
+  - `www/app/desktop/ui/ext/desktopLayoutSections.js`
+  - `www/app/desktop/ui/ext/desktopDialpadInputCore.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-035.md`
+  - `docs/tasks/Index.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Browser reload for static served JS/HTML changes.
+- **Verified result**:
+  - Docker-only: desktop page loads; served desktop dialer markup has no `btnToggleKeyboard`/`fa-keyboard`/`keyboard-toggle-btn`; served desktop key handler returns false for `#dial`, leaving the input-owned handler as the only focused-input append path; no Android/iOS files touched; no credential logging added; touched files under 200 lines.
+- **Next safe step**:
+  - Verify desktop served markup/JS, then handle timezone normalization as a separate infra step.
+
+### 2026-04-26T07:15:00+05:00 — TASK-032: desktop outbound RTP audio-energy diagnostics
+- **AI**: Codex
+- **Scope**: desktop outbound media diagnostics only; no playback, ICE, backend, admin, provisioning, registration, SIP routing, PBX config, Android, or iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/ext/desktopOutboundAudioEnergyProbe.js`
+  - `www/app/desktop/outgoing/ext/desktopOutboundRenderTiming.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-032.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Browser reload for static served JS changes.
+- **Verified result**:
+  - Docker-only: desktop page loads; served JS contains `[desktop:audio-energy]`, `first-nonzero-energy`, `packets-with-zero-energy`, `inbound-rtp`, `audioLevel`, `totalAudioEnergy`, concealed sample fields, and render timing imports/calls the audio-energy probe; served outgoing/provisioning JS has no password/PIN logging matches; touched runtime files are under 200 lines.
+- **Next safe step**:
+  - Runtime call test with `[desktop:audio-energy]` logs; if RTP energy is unavailable/zero while packets arrive, inspect FreeSWITCH/PBX dialplan/content timing for `*9664`.
+
+### 2026-04-26T07:07:00+05:00 — TASK-032: visible desktop outbound render timing logs
+- **AI**: Codex
+- **Scope**: desktop outbound media diagnostics only; no playback, backend, admin, provisioning, registration, SIP routing, Android, or iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/ext/desktopOutboundRenderTiming.js`
+  - `www/app/desktop/outgoing/ext/desktopExtInviteFlow.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-032.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Browser reload for static served JS changes.
+- **Verified result**:
+  - Docker-only: desktop page loads; served JS contains `[desktop:render-timing]` strings and the existing `[outgoing:media] Remote ... bound` path imports/calls `observeDesktopOutboundRemoteAudio`; served outgoing/provisioning JS has no password/PIN logging matches; touched runtime files are under 200 lines.
+- **Next safe step**:
+  - Runtime call test for post-answer audio timing.
+
+### 2026-04-26T06:56:00+05:00 — TASK-032: desktop outbound render timing diagnostics
+- **AI**: Codex
+- **Scope**: desktop outbound media diagnostics only; no backend, admin, provisioning, registration, SIP routing, Android, or iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/ext/desktopOutboundRenderTiming.js`
+  - `www/app/desktop/outgoing/desktopOutgoingMedia.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-032.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Browser reload for static served JS changes.
+- **Verified result**:
+  - Docker-only: desktop page loads; served JS contains remote track/src/play/audio-element/first-RTP timing diagnostics; served outgoing JS has no password/PIN logging matches; touched runtime files are under 200 lines.
+- **Next safe step**:
+  - Runtime call test for post-answer audio timing.
+
+### 2026-04-26T06:48:00+05:00 — TASK-032: desktop outbound pre-INVITE ICE wait
+- **AI**: Codex
+- **Scope**: desktop outbound media/runtime only; no backend, admin, provisioning, registration, SIP routing, Android, or iOS changes.
+- **Files changed**:
+  - `www/app/desktop/outgoing/ext/desktopExtInviterFactory.js`
+  - `www/app/desktop/outgoing/ext/desktopExtInviteFlow.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-032.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No restart required for static served JS changes.
+- **Verified result**:
+  - Docker-only: desktop page loads; served outbound Inviter JS contains desktop-only 1500ms `iceGatheringTimeout`; served invite flow contains `desktop-invite-call-start` timing; registration UA has no ICE override; touched files are under 200 lines; no credential/PIN logging found in touched served JS.
+- **Next safe step**:
+  - Place a feature-code/MOH call in browser/runtime and compare click-to-INVITE timing.
+
+### 2026-04-26T06:38:00+05:00 — TASK-034: Phase A logout UI polish
+- **AI**: Codex
+- **Scope**: desktop UI/runtime only; no backend, admin, provisioning API, SIP/media/call, Android, or iOS changes.
+- **Files changed**:
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningModal.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/ui/ext/desktopRegistrationSection.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/tasks/Index.md`
+- **Restart required**:
+  - No restart required for static served JS/HTML changes.
+- **Verified result**:
+  - Docker-only served asset checks: desktop page loads; logout binding calls `closeAutoProvisioningModal()`; logout path does not clear saved provisioning ID/PIN; saved-ID hint path exists.
+- **Next safe step**:
+  - Phase B only when explicitly requested, or browser/manual logout UX confirmation.
+
+### 2026-04-26T04:42:00+05:00 — TASK-034: Phase A closeout/status verification
+- **AI**: Codex
+- **Scope**: docs/workflow only; no source, backend, desktop, admin, or runtime changes.
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+  - `docs/tasks/Index.md`
+- **Restart required**:
+  - No restart required.
+- **Verified result**:
+  - Code/docs inspection only: workflow docs checked against user-reported Phase A completion; no current Phase A blocker remains.
+- **Next safe step**:
+  - Start Phase B only when explicitly requested.
 
 ### 2026-04-25T04:58:00Z — TASK-034: Desktop UI/runtime — make Save checkbox visible; hide Forget unless saved
 - **AI**: Cascade
@@ -1161,3 +1428,40 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 ### Archived TASK-031 entries
 
 - Moved into `docs/tasks/TASK-031.md` (final historical record). This live ledger is intentionally kept minimal for TASK-032.
+
+### 2026-04-26 22:12 PKT — TASK-034: admin create-account regression verification
+- **AI**: Codex
+- **Files changed**:
+  - `docs/now.md`
+  - `docs/tasks/Index.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server` completed.
+- **Verified result**:
+  - Docker live create route restored: `POST /admin/provisioning/account/create` returned 201; duplicate returned 409; invalid input returned 400; admin HTML/API responses contained no `sip_password` or `pin_hash`; store retained PIN/hash/SIP password only in mounted data.
+- **Next safe step**:
+  - Resume TASK-034 browser logout click-path proof; active slot release and visible credential cleanup remain separate blockers.
+
+### 2026-04-28 00:31 PKT — TASK-034: foolproof active-slot/logout hardening
+- **AI**: Codex
+- **Files changed**:
+  - `push-server/src/services/provisioning/provisioningActiveSlotStore.js`
+  - `push-server/src/services/provisioning/desktopProvisioningService.js`
+  - `push-server/src/services/provisioning/provisionedDeviceStore.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningSession.js`
+  - `www/app/desktop/features/auto_provisioning/desktopProvisioningFlow.js`
+  - `www/app/desktop/registration/desktopRegistration.js`
+  - `www/app/desktop/bindings/desktopControlBindings.js`
+  - `www/app/desktop/ui/desktopShellSections.js`
+  - `docs/now.md`
+  - `docs/tasks/TASK-034.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - Yes: `docker compose up -d --build push-server` completed.
+- **Verified result**:
+  - Docker/API tests passed: `max_devices=1` login/block/logout/login sequence, stale active TTL release, revoked-device block, admin Release Active, secret checks, and served desktop logout diagnostics. Current stale active `51666785` slot was released without deleting/revoking.
+- **Next safe step**:
+  - Browser hard refresh and real power/logout click proof; TASK-034 remains active until console logs and admin Devices row show `active=false`.

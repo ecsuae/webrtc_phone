@@ -8,7 +8,10 @@ import { logLine } from "../desktopLogging.js";
 import { startCall } from "../outgoing/desktopStartCall.js";
 import { answerIncomingCallDesktop } from "../incoming/desktopAnswerIncomingCall.js";
 import { desktopEl } from "../ui/desktopDomRefs.js";
-import { bindDesktopAutoProvisioningModalHandlers } from "../features/auto_provisioning/desktopProvisioningModal.js";
+import {
+  bindDesktopAutoProvisioningModalHandlers,
+  closeAutoProvisioningModal,
+} from "../features/auto_provisioning/desktopProvisioningModal.js";
 
 export function bindDesktopControlHandlers({
   el,
@@ -45,9 +48,15 @@ export function bindDesktopControlHandlers({
     if (btnStop && typeof stopAndUnregister === "function") {
       btnStop.addEventListener("click", () => {
         try {
+          console.log("[logout-click-runtime] actual power/logout clicked");
+        } catch {}
+        try {
           releaseWakeLock?.();
         } catch {}
-        void stopAndUnregister(st, ui, false);
+        try {
+          closeAutoProvisioningModal();
+        } catch {}
+        void stopAndUnregister(false);
       });
     }
   } catch {}
