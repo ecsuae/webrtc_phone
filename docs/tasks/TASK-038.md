@@ -24,6 +24,11 @@ Critical constraints:
 - TLS certs are currently assumed to exist under `./certs` (no docker-based ACME issuance/renewal yet).
 - Admin bind currently must remain safe: `ADMIN_BIND_HOST=127.0.0.1` (not public) until WireGuard is verified.
 
+WireGuard status:
+- WireGuard peer/client container started and verified healthy (healthcheck OK, handshake present).
+- Host default route remained normal; route changes were isolated to the container.
+- TLS mismatch remains separate and will be handled in the Let’s Encrypt step.
+
 ## Scope
 - Dockerized WireGuard VPN service controlled by `.env`.
 - Docker-based Let’s Encrypt / certbot (or ACME client) with auto-renewal.
@@ -42,6 +47,10 @@ Critical constraints:
 - Apply changes in small, reviewable steps with explicit diffs.
 - Do not start containers / restart services without explicit approval.
 - Never commit real secrets from `.env`.
+
+WireGuard implementation note:
+- The WireGuard container is a peer/client (not a WireGuard server).
+- Dedicated documentation: `docs/wireguard-container.md`.
 
 ## Deployment-specific values (new VPS)
 - `DOMAIN=mobi.srve.cc`

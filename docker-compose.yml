@@ -128,6 +128,24 @@ services:
       - ./data/push-server/provisioning:/app/data/provisioning
       - ./routing-config.json:/app/routing-config.json
 
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - .env
+    volumes:
+      - ./docker/wireguard/start.sh:/start.sh:ro
+      - wireguard_config:/config
+    entrypoint: ["/bin/sh", "/start.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "wg show >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   nginx:
     image: nginx:alpine
     container_name: phone-nginx
@@ -147,3 +165,6 @@ services:
       - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
       - ./www:/var/www/phone:ro
       - ./certs:/certs:ro
+
+volumes:
+  wireguard_config:
