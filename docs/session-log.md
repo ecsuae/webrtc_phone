@@ -1101,3 +1101,10 @@ Examples:
 2026-04-28 00:31 PKT | VERIFY | TASK-034 | Docker/API: max_devices=1 login/block/logout/login passed; stale active did not block; revoked device blocked; admin Release Active released without revoking | AI: Codex
 2026-04-28 00:31 PKT | VERIFY | TASK-034 | Served desktop JS contains required logout/provisioning/cleanup logs; current stale active 51666785 slot released by TTL recovery | AI: Codex
 2026-04-28 00:31 PKT | STOP   | TASK-034 | Session end | worked 0m | AI: Codex
+
+2026-04-30 09:20 PKT | START  | TASK-037 | Provisioning cleanup portability + frozen production guardrails | AI: Cascade
+2026-04-30 09:21 PKT | CHANGE | TASK-037 | Added standalone provisioning stale-slot cleanup script (dry-run/apply) and hardened it with Kamailio JSON-RPC registration skip + restart cooldown guard | AI: Cascade
+2026-04-30 09:21 PKT | NOTE   | TASK-037 | Old production VPS uses host systemd timer/service for cleanup; not yet repo-portable and must be replaced with docker-first scheduling on new VM | AI: Cascade
+2026-04-30 09:21 PKT | CHANGE | TASK-037 | Ignored scripts/*.bak-* backup artifacts and updated workflow docs to record frozen production guardrails | AI: Cascade
+2026-04-30 09:21 PKT | VERIFY | TASK-037 | Dry-run: during restart cooldown, cleanup refused to release anything (no writes); JSON-RPC ul.dump previously confirmed AoR 100360 registered and was skipped | AI: Cascade
+2026-04-30 09:21 PKT | STOP   | TASK-037 | Session end | worked 0m | AI: Cascade

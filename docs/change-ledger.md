@@ -49,8 +49,26 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 - TASK-034 (desktop auto provisioning): active pending browser click-path confirmation; runtime logs and admin Release Active added.
 - TASK-035 (desktop dialer UI/runtime polish): active; remove desktop-only mobile keyboard icon and duplicate key entry.
 - TASK-036 (Docker timezone verification): complete; all active containers confirmed `Asia/Karachi` / `PKT`.
+- TASK-037 (provisioning cleanup portability + frozen production guardrails): active; provisioning cleanup script exists on old VPS and must be made docker-first/portable for new VM.
 
 ## Current week entries
+
+### 2026-04-30T09:22:00+05:00 — TASK-037: provisioning cleanup portability + frozen production guardrails
+- **AI**: Cascade
+- **Scope**: docs/workflow + repo hygiene for provisioning cleanup portability; no `.env` edits.
+- **Files changed**:
+  - `.gitignore`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/tasks/Index.md`
+  - `docs/tasks/TASK-037.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Repo now ignores `scripts/*.bak-*` backup artifacts.
+  - Workflow docs record: cleanup script exists on old production VPS; host systemd timer/service are not repo-portable; new VM work must be docker-first/repo-installable; old production is treated as frozen.
+- **Next safe step**:
+  - Commit `scripts/release-stale-provisioning-slots.js` (do not commit `.bak-*`), then implement docker-first scheduling for new VM deployment.
 
 ### 2026-04-26T10:20:00+05:00 — TASK-034: logout click-path proof + admin Release Active
 - **AI**: Codex

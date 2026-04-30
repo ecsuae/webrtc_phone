@@ -1,4 +1,3 @@
-
 # local/ide
 .idea/
 
@@ -6,6 +5,7 @@
 backups/
 data/
 *.tar.gz
+scripts/*.bak-*
 
 # conference PIN mapping (server-side secret)
 push-server/conferencePins.json

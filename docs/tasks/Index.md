@@ -15,6 +15,7 @@ _Last updated: 2026-04-28 00:31 PKT_
 | TASK-034 | Desktop auto provisioning | Active | 2026-04-25 | — | Docker/API active-slot logout and stale TTL release pass; browser real logout click-path proof is still required. |
 | TASK-035 | Desktop dialer UI/runtime polish | Active | 2026-04-26 | — | Remove desktop mobile-keyboard icon and fix duplicate physical-key digit entry without touching mobile or SIP/media behavior. |
 | TASK-036 | Docker timezone verification | Complete | 2026-04-26 | 2026-04-26 | Verified every active project container uses `TZ=Asia/Karachi` and reports PKT time; no compose change required. |
+| TASK-037 | Provisioning cleanup portability + frozen production guardrails | Active | 2026-04-30 | — | Commit and harden provisioning stale-slot cleanup and make scheduling docker-first for new VM; freeze old VPS runtime changes. |
 
 ## Status legend
 - Active
