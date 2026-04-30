@@ -47,10 +47,6 @@ services:
     privileged: true
     command:
       - rtpengine
-      - --config-file=/etc/rtpengine.conf
-      - --foreground
-      - --log-stderr
-      - --log-level=6
 
   kamailio:
     image: ghcr.io/kamailio/kamailio:5.8.2-jammy
