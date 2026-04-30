@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /opt/webrtc-sbc -name *.conf -path */nginx/*)",
+      "Bash(ip route:*)"
+    ]
+  }
+}

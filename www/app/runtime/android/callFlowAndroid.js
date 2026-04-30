@@ -1,5 +1,3 @@
-import { bindAndroidAudioUnlock, bindControlHandlers } from "../controlBindings.js";
-
 export function setupAndroidCallFlow({
   el,
   st,
@@ -10,16 +8,24 @@ export function setupAndroidCallFlow({
   stopAndUnregister,
   releaseWakeLock,
 }) {
-  bindControlHandlers({
-    el,
-    st,
-    ui,
-    SIP,
-    callHistory,
-    runOneTapEnableFlow,
-    stopAndUnregister,
-    releaseWakeLock,
-  });
+  import("../shared/controlBindingsCore.js")
+    .then(({ bindControlHandlers }) => {
+      bindControlHandlers({
+        el,
+        st,
+        ui,
+        SIP,
+        callHistory,
+        runOneTapEnableFlow,
+        stopAndUnregister,
+        releaseWakeLock,
+      });
+    })
+    .catch(() => {});
 
-  bindAndroidAudioUnlock();
+  import("./audioUnlockAndroid.js")
+    .then(({ bindAndroidAudioUnlock }) => {
+      if (typeof bindAndroidAudioUnlock === "function") bindAndroidAudioUnlock();
+    })
+    .catch(() => {});
 }

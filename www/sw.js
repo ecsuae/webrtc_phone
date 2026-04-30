@@ -1,7 +1,7 @@
 // Service Worker for Push Notifications
 // Handles incoming call notifications when page is closed
 
-const SW_VERSION = '1.0.3';
+const SW_VERSION = '1.0.4';
 const CACHE_NAME = `webphone-cache-${SW_VERSION}`;
 
 // Install event
@@ -170,11 +170,28 @@ self.addEventListener('fetch', (event) => {
 
   const reqUrl = event.request.url;
 
+  // Never cache navigation documents (/, index, or any HTML navigation).
+  // Caching the HTML shell can pin an older module graph on Android/PWA even if
+  // the server has updated /app/* modules.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
   // Never cache JS app bundles or vendor libs; always fetch latest.
   if (reqUrl.includes('/app/') || reqUrl.includes('/vendor/') || reqUrl.endsWith('/index.html')) {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
+
+  // Never cache the root document either.
+  try {
+    const u = new URL(reqUrl);
+    if (u.pathname === '/' || u.pathname === '') {
+      event.respondWith(fetch(event.request, { cache: 'no-store' }));
+      return;
+    }
+  } catch {}
   
   // Skip caching for API calls and WebSocket
   if (reqUrl.includes('/api/') || 

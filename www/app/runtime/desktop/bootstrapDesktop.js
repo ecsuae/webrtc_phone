@@ -1,21 +1,25 @@
 import { bootLog, logLine } from "../../log.js";
 import { el } from "../../dom.js";
 import { nowISO } from "../../config.js";
-import { createUi } from "../../ui/appUi.js";
+import { createUi } from "../../ui/appUi.js?v=1773033002";
 import { createHistoryActivity } from "../../ui/historyActivity.js";
 import { createCallTimer } from "../../ui/callTimer.js";
 import { startRemoteLogging } from "../../remoteLogs.js?v=20260310-r1";
 import { hydratePasswordInput } from "../../push/recoverySession.js";
 import { setupMobileRecovery } from "../mobileRecovery.js";
 import { setupServiceWorkerWakeHandler } from "../swWakeHandler.js";
-import { createAppState } from "../../sipRegister.js";
+import { createAppState } from "../../sipRegister.js?v=1773033002";
 import { createDesktopRegistration } from "./registrationDesktop.js";
-import { setupDesktopCallFlow } from "./callFlowDesktop.js";
+import { setupDesktopCallFlow } from "./callFlowDesktop.js?v=1773032001";
 import { setupDesktopPush } from "./pushDesktop.js";
 import { setupDesktopCallControls } from "./callControlsDesktop.js";
+import { setPlatformAdapter } from "../shared/platformAdapter.js";
+import { createPlatformAdapterDesktop } from "./platformAdapterDesktop.js";
 
 export function bootstrapDesktopApp(SIP = window.SIP) {
   bootLog();
+
+  setPlatformAdapter(createPlatformAdapterDesktop());
 
   const st = createAppState();
   const ui = createUi(st);

@@ -1,3 +1,5 @@
+import { getRuntimeEnv } from "../runtime/shared/runtimeEnv.js";
+
 export function setupInstallShortcut({ button, logLine }) {
   if (!button) return;
 
@@ -24,12 +26,11 @@ export function setupInstallShortcut({ button, logLine }) {
   });
 
   button.addEventListener("click", async () => {
-    // User requested: once clicked, vanish permanently.
     localStorage.setItem(HIDE_KEY, "1");
     hideButton();
 
-    const ua = navigator.userAgent || "";
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const env = getRuntimeEnv();
+    const isIOS = !!env?.isIOS;
     const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone === true;
 
     if (deferredInstallPrompt) {

@@ -1,11 +1,13 @@
 server {
   listen 80;
+  listen [::]:80;
   server_name ${DOMAIN};
   return 301 https://$host$request_uri;
 }
 
 server {
   listen 443 ssl;
+  listen [::]:443 ssl;
   server_name ${DOMAIN};
 
   ssl_certificate /certs/fullchain.pem;
@@ -14,15 +16,63 @@ server {
   root /var/www/phone;
   index index.html;
 
+  # WebSocket proxy to Kamailio (SIP over WS)
+  # proxy_buffering off is required for WebSocket: ensures Kamailio ping/pong
+  # frames are forwarded immediately and not held in nginx output buffers.
+  # Without this, keepalive frames can be delayed on LTE/mobile networks,
+  # causing carrier CGNAT to silently expire the TCP session.
   location /ws {
-    proxy_pass http://kamailio:8443;
+    proxy_pass http://127.0.0.1:8443;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
     proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_read_timeout 3600;
     proxy_send_timeout 3600;
-    proxy_ssl_verify off;
+    proxy_buffering off;
+  }
+
+  location /api/ {
+    client_max_body_size 25m;
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_read_timeout 60;
+    proxy_send_timeout 60;
+  }
+
+  location ^~ /app/ {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    expires off;
+    try_files $uri $uri/ =404;
+  }
+
+  location ^~ /vendor/ {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    expires off;
+    try_files $uri $uri/ =404;
+  }
+
+  location = / {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    expires off;
+    try_files /index.html =404;
+  }
+
+  location = /index.html {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    expires off;
+    try_files $uri =404;
+  }
+
+  location = /config.js {
+    add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+    expires off;
+    try_files $uri =404;
   }
 
   location / {

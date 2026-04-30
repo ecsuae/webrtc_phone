@@ -3,9 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const { LOGS_BASE_DIR, ensureMetadataDir } = require('../services/metadata/core');
 const { updateMetadata } = require('../services/metadata/metadataUpdate');
+const { ingestEvents } = require('../services/callLogStore');
 
 function createLogRoutes({ requireWireGuardAccess }) {
   const router = express.Router();
+
+  router.get('/ping', (req, res) => {
+    res.json({ ok: true, ts: new Date().toISOString() });
+  });
 
   function safeReadJson(filepath) {
     try {
@@ -39,6 +44,25 @@ function createLogRoutes({ requireWireGuardAccess }) {
     return clean;
   }
 
+  // ---------------------------------------------------------------------------
+  // Call/media diagnostic event ingest — called by browser callMediaLog.js
+  // Public endpoint: no auth required (browser clients cannot carry auth tokens).
+  // Rate-limiting is implicit via the callLogStore ring buffer cap.
+  // ---------------------------------------------------------------------------
+  router.post('/call', (req, res) => {
+    const { events } = req.body || {};
+    if (!Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: 'Missing or empty events array' });
+    }
+    // Reject oversized batches (browser sends max 5 at a time)
+    if (events.length > 20) {
+      return res.status(400).json({ error: 'Batch too large' });
+    }
+    const sourceIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+    const accepted = ingestEvents(events, sourceIp);
+    return res.json({ ok: true, accepted });
+  });
+
   router.post('/mobile/metadata', (req, res) => {
     const payload = sanitizeIdentityPayload(req.body || {});
     if (!payload.deviceId && !payload.deviceFingerprint && !payload.browserId) {
@@ -57,6 +81,10 @@ function createLogRoutes({ requireWireGuardAccess }) {
     const cleanBody = sanitizeIdentityPayload(req.body || {});
     const { deviceId, deviceType, userAgent, url, logs, extension, info, batchId, debugMode } = cleanBody;
     if (!deviceId || !Array.isArray(logs)) return res.status(400).json({ error: 'Missing deviceId or logs array' });
+
+    try {
+      console.log(`[DEBUG_LOG_ROUTE_HIT] deviceId=${deviceId} logs=${Array.isArray(logs) ? logs.length : 0} batchId=${typeof batchId === 'string' ? batchId : ''} debugMode=${debugMode === true}`);
+    } catch {}
 
     const deviceDir = path.join(LOGS_BASE_DIR, deviceId);
     if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
@@ -89,7 +117,25 @@ function createLogRoutes({ requireWireGuardAccess }) {
           info: info || existing?.meta?.info,
         };
 
-        safeWriteJson(filepath, { meta, logs: mergedLogs });
+        try {
+          safeWriteJson(filepath, { meta, logs: mergedLogs });
+          console.log(`[DEBUG_LOG_FILE_WRITE_OK] deviceId=${deviceId} file=${filename} appended=${logs.length} total=${mergedLogs.length}`);
+        } catch (err) {
+          console.log(`[DEBUG_LOG_FILE_WRITE_FAILED] deviceId=${deviceId} file=${filename} err=${err?.message || err}`);
+          throw err;
+        }
+
+        // Also keep a small "tail" file for the dashboard "View Latest Logs".
+        // Aggregated debug batches can grow very large (multi-MB), making it slow/unusable
+        // to JSON.parse the full file on every click.
+        try {
+          const tailLimit = 400;
+          const tailFilename = 'latest.json';
+          const tailPath = path.join(deviceDir, tailFilename);
+          safeWriteJson(tailPath, { meta: { ...meta, tailLimit }, logs: mergedLogs.slice(-tailLimit) });
+          console.log(`[DEBUG_LOG_FILE_WRITE_OK] deviceId=${deviceId} file=${tailFilename} tail=${tailLimit}`);
+        } catch {}
+
         return res.json({ success: true, message: 'Logs received and appended', deviceId, logCount: logs.length, filename, batchId: safeBatch, aggregated: true });
       }
 
@@ -109,7 +155,13 @@ function createLogRoutes({ requireWireGuardAccess }) {
         },
         logs,
       };
-      safeWriteJson(filepath, logData);
+      try {
+        safeWriteJson(filepath, logData);
+        console.log(`[DEBUG_LOG_FILE_WRITE_OK] deviceId=${deviceId} file=${filename} count=${logs.length}`);
+      } catch (err) {
+        console.log(`[DEBUG_LOG_FILE_WRITE_FAILED] deviceId=${deviceId} file=${filename} err=${err?.message || err}`);
+        throw err;
+      }
       return res.json({ success: true, message: 'Logs received and saved', deviceId, logCount: logs.length, filename, aggregated: false });
     } catch (err) {
       return res.status(500).json({ error: 'Failed to save logs', message: err.message });
@@ -127,12 +179,37 @@ function createLogRoutes({ requireWireGuardAccess }) {
       if (!fs.statSync(devicePath).isDirectory()) continue;
 
       const files = fs.readdirSync(devicePath).sort().reverse();
+      const hasLatestTail = files.includes('latest.json');
+      const latestLogFile = hasLatestTail ? 'latest.json' : (files[0] || null);
+      let latestLogTimestamp = null;
+      if (latestLogFile) {
+        try {
+          const latestPath = path.join(devicePath, latestLogFile);
+          if (latestLogFile === 'latest.json') {
+            const parsed = safeReadJson(latestPath);
+            latestLogTimestamp = parsed?.meta?.lastTimestamp || parsed?.meta?.timestamp || null;
+          }
+          if (!latestLogTimestamp) {
+            latestLogTimestamp = fs.statSync(latestPath).mtime.toISOString();
+          }
+        } catch {
+          latestLogTimestamp = null;
+        }
+      }
       const metadataFile = path.join(metadataDir, `${entry}.json`);
       let metadata = null;
       if (fs.existsSync(metadataFile)) {
         try { metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8')); } catch {}
       }
-      deviceMap.set(entry, { deviceId: entry, logFileCount: files.length, latestLogFile: files[0] || null, metadata });
+      deviceMap.set(entry, {
+        deviceId: entry,
+        logFileCount: files.length,
+        latestLogFile: files[0] || null,
+        hasLatestTail,
+        latestLogFilePreferred: latestLogFile,
+        latestLogTimestamp,
+        metadata,
+      });
     }
 
     for (const fileName of fs.readdirSync(metadataDir).filter((n) => n.endsWith('.json'))) {
@@ -140,10 +217,22 @@ function createLogRoutes({ requireWireGuardAccess }) {
       if (deviceMap.has(deviceId)) continue;
       let metadata = null;
       try { metadata = JSON.parse(fs.readFileSync(path.join(metadataDir, fileName), 'utf8')); } catch {}
-      deviceMap.set(deviceId, { deviceId, logFileCount: 0, latestLogFile: null, metadata });
+      deviceMap.set(deviceId, {
+        deviceId,
+        logFileCount: 0,
+        latestLogFile: null,
+        hasLatestTail: false,
+        latestLogFilePreferred: null,
+        latestLogTimestamp: null,
+        metadata,
+      });
     }
 
-    const devices = Array.from(deviceMap.values()).sort((a, b) => String(b.metadata?.lastSeen || '').localeCompare(String(a.metadata?.lastSeen || '')));
+    const devices = Array.from(deviceMap.values()).sort((a, b) => {
+      const bTs = Date.parse(b.latestLogTimestamp || b.metadata?.lastSeen || '') || 0;
+      const aTs = Date.parse(a.latestLogTimestamp || a.metadata?.lastSeen || '') || 0;
+      return bTs - aTs;
+    });
     return res.json({ total: devices.length, devices });
   });
 
@@ -164,7 +253,10 @@ function createLogRoutes({ requireWireGuardAccess }) {
     if (!fs.existsSync(logsDir)) return res.status(404).json({ error: 'No logs found for device', deviceId });
 
     const files = fs.readdirSync(logsDir).sort().reverse();
-    const latest = files[0];
+
+    // Prefer the small tail file if present.
+    const preferred = files.includes('latest.json') ? 'latest.json' : files[0];
+    const latest = preferred;
     if (!latest) return res.status(404).json({ error: 'No log files found for device', deviceId });
 
     const filepath = path.join(LOGS_BASE_DIR, deviceId, latest);

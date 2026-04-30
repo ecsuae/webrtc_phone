@@ -1,0 +1,697 @@
+# =========================================================
+# SECTION: PURPOSE
+# Generic builder instructions for any repository/task.
+# Goals:
+# - follow local workflow docs as source of truth
+# - keep work isolation-first
+# - keep outputs short
+# - keep each turn to one safe step
+# - reduce token/quota usage
+# - maintain deployment portability
+# =========================================================
+
+You are working in the current project repository.
+
+This builder must support BOTH:
+- existing projects
+- brand new projects
+
+The repository must always remain:
+- portable
+- reproducible
+- docker-first
+- github-ready
+- safe for future AI sessions
+
+
+# =========================================================
+# SECTION: DEPLOYMENT-FIRST ARCHITECTURE RULES
+# Prevent "works on my machine" architecture.
+# =========================================================
+
+All projects must be deployment-first.
+
+Mandatory rules:
+
+- Every required service must run inside Docker
+- No localhost-only dependencies
+- No host-installed services
+- No host-installed postgres/mysql/redis/node/python services
+- No manual OS dependency assumptions
+- No machine-specific paths
+
+Project must boot on fresh server using only:
+
+git clone <repo>
+cp .env.example .env
+docker compose up -d
+
+Everything must work through containers.
+
+Required services must be containerized when applicable:
+
+- backend
+- frontend
+- postgres/mysql
+- redis
+- celery worker
+- celery beat
+- nginx/reverse proxy
+- scraper workers
+- browser automation
+- AI workers
+- vector databases
+- ollama containers
+- cron jobs
+- monitoring services
+
+Never require:
+
+- local python virtualenv
+- local npm install
+- local postgres
+- local redis
+- local ffmpeg
+- local chrome
+- local playwright
+
+Use containers instead.
+
+All infrastructure must include:
+
+- restart policies
+- health checks
+- persistent named volumes
+- proper docker networking
+- environment variable support
+
+Secrets must come from:
+
+.env
+
+Never hardcode:
+
+- API keys
+- passwords
+- tokens
+- secrets
+- credentials
+- internal IPs
+
+Every new project must include:
+
+- docker-compose.yml
+- Dockerfile
+- .env.example
+- docs/deployment.md
+
+If multiple services exist:
+
+docker/
+    backend/
+    worker/
+    nginx/
+    scraper/
+
+For scraping:
+
+Prefer:
+- Apify API
+- Playwright containers
+- Scrapy containers
+
+For AI:
+
+Prefer API-first architecture:
+- OpenRouter
+- OpenAI
+- Anthropic
+- Apify APIs
+
+Only deploy local LLMs when explicitly required.
+
+All generated repos must be:
+
+- GitHub ready
+- CI/CD ready
+- VPS ready
+- reproducible
+- migration safe
+
+
+# =========================================================
+# SECTION: REQUIRED WORKFLOW READ ORDER
+# =========================================================
+
+Before doing anything, read and follow these files fully:
+
+1. docs/00-read-first.md
+2. docs/ai-working-rules.md
+3. docs/now.md
+4. docs/session-log.md
+5. docs/change-ledger.md
+6. docs/known-good-baseline.
+7. docs/tasks/Index.md
+8. active docs/tasks/<TASK-ID>.md if referenced by docs/now.md
+
+Treat them as the only workflow source of truth.
+
+
+# =========================================================
+# SECTION: CONFLICT RULE
+# =========================================================
+
+If my request conflicts with:
+
+- docs/now.md
+- docs/00-read-first.md
+- docs/ai-working-rules.md
+
+Stop and explain conflict before editing.
+
+
+# =========================================================
+# SECTION: QUOTA RULES
+# =========================================================
+
+Keep quota low:
+
+- Keep same model and thread
+- Be terse
+- One safe step only
+- Do not repeat task history
+- Read only required files
+- Avoid scanning unrelated files
+- Do not dump full files
+- Prefer changed hunks only
+- Keep pre-edit short
+- Keep post-edit short
+- No filler language
+
+
+# =========================================================
+# SECTION: PROJECT MODE DETECTION
+# Prevent AI confusion between new vs existing repos
+# =========================================================
+
+Before editing determine project mode:
+
+NEW PROJECT:
+- repository mostly empty
+- initial scaffolding needed
+- no production baseline exists
+
+EXISTING PROJECT:
+- working code already exists
+- preserve known-good behavior
+
+For NEW PROJECT:
+- create foundational architecture first
+- avoid premature feature building
+
+For EXISTING PROJECT:
+- preserve working baseline
+- make smallest safe patch
+
+
+# =========================================================
+# SECTION: AI HANDOFF / MODEL SWITCH RULES
+# Supports switching between different AI builders due to quota.
+# =========================================================
+
+The coding AI may change between sessions.
+
+Never rely on previous chat memory.
+
+Before editing, reconstruct state only from repository files.
+
+Source of truth is always:
+- docs/00-read-first.md
+- docs/ai-working-rules.md
+- docs/now.md
+- docs/session-log.md
+- docs/change-ledger.md
+- docs/known-good-baseline.md
+- docs/tasks/Index.md
+- active docs/tasks/<TASK-ID>.md if it exists
+
+If prior AI work is incomplete:
+- continue from docs/now.md
+- do not restart from scratch
+- do not replace previous working code
+- do not re-architect unless docs explicitly require it
+
+If another AI’s previous change looks wrong:
+- stop before editing
+- explain the exact conflict
+- propose one safe correction step
+
+Do not trust previous AI summaries unless repository files prove them.
+
+When taking over from another AI:
+- identify active task
+- identify known-good baseline
+- identify last verified state
+- identify exact next safe step
+
+Never say “based on previous chat”.
+Use only repository docs and files.
+
+
+# =========================================================
+# SECTION: ARCHITECTURE DECISION FRAMEWORK
+# Prevent random stack selection
+# =========================================================
+
+Before building any NEW PROJECT:
+
+AI must define architecture first.
+
+Do not begin feature development until architecture is explicitly chosen.
+
+Required architecture decisions:
+
+1. Frontend
+Choose one:
+
+- Django templates + Bootstrap (default)
+- React
+- Next.js
+- Vue
+
+Default:
+Use Django templates + Bootstrap unless SPA behavior is explicitly required.
+
+---
+
+2. Backend
+Choose one:
+
+- Django (default)
+- FastAPI
+- Flask
+- Node
+- Go
+
+Default:
+Use Django unless project requirements explicitly require something else.
+
+---
+
+3. Database
+Choose one:
+
+- PostgreSQL (default)
+- MySQL
+- Redis-only
+- Vector DB
+- S3 object storage
+
+Default:
+Use PostgreSQL unless project explicitly requires otherwise.
+
+Never default to SQLite for production systems.
+
+---
+
+4. Background Jobs
+Choose one:
+
+- Celery + Redis (default)
+- RQ
+- Kafka
+- none
+
+Default:
+Use Celery + Redis if project has:
+- scraping
+- long jobs
+- AI processing
+- exports
+- scheduled jobs
+
+---
+
+5. Frontend UI Framework
+
+Default:
+Bootstrap
+
+Only use React/Next if explicitly required.
+
+---
+
+6. Authentication
+
+Choose:
+
+- Django auth (default)
+- JWT
+- SAML
+- OAuth
+
+---
+
+7. File Storage
+
+Choose:
+
+- local docker volume
+- S3
+- object storage
+
+---
+
+8. Reverse Proxy
+
+Default:
+Nginx container
+
+---
+
+9. AI Layer
+
+Choose:
+
+- OpenRouter (default)
+- OpenAI
+- Anthropic
+- Ollama
+- hybrid
+
+Default:
+Use API models first.
+Use local LLM only if explicitly required.
+
+---
+
+10. Scraping Layer
+
+Choose:
+
+- Apify API (default)
+- Playwright
+- Scrapy
+- Selenium
+
+Default:
+Use Apify first for lower maintenance.
+
+---
+
+11. Deployment
+
+Default:
+
+docker compose
+
+Use Kubernetes only if explicitly required.
+
+---
+
+Rules:
+
+- Use simplest architecture that satisfies requirements
+- Avoid unnecessary frontend frameworks
+- Avoid microservices unless explicitly required
+- Avoid infrastructure sprawl
+- Prefer consistency with previous company projects
+
+
+# =========================================================
+# SECTION: SCOPE AND ISOLATION RULES
+# =========================================================
+
+Every task is isolation-first.
+
+Rules:
+
+- Work only on active task
+- Smallest safe patch only
+- No unrelated refactors
+- No unrelated infra changes
+- No unrelated UI changes
+- No mixed-domain edits
+
+Keep these isolated:
+
+- UI
+- backend
+- infra
+- logging
+- scraping
+- AI integrations
+- exports
+- authentication
+
+If isolation is impossible:
+stop before editing.
+
+
+# =========================================================
+# SECTION: FILE SHAPE RULES
+# =========================================================
+
+Prefer meaningful modules.
+
+Target:
+150 lines
+
+Hard limit:
+200 lines
+
+If file exceeds limit:
+split first
+
+Avoid:
+
+- giant files
+- tiny useless files
+- random helper fragmentation
+
+
+# =========================================================
+# SECTION: NEW PROJECT FOUNDATION RULES
+# Required before feature work
+# =========================================================
+
+For brand new repositories create foundation first:
+
+1. Docker infrastructure
+2. Environment files
+3. Database setup
+4. Background workers
+5. Base app structure
+6. Logging
+7. Health checks
+8. Deployment docs
+
+Do NOT jump directly into feature logic
+before foundation exists.
+
+
+# =========================================================
+# SECTION: STEP TYPES
+# =========================================================
+
+One turn = one safe step only:
+
+- one bug fix
+- one isolated feature
+- one extraction
+- one infra update
+- one docs update
+- one schema update
+
+
+# =========================================================
+# SECTION: PRE-EDIT OUTPUT FORMAT
+# =========================================================
+
+Before editing output exactly:
+
+1. TASK CLASSIFICATION
+
+Choose one:
+
+- logging only
+- UI only
+- backend/storage/dashboard
+- scraping/research
+- AI integration
+- infra/service config
+- docs/workflow only
+
+2. CURRENT TASK
+
+- active task
+- blocker
+- next safe step
+
+3. FILES TO READ
+
+4. FILES TO CHANGE
+
+5. ISOLATION PLAN
+
+6. RISK
+
+7. DEPLOYMENT IMPACT
+
+Choose one:
+
+- no deployment impact
+- docker changes required
+- infra changes required
+
+
+# =========================================================
+# SECTION: DOCS UPDATE RULES
+# =========================================================
+
+After changes update docs as required by:
+
+- docs/00-read-first.md
+- docs/ai-working-rules.md
+
+Keep docs small.
+
+Move large history into:
+
+docs/tasks/
+
+
+# =========================================================
+# SECTION: TASK HISTORY RULES
+# =========================================================
+
+Large tasks must move history into:
+
+docs/tasks/TASK-XXX.md
+
+Preserve:
+
+- timestamps
+- files changed
+- verification
+- restart requirements
+- next step
+
+
+# =========================================================
+# SECTION: LIVE LEDGER RULES
+# =========================================================
+
+Keep:
+
+docs/change-ledger.md
+
+small and clean.
+
+Use concise entries only.
+
+
+# =========================================================
+# SECTION: DOCS-ONLY REFACTOR RULES
+# =========================================================
+
+For docs-only work:
+
+- do not touch code
+- preserve history
+- archive before trimming
+
+
+# =========================================================
+# SECTION: VERIFICATION RULES
+# =========================================================
+
+Never claim completion without verification.
+
+State exactly:
+
+- code inspection only
+- container verification
+- runtime verification
+- browser verification
+
+
+# =========================================================
+# SECTION: DEPLOYMENT VERIFICATION RULES
+# =========================================================
+
+If infrastructure changes:
+
+verify:
+
+- docker compose syntax
+- service dependencies
+- env vars
+- volume mounts
+- startup commands
+- service communication
+
+Never claim deployment ready
+without verification.
+
+New projects must boot with:
+
+docker compose up -d
+
+
+# =========================================================
+# SECTION: POST-EDIT OUTPUT FORMAT
+# =========================================================
+
+After finishing output exactly:
+
+1. CHANGED FILES
+
+2. EXACT DIFFS
+
+3. VERIFICATION DONE
+
+4. DOCS UPDATED
+
+5. REMAINING RISKS
+
+6. DEPLOYMENT STATUS
+
+Choose one:
+
+- no deployment changes
+- docker updated
+- infra updated
+- fresh server ready
+
+
+# =========================================================
+# SECTION: FINAL OUTPUT DISCIPLINE
+# =========================================================
+
+No extra headings
+
+No full file dumps
+
+No duplicate summaries
+
+No unnecessary prose
+
+
+# =========================================================
+# SECTION: TASK INDEX RULES
+# =========================================================
+
+Maintain:
+
+docs/tasks/Index.md
+
+Update when:
+
+- task starts
+- task resumes
+- task pauses
+- task completes
+- task reopens
+
+Keep index compact.

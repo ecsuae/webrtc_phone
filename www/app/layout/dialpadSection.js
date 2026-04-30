@@ -1,6 +1,9 @@
 export function dialpadSection() {
   return `
     <div class="card" id="dialpadCard" style="display:none;">
+      <div id="incomingAlertBanner" style="display:none; margin: 0 0 12px 0; padding: 12px; border-radius: 10px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25);">
+        <div id="incomingAlertTitle" style="font-weight: 700;"></div>
+      </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab="dial-tab"><i class="fas fa-phone-alt"></i> Dial</button>
         <button class="tab-btn" data-tab="history-tab"><i class="fas fa-history"></i> History</button>
@@ -10,6 +13,19 @@ export function dialpadSection() {
         <div id="callTimer" style="text-align: center; margin-bottom: 4px; display: none;">
           <div style="font-size: 20px; font-weight: 700; color: var(--success-color); font-family: monospace;">
             <span id="timerDisplay">00:00:00</span>
+          </div>
+        </div>
+
+        <div id="rtpIndicators" class="rtpIndicators" style="display: none;">
+          <div class="rtpIndicatorRow">
+            <div class="rtpIndicatorLabel">RX</div>
+            <div class="rtpBar"><div id="rtpRxBar" class="rtpBarFill rtpBarFillRx" style="width: 0%;"></div></div>
+            <div id="rtpRxText" class="rtpIndicatorValue">0 pkt/s</div>
+          </div>
+          <div class="rtpIndicatorRow">
+            <div class="rtpIndicatorLabel">TX</div>
+            <div class="rtpBar"><div id="rtpTxBar" class="rtpBarFill rtpBarFillTx" style="width: 0%;"></div></div>
+            <div id="rtpTxText" class="rtpIndicatorValue">0 pkt/s</div>
           </div>
         </div>
 

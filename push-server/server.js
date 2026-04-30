@@ -8,6 +8,8 @@ const {
   PORT,
   LISTEN_HOST,
   WG_CIDR_PREFIX,
+  ADMIN_BIND_HOST,
+  ADMIN_BIND_PORT,
   getVapidConfig,
   isVapidConfigured,
 } = require('./src/config');
@@ -16,11 +18,15 @@ const { dedupeMetadataStore } = require('./src/services/metadata/dedupe');
 const { createSubscriptionStore } = require('./src/services/push/subscriptionStore');
 const { createPushRoutes } = require('./src/routes/pushRoutes');
 const { createLogRoutes } = require('./src/routes/logRoutes');
+const { createConferenceRoutes } = require('./src/routes/conferenceRoutes');
+const { createProvisioningRoutes } = require('./src/routes/provisioningRoutes');
 const { createSystemRoutes } = require('./src/routes/systemRoutes');
+const { createDiagRoutes } = require('./src/routes/diagRoutes');
+const { createAdminRoutes } = require('./src/routes/adminRoutes');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '25mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Serve static dashboard assets
@@ -35,7 +41,7 @@ if (isVapidConfigured()) {
   console.warn('⚠ Then update .env file with the generated keys');
 }
 
-const { requireWireGuardAccess } = createAccessControl({ wgCidrPrefix: WG_CIDR_PREFIX });
+const { getClientIp, requireWireGuardAccess } = createAccessControl({ wgCidrPrefix: WG_CIDR_PREFIX });
 const subscriptionStore = createSubscriptionStore();
 
 app.use(
@@ -50,6 +56,33 @@ app.use(
 );
 
 app.use('/api/logs', createLogRoutes({ requireWireGuardAccess }));
+
+app.use(
+  '/api/conference',
+  createConferenceRoutes({
+    getClientIp,
+    mapPath: process.env.CONFERENCE_PIN_MAP_PATH || './conferencePins.json',
+    pinPepper: process.env.CONFERENCE_PIN_PEPPER || '',
+    tokenSecret: process.env.CONFERENCE_JOIN_TOKEN_SECRET || '',
+    tokenTtlSec: Number(process.env.CONFERENCE_JOIN_TOKEN_TTL_SEC || 90),
+    guestSip: {
+      username: process.env.CONFERENCE_GUEST_SIP_USER || '',
+      password: process.env.CONFERENCE_GUEST_SIP_PASS || '',
+    },
+  })
+);
+
+app.use('/api/provisioning', createProvisioningRoutes());
+
+app.use(
+  '/diagnostics',
+  createDiagRoutes({ requireWireGuardAccess })
+);
+
+app.use(
+  '/admin',
+  createAdminRoutes({ requireWireGuardAccess })
+);
 
 app.use(
   '/',
@@ -76,6 +109,23 @@ app.listen(PORT, LISTEN_HOST, () => {
   console.log(`  Port: ${PORT}`);
   console.log(`  Health: http://localhost:${PORT}/health`);
   console.log(`  VAPID: ${isVapidConfigured() ? '✓ Configured' : '✗ Not configured'}`);
+  console.log('════════════════════════════════════════');
+  console.log('');
+});
+
+// Admin listener — WireGuard interface only.
+// Binds the same Express app on ADMIN_BIND_HOST:ADMIN_BIND_PORT so that
+// /dashboard and /diagnostics/errors are reachable via WireGuard VPN.
+// Admin routes are already guarded by requireWireGuardAccess middleware;
+// this second bind adds a network-layer separation from the public Nginx path.
+app.listen(ADMIN_BIND_PORT, ADMIN_BIND_HOST, () => {
+  console.log('════════════════════════════════════════');
+  console.log('  Admin listener (WireGuard only)');
+  console.log('════════════════════════════════════════');
+  console.log(`  Dashboard:    http://${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}/dashboard`);
+  console.log(`  Diagnostics:  http://${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}/diagnostics/errors`);
+  console.log(`  Routing cfg:  http://${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}/admin/routing`);
+  console.log(`  Call logs:    http://${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}/admin/calllogs`);
   console.log('════════════════════════════════════════');
   console.log('');
 });

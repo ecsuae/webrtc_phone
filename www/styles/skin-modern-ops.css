@@ -139,6 +139,57 @@ body[data-skin="modern-ops"] #callControls .btn-outline:hover {
   background: linear-gradient(180deg, #ffffff 0%, #e8fbf8 100%);
 }
 
+body[data-skin="modern-ops"] .rtpIndicators {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 6px 0 10px 0;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 251, 255, 0.95) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+body[data-skin="modern-ops"] .rtpIndicatorRow {
+  display: grid;
+  grid-template-columns: 34px 1fr 74px;
+  align-items: center;
+  gap: 10px;
+}
+
+body[data-skin="modern-ops"] .rtpIndicatorLabel {
+  font: 800 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #0f172a;
+}
+
+body[data-skin="modern-ops"] .rtpIndicatorValue {
+  font: 12px/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  text-align: right;
+  color: #0f172a;
+}
+
+body[data-skin="modern-ops"] .rtpBar {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+body[data-skin="modern-ops"] .rtpBarFill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  transition: width 150ms linear;
+}
+
+body[data-skin="modern-ops"] .rtpBarFillRx {
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.45), rgba(34, 211, 238, 0.95));
+}
+
+body[data-skin="modern-ops"] .rtpBarFillTx {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.45), rgba(34, 197, 94, 0.95));
+}
+
 body[data-skin="modern-ops"] #btnRecord.btn-outline {
   border-color: #fecaca;
   color: #b91c1c;

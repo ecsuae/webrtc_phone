@@ -1,4 +1,5 @@
-import { bindControlHandlers, bindIosAudioUnlock } from "../controlBindings.js";
+import { bindControlHandlers } from "../shared/controlBindingsCore.js";
+import { bindIosAudioUnlock } from "./audioUnlockIos.js";
 
 export function setupIosCallFlow({
   el,

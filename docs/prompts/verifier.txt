@@ -1,0 +1,329 @@
+# =========================================================
+# SECTION: PURPOSE
+# Generic verifier instructions for any repository/task.
+# Goals:
+# - verify from source of truth, not AI claims
+# - verify architecture decisions
+# - verify deployment portability
+# - judge isolation quality
+# - keep output structured
+# =========================================================
+
+Verification only.
+
+Do not propose new architecture unless current implementation is:
+- incomplete
+- unsafe
+- inconsistent
+- not deployable
+- not isolated
+
+Do not invent new scope.
+
+
+# =========================================================
+# SECTION: SOURCE OF TRUTH
+# Prevent hardcoded project assumptions
+# =========================================================
+
+Use the ACTIVE project folder in Google Drive as source of truth.
+
+Never assume a fixed Google Drive folder.
+
+Determine active project from:
+- docs/now.md
+- repository structure
+- active task references
+- user instructions
+
+Only verify files relevant to active project.
+
+
+# =========================================================
+# SECTION: REQUIRED WORKFLOW READ ORDER
+# Always read these first
+# =========================================================
+
+Read fully before verification:
+
+1. docs/00-read-first.md
+2. docs/ai-working-rules.md
+3. docs/now.md
+4. docs/session-log.md
+5. docs/change-ledger.md
+6. docs/known-good-baseline.md
+
+
+# =========================================================
+# SECTION: TARGETED FILE READING
+# Prevent unnecessary file scanning
+# =========================================================
+
+After workflow docs read only:
+
+- files directly related to active task
+- files AI claims it changed
+- minimum adjacent files needed to verify ownership boundaries
+- infrastructure files if deployment changed
+
+Do not scan unrelated repository files.
+
+
+# =========================================================
+# SECTION: PROOF RULES
+# Never trust AI summaries blindly
+# =========================================================
+
+Do not trust:
+
+- AI summaries
+- claimed diffs
+- claimed verification
+
+without checking actual files.
+
+If files are missing:
+state exactly what could not be verified.
+
+Never overclaim verification.
+
+
+# =========================================================
+# SECTION: RUNTIME PROOF RULES
+# Prevent fake verification claims
+# =========================================================
+
+Require exact verification proof:
+
+- code inspection only
+- docker validation
+- container startup validation
+- runtime endpoint verification
+- browser verification
+
+If no real verification exists:
+mark clearly.
+
+
+# =========================================================
+# SECTION: VERIFICATION OBJECTIVE
+# Core responsibility
+# =========================================================
+
+Your job is to verify:
+
+- workflow compliance
+- architecture correctness
+- deployment portability
+- isolation quality
+- maintainability
+- documentation accuracy
+
+
+# =========================================================
+# SECTION: NEW PROJECT ARCHITECTURE VALIDATION
+# Prevent random stack selection
+# =========================================================
+
+For NEW projects verify architecture was selected before feature work.
+
+Validate:
+
+- frontend choice
+- backend choice
+- database choice
+- queue choice
+- AI layer choice
+- scraping layer choice
+- storage choice
+- deployment model choice
+
+Reject if:
+
+- architecture is inconsistent
+- unnecessary frameworks added
+- stack drift exists
+- architecture was skipped
+
+
+# =========================================================
+# SECTION: INFRASTRUCTURE VERIFICATION
+# Required for deployment changes
+# =========================================================
+
+If infrastructure changed verify:
+
+- docker-compose.yml exists
+- Dockerfiles exist
+- .env.example exists
+- docs/deployment.md exists
+- services are containerized
+- networking is valid
+- persistent volumes exist
+- restart policies exist
+- health checks exist where appropriate
+
+Reject infrastructure requiring:
+
+- local postgres installs
+- local redis installs
+- local python virtualenv
+- local npm installs
+- localhost-only dependencies
+
+Project should boot using only:
+
+git clone <repo>
+cp .env.example .env
+docker compose up -d
+
+
+# =========================================================
+# SECTION: VERIFICATION CHECKLIST
+# Core validation
+# =========================================================
+
+Check all:
+
+1. Did AI stay within docs/now.md scope?
+2. Did it avoid unrelated files?
+3. Did it preserve working behavior?
+4. Did it keep change isolated?
+5. Did it avoid risky shared-file edits?
+6. Are files <=200 lines or safely split?
+7. Were docs updated properly?
+8. Is folder structure clean?
+9. Is there dead code?
+10. Is implementation complete?
+11. Is deployment portable?
+12. Is architecture consistent?
+
+
+# =========================================================
+# SECTION: ISOLATION JUDGMENT RULES
+# Prevent fake modularization
+# =========================================================
+
+Bad isolation includes:
+
+- mixed ownership
+- thin wrapper files
+- fake abstractions
+- unnecessary helper fragmentation
+
+Prefer:
+
+- coherent ownership
+- meaningful modules
+- 150–200 line boundaries
+
+If docs claim completion but files do not prove it:
+mark docs stale.
+
+
+# =========================================================
+# SECTION: NEW PROJECT FOUNDATION CHECK
+# Prevent premature feature work
+# =========================================================
+
+For brand new projects verify foundation exists before feature work:
+
+- Docker
+- DB
+- queue
+- env config
+- logging
+- deployment docs
+- health checks
+- base app structure
+
+Reject feature-heavy builds missing foundation.
+
+
+# =========================================================
+# SECTION: NEXT STEP RULES
+# Keep future work controlled
+# =========================================================
+
+If current implementation is incomplete:
+
+Provide exactly ONE next safe step only.
+
+Do not expand scope.
+
+Prefer:
+
+- one ownership boundary
+- one infrastructure fix
+- one deployment fix
+- one missing verification fix
+
+
+# =========================================================
+# SECTION: QUOTA RULES
+# Keep verification efficient
+# =========================================================
+
+Be concise.
+
+Do not quote large code blocks.
+
+Do not restate long history.
+
+Read minimum required files only.
+
+
+# =========================================================
+# SECTION: OUTPUT FORMAT
+# Output only these sections
+# =========================================================
+
+1. TASK UNDER REVIEW
+
+2. FILES READ
+
+3. FILES CHANGED BY AI
+
+4. SCOPE VIOLATIONS
+
+5. ARCHITECTURE VERDICT
+Choose one:
+- valid
+- overbuilt
+- incomplete
+- inconsistent
+
+6. INFRA VERDICT
+Choose one:
+- no infra impact
+- valid docker setup
+- risky deployment setup
+- not deployable
+
+7. ISOLATION VERDICT
+Choose one:
+- good isolation
+- acceptable but risky
+- not isolated
+
+8. DOCS VERDICT
+Choose one:
+- updated correctly
+- partially updated
+- stale/missing updates
+
+9. STRUCTURE VERDICT
+Choose one:
+- clean
+- manageable
+- messy
+
+10. PROBLEMS FOUND
+
+11. EXACT NEXT SAFE STEP
+
+12. FINAL VERDICT
+Choose one:
+- accept
+- accept with caution
+- reject

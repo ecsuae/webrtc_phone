@@ -4,5 +4,8 @@
 #!define PBX_IP "${PBX_IP}"
 #!define PBX_PORT "${PBX_PORT}"
 
+# --- SBC public IP (for advertise/alias) ---
+#!define KAM_PUBLIC_IP "${PUBLIC_IP}"
+
 # --- RTPengine socket (docker) ---
 #!define RTPENGINE_SOCK "udp:rtpengine:2223"

@@ -5,6 +5,7 @@ export const el = {
   ext: null,
   domain: null,
   pass: null,
+  conferencePin: null,
   wss: null,
   dial: null,
   status: null,
@@ -14,7 +15,7 @@ export const el = {
   log: null,
   btnStart: null,
   btnStop: null,
-  btnInstallApp: null,
+  btnJoinConference: null,
   btnCall: null,
   btnHangup: null,
   btnAnswer: null,
@@ -25,6 +26,7 @@ export function refreshEl() {
   el.ext = $("#ext");
   el.domain = $("#domain");
   el.pass = $("#pass");
+  el.conferencePin = $("#conferencePin");
   el.wss = $("#wsshost");
   el.dial = $("#dial");
   el.status = $("#status");
@@ -34,7 +36,7 @@ export function refreshEl() {
   el.log = $("#log");
   el.btnStart = $("#btnStart");
   el.btnStop = $("#btnStop");
-  el.btnInstallApp = $("#btnInstallApp");
+  el.btnJoinConference = $("#btnJoinConference");
   el.btnCall = $("#btnCall");
   el.btnHangup = $("#btnHangup");
   el.btnAnswer = $("#btnAnswer");

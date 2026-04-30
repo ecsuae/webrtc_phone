@@ -1,4 +1,5 @@
-import { bindControlHandlers, bindIosAudioUnlock } from "../controlBindings.js";
+import { bindDesktopControlHandlers } from "../../desktop/bindings/desktopControlBindings.js";
+import { bindDesktopAudioUnlock } from "./audioUnlockDesktop.js";
 
 export function setupDesktopCallFlow({
   el,
@@ -7,19 +8,21 @@ export function setupDesktopCallFlow({
   SIP,
   callHistory,
   runOneTapEnableFlow,
+  startAndRegister,
   stopAndUnregister,
   releaseWakeLock,
 }) {
-  bindControlHandlers({
+  bindDesktopControlHandlers({
     el,
     st,
     ui,
     SIP,
     callHistory,
     runOneTapEnableFlow,
+    startAndRegister,
     stopAndUnregister,
     releaseWakeLock,
   });
 
-  bindIosAudioUnlock();
+  bindDesktopAudioUnlock();
 }

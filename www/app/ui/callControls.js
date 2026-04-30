@@ -149,9 +149,7 @@ export function setupCallControls(SIP, st, ui) {
     if (swapBtn) swapBtn.style.display = canSwap ? "" : "none";
     if (conferenceBtn) conferenceBtn.style.display = canConference ? "" : "none";
     if (addCallBtn) {
-      // Show Add Call only if we don't have dual sessions and there's an active call
-      const hasActiveCall = !!(st?.session || dualSessionManager.primary?.session);
-      addCallBtn.style.display = (hasActiveCall && !hasDual) ? "" : "none";
+      addCallBtn.style.display = "none";
     }
     
     console.log(`[DualSession UI] hasDual=${hasDual}, swap=${canSwap}, conference=${canConference}, holdHidden=${hasDual}`);

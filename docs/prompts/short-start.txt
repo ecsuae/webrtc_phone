@@ -1,0 +1,33 @@
+Before doing anything, read fully:
+- docs/00-read-first.md
+- docs/ai-working-rules.md
+- docs/now.md
+- docs/session-log.md
+- docs/change-ledger.md
+- docs/known-good-baseline.md
+
+Treat them as the workflow source of truth.
+
+Do not change code yet.
+
+First reply with only:
+- task classification
+- current task summary from docs/now.md
+- exact files to read
+- exact files to change
+- why each file is required
+- protected behavior that must not break
+- how the change will stay isolated
+- whether rollback is simple
+
+Rules:
+- isolation-first
+- smallest safe patch only
+- no unrelated refactor
+- no touching shared high-risk files unless necessary
+- no bootstrap/module-loading/import-path changes during logging/UI work
+- no mixing logging with media/registration/runtime work
+- keep touched code files <=200 lines or split safely
+- update required docs before finishing
+
+If task conflicts with docs/now.md or ai-working-rules.md, stop and say so clearly.

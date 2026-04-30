@@ -76,6 +76,28 @@ body {
   gap: 8px;
 }
 
+.active-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.04);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+.active-profile-badge.profile-wifi {
+  color: #16a34a;
+}
+
+.active-profile-badge.profile-lte {
+  color: #ea580c;
+}
+
 .status-indicator {
   width: 10px;
   height: 10px;

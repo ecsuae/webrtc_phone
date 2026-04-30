@@ -1,0 +1,9 @@
+{
+  "pinsByHash": {
+    "REPLACE_WITH_sha256(pin:pepper)": {
+      "conferenceExtension": "5000",
+      "role": "participant",
+      "roomName": "Sales Room"
+    }
+  }
+}

@@ -1,0 +1,145 @@
+services:
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=Asia/Karachi
+    volumes:
+      - ./certs:/certs:ro
+    command: >
+      -n
+      --realm=${DOMAIN}
+      --server-name=${DOMAIN}
+      --fingerprint
+      --lt-cred-mech
+      --user=${TURN_USER}:${TURN_PASS}
+      --listening-ip=${PUBLIC_IP}
+      --relay-ip=${TURN_RELAY_IP}
+      --listening-port=3478
+      --tls-listening-port=5349
+      --cert=/certs/fullchain.pem
+      --pkey=/certs/privkey.pem
+      --min-port=49160
+      --max-port=49200
+      --no-multicast-peers
+      --no-cli
+      --log-file=stdout
+      --verbose
+
+  rtpengine:
+    image: davehorton/rtpengine:latest
+    container_name: rtpengine
+    restart: "no"
+    network_mode: host
+    environment:
+      - TZ=Asia/Karachi
+    volumes:
+      - ./rtpengine/rtpengine.conf:/config/rtpengine.conf:ro
+      - ./rtpengine/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+    entrypoint:
+      - /bin/sh
+      - /entrypoint-wrapper.sh
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    privileged: true
+    command:
+      - rtpengine
+
+  kamailio:
+    image: ghcr.io/kamailio/kamailio:5.8.2-jammy
+    container_name: kamailio
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - TZ=Asia/Karachi
+      - PBX_IP=${PBX_IP}
+      - PBX_PORT=${PBX_PORT}
+      - PBX_TRANSPORT=udp
+      - KAM_PUBLIC_IP=${PUBLIC_IP}
+      - KAMAILIO_IP=${PUBLIC_IP}
+      - PBX_MAP_1_DOMAIN=${PBX_MAP_1_DOMAIN}
+      - PBX_MAP_1_HOST=${PBX_MAP_1_HOST}
+      - PBX_MAP_2_DOMAIN=${PBX_MAP_2_DOMAIN}
+      - PBX_MAP_2_HOST=${PBX_MAP_2_HOST}
+      - PBX_MAP_3_DOMAIN=${PBX_MAP_3_DOMAIN}
+      - PBX_MAP_3_HOST=${PBX_MAP_3_HOST}
+      - PBX_MAP_4_DOMAIN=${PBX_MAP_4_DOMAIN}
+      - PBX_MAP_4_HOST=${PBX_MAP_4_HOST}
+      - PBX_MAP_5_DOMAIN=${PBX_MAP_5_DOMAIN}
+      - PBX_MAP_5_HOST=${PBX_MAP_5_HOST}
+      - PBX_MAP_6_DOMAIN=${PBX_MAP_6_DOMAIN}
+      - PBX_MAP_6_HOST=${PBX_MAP_6_HOST}
+      - PBX_MAP_7_DOMAIN=${PBX_MAP_7_DOMAIN}
+      - PBX_MAP_7_HOST=${PBX_MAP_7_HOST}
+      - PBX_MAP_8_DOMAIN=${PBX_MAP_8_DOMAIN}
+      - PBX_MAP_8_HOST=${PBX_MAP_8_HOST}
+      - TRUSTED_SIP_IP_1=${TRUSTED_SIP_IP_1}
+      - TRUSTED_SIP_IP_2=${TRUSTED_SIP_IP_2}
+      - TRUSTED_SIP_IP_3=${TRUSTED_SIP_IP_3}
+      - TRUSTED_SIP_IP_4=${TRUSTED_SIP_IP_4}
+      - TRUSTED_SIP_IP_5=${TRUSTED_SIP_IP_5}
+      - TRUSTED_SIP_IP_6=${TRUSTED_SIP_IP_6}
+      - TRUSTED_SIP_IP_7=${TRUSTED_SIP_IP_7}
+      - TRUSTED_SIP_IP_8=${TRUSTED_SIP_IP_8}
+      - TRUSTED_SIP_DOMAIN_1=${TRUSTED_SIP_DOMAIN_1}
+      - TRUSTED_SIP_DOMAIN_2=${TRUSTED_SIP_DOMAIN_2}
+      - TRUSTED_SIP_DOMAIN_3=${TRUSTED_SIP_DOMAIN_3}
+      - TRUSTED_SIP_DOMAIN_4=${TRUSTED_SIP_DOMAIN_4}
+      - TRUSTED_SIP_DOMAIN_5=${TRUSTED_SIP_DOMAIN_5}
+      - TRUSTED_SIP_DOMAIN_6=${TRUSTED_SIP_DOMAIN_6}
+      - TRUSTED_SIP_DOMAIN_7=${TRUSTED_SIP_DOMAIN_7}
+      - TRUSTED_SIP_DOMAIN_8=${TRUSTED_SIP_DOMAIN_8}
+    depends_on:
+      - rtpengine
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
+      - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
+      - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
+      - ./kamailio/routes:/etc/kamailio/routes:ro
+      - ./certs:/certs:ro
+
+  push-server:
+    build: ./push-server
+    container_name: push-server
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - TZ=Asia/Karachi
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT}
+      - PROVISIONING_PIN_PEPPER=${PROVISIONING_PIN_PEPPER}
+      - PORT=3001
+      - ADMIN_BIND_HOST=${ADMIN_BIND_HOST}
+      - ADMIN_BIND_PORT=${ADMIN_BIND_PORT}
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ./backups/mobile-logs:/app/../backups/mobile-logs
+      - ./data/push-server/provisioning:/app/data/provisioning
+      - ./routing-config.json:/app/routing-config.json
+
+  nginx:
+    image: nginx:alpine
+    container_name: phone-nginx
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      - TZ=Asia/Karachi
+    depends_on:
+      - kamailio
+      - push-server
+    entrypoint:
+      - /bin/sh
+      - /entrypoint-wrapper.sh
+    volumes:
+      - ./nginx/phone.srve.cc.conf.template:/config/phone.srve.cc.conf.template:ro
+      - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
+      - ./www:/var/www/phone:ro
+      - ./certs:/certs:ro

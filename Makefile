@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 COMPOSE := docker compose
 
-.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push kam-check
+.PHONY: up down restart logs ps clean fresh check render help setup health test-push rebuild-push kam-check routing-apply
 
 help:
 	@echo "WebRTC SBC - Available Commands:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make rebuild-push   - Rebuild push-server only"
 	@echo "  make test-push      - Send test push notification"
 	@echo "  make kam-check      - Validate Kamailio config syntax"
+	@echo "  make routing-apply  - Apply routing-config.json to .env and re-render configs"
 	@echo ""
 
 setup:
@@ -116,6 +117,7 @@ render:
 	fi; \
 	if [ ! -f .env ]; then echo "Missing .env"; exit 1; fi; \
 	set -a; . ./.env; set +a; \
+	FRONTEND_BUILD=$${FRONTEND_BUILD:-$$(date +%s)}; export FRONTEND_BUILD; \
 	for f in \
 	  coturn/turnserver.conf.template \
 	  rtpengine/rtpengine.conf.template \
@@ -124,7 +126,7 @@ render:
 	  www/index.html.template; do \
 	  if [ ! -f $$f ]; then echo "Missing $$f"; exit 1; fi; \
 	done; \
-	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX} $${DIAL_MAX_DIGITS}'; \
+	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_HOST} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX} $${DIAL_MAX_DIGITS} $${CONFERENCE_FEATURE_ENABLED} $${FRONTEND_BUILD}'; \
 	envsubst "$$VARS" < coturn/turnserver.conf.template > coturn/turnserver.conf; \
 	envsubst "$$VARS" < rtpengine/rtpengine.conf.template > rtpengine/rtpengine.conf; \
 	envsubst "$$VARS" < kamailio/local.cfg.template > kamailio/local.cfg; \
@@ -139,3 +141,12 @@ kam-check:
 	@echo "Validating Kamailio config..."
 	@docker exec kamailio kamailio -c -f /etc/kamailio/kamailio.cfg >/tmp/kam-check.log 2>&1 || (cat /tmp/kam-check.log; exit 1)
 	@echo "OK: Kamailio config is valid"
+
+routing-apply:
+	@echo "Applying routing-config.json to .env..."
+	@python3 scripts/apply-routing-config.py
+	@echo "Running make render..."
+	@$(MAKE) --no-print-directory render
+	@echo ""
+	@echo "Done. Restart Kamailio to activate:"
+	@echo "  docker compose restart kamailio"
