@@ -1,18 +1,18 @@
 # NOW
 
 ## Current task
-TASK-037 — Provisioning cleanup portability + frozen production guardrails.
+TASK-038 — Standalone plug-and-play deployment (mobi.srve.cc) — WireGuard + Let’s Encrypt.
 
 ## Current blocker(s)
-- Provisioning cleanup script exists on old production VPS but is not yet committed/portable.
-- Old production uses host systemd timer; new VM must be docker-first/repo-installable.
+- `https://mobi.srve.cc` loads but TLS is not trusted (cert automation missing).
+- WireGuard container + env-driven settings must be implemented safely without exposing admin publicly.
 
 ## Exact next safe step
-- Commit repo-owned cleanup script and ignore script backup artifacts.
-- Record that old `phone.srve.cc` is frozen production (no further runtime changes) and migrate scheduling to docker-first for new VM (`mobi.srve.cc`).
+- Create and track TASK-038 docs.
+- Prepare a minimal, reviewable WireGuard container step (env-driven) and wait for approval before starting containers.
 
 ## Why this matters
-Prevent stale provisioning slots from blocking new provisioning while keeping new VM deployments reproducible and docker-first.
+Make the new VPS deployment reproducible and safe: env-driven, docker-first, with automated TLS issuance/renewal and VPN-only admin access.
 
 ## Task status (truthful)
 - TASK-028: complete.
@@ -27,10 +27,14 @@ Prevent stale provisioning slots from blocking new provisioning while keeping ne
 - TASK-037: active.
 
 ## Scope guardrails
+- Work ONLY on the new VPS `mobi.srve.cc`.
 - Old production VPS `phone.srve.cc` is frozen: no further runtime changes unless explicitly approved.
-- Do not touch `.env`.
-- Do not delete provisioning data.
-- Do not revoke devices.
+- Admin must not become publicly exposed; keep `ADMIN_BIND_HOST=127.0.0.1` until WireGuard is verified.
+
+## Safety constraints (this session)
+- Do not start containers.
+- Do not restart services.
+- Do not commit.
 
 ## Already proven (facts)
 - Cleanup dry-run can skip Kamailio-registered SIP usernames when JSON-RPC `ul.dump location` shows the AoR present (example: 100360).

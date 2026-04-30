@@ -53,6 +53,22 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
+### 2026-04-30T10:40:00+05:00 — TASK-038: standalone plug-and-play deployment (mobi.srve.cc)
+- **AI**: Cascade
+- **Scope**: docs/workflow only; no containers started; no runtime changes.
+- **Files changed**:
+  - `docs/tasks/TASK-038.md`
+  - `docs/tasks/Index.md`
+  - `docs/now.md`
+  - `docs/session-log.md`
+  - `docs/change-ledger.md`
+- **Restart required**:
+  - No
+- **Verified result**:
+  - Code/docs inspection only: created TASK-038 plan and recorded constraints; recorded `not-working` tag inspection outcome (no WireGuard container work; no docker ACME automation; static cert assumptions and old production values must not be restored wholesale).
+- **Next safe step**:
+  - Review and approve the minimal WireGuard compose/env changes before starting any containers.
+
 ### 2026-04-30T09:22:00+05:00 — TASK-037: provisioning cleanup portability + frozen production guardrails
 - **AI**: Cascade
 - **Scope**: docs/workflow + repo hygiene for provisioning cleanup portability; no `.env` edits.

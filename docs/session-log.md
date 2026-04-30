@@ -1108,3 +1108,7 @@ Examples:
 2026-04-30 09:21 PKT | CHANGE | TASK-037 | Ignored scripts/*.bak-* backup artifacts and updated workflow docs to record frozen production guardrails | AI: Cascade
 2026-04-30 09:21 PKT | VERIFY | TASK-037 | Dry-run: during restart cooldown, cleanup refused to release anything (no writes); JSON-RPC ul.dump previously confirmed AoR 100360 registered and was skipped | AI: Cascade
 2026-04-30 09:21 PKT | STOP   | TASK-037 | Session end | worked 0m | AI: Cascade
+
+2026-04-30 10:40 PKT | START  | TASK-038 | Standalone plug-and-play deployment (mobi.srve.cc): WireGuard + Let’s Encrypt | AI: Cascade
+2026-04-30 10:40 PKT | NOTE   | TASK-038 | Read workflow docs; created TASK-038 and updated now/index/ledgers; inspected not-working tag earlier read-only and confirmed it lacks WireGuard + docker ACME automation | AI: Cascade
+2026-04-30 10:40 PKT | STOP   | TASK-038 | Session end | worked 0m | AI: Cascade
