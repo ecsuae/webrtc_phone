@@ -31,10 +31,20 @@ Provide backend admin access (push-server admin UI and APIs) **only** over WireG
 - Public nginx still has **no** `/admin` route.
 - `/ws` is proxied to `host.docker.internal` as a transitional path while Kamailio remains on host networking.
 
-### Stage D — WireGuard-only admin proxy (deferred)
+### Stage D — WireGuard-only admin proxy (completed)
 - The host does not own a WireGuard interface IP; WireGuard exists only inside the Docker container namespace.
-- `admin-wg-proxy` using `network_mode: service:wireguard` failed due to DNS and routing reachability issues to `push-server` on `app_net`.
-- Since binding to a host WireGuard IP is not possible in the current deployment, `admin-wg-proxy` is removed/disabled for now.
+- Known-good pattern found in another deployment:
+  - run an nginx forwarder in the `wireguard` netns using `network_mode: service:wireguard`
+  - bind directly to the WireGuard interface IP
+  - forward to the internal upstream (`push-server:8081`) while setting `X-Real-IP $remote_addr`
+- For this project, target admin URL becomes:
+  - `http://10.252.253.4:8081/admin/provisioning`
+- No public nginx `/admin` route is added; no ports are published.
+- Runtime validation complete:
+  - `wireguard` is attached to `default` and `app_net`
+  - `admin-wg-forwarder` runs in the wireguard netns (`network_mode: service:wireguard`)
+  - admin works via `http://10.252.253.4:8081/admin/provisioning`
+  - public `/admin` remains `404`
 
 ## Follow-up: admin-over-WireGuard design options
 - Do not expose `/admin` publicly.
@@ -87,7 +97,7 @@ Possible future designs:
 
 ### Stage D — WireGuard-only admin proxy
 - Attach wireguard to `app_net`.
-- Add `admin-wg-proxy` in the wireguard netns.
+- Add `admin-wg-forwarder` in the wireguard netns.
 - Confirm the proxy can reach push-server admin without exposing it publicly.
 
 ### Stage E — Verification

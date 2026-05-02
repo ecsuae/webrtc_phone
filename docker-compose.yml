@@ -102,6 +102,7 @@ services:
       - .env
     networks:
       - default
+      - app_net
     volumes:
       - ./docker/wireguard/start.sh:/start.sh:ro
       - wireguard_config:/config
@@ -111,6 +112,22 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+
+  admin-wg-forwarder:
+    build: ./docker/admin-wg-forwarder
+    container_name: admin-wg-forwarder
+    restart: unless-stopped
+    network_mode: "service:wireguard"
+    depends_on:
+      wireguard:
+        condition: service_healthy
+      push-server:
+        condition: service_started
+    environment:
+      - ADMIN_WG_BIND_HOST=${ADMIN_WG_BIND_HOST}
+      - ADMIN_WG_BIND_PORT=${ADMIN_WG_BIND_PORT}
+      - ADMIN_UPSTREAM_HOST=push-server
+      - ADMIN_UPSTREAM_PORT=8081
 
   nginx:
     build: ./nginx
