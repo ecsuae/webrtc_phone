@@ -1,10 +1,10 @@
-# TASK-038 — Standalone plug-and-play deployment (mobi.srve.cc) — WireGuard + Let’s Encrypt
+# TASK-038 — Standalone plug-and-play deployment (env-driven domain) — WireGuard + Let’s Encrypt
 
 ## Status
 In Progress
 
 ## Context
-We are preparing a fresh-VPS, docker-first deployment workflow for the new VPS domain `mobi.srve.cc`.
+We are preparing a fresh-VPS, docker-first deployment workflow where all deployment-specific values come from `.env`.
 
 Target operator workflow:
 - `git clone`
@@ -13,14 +13,14 @@ Target operator workflow:
 - `docker compose up -d --build`
 
 Critical constraints:
-- Work ONLY on the new VPS for `mobi.srve.cc`.
-- Do NOT touch old production VPS `phone.srve.cc`.
+- Work ONLY on the new VPS.
+- Do NOT touch old production VPS.
 - No hardcoded deployment-specific domains/IPs/ports in repo-owned configs.
 - Admin endpoints must not become publicly exposed.
 
 ## Current baseline
 - Branch: `callcontrol`
-- `https://mobi.srve.cc` loads, but browser reports certificate issues.
+- The web UI loads, but browser reports certificate issues.
 - TLS certs are currently assumed to exist under `./certs` (no docker-based ACME issuance/renewal yet).
 - Admin bind currently must remain safe: `ADMIN_BIND_HOST=127.0.0.1` (not public) until WireGuard is verified.
 
@@ -37,7 +37,7 @@ WireGuard status:
 - Produce a clean first-run procedure for the new VPS.
 
 ## Out of scope
-- Any runtime changes on old production `phone.srve.cc`.
+- Any runtime changes on old production.
 - Broad SIP/media refactors not required for portability.
 - Reapplying large historical change-sets wholesale.
 
@@ -53,12 +53,9 @@ WireGuard implementation note:
 - Dedicated documentation: `docs/wireguard-container.md`.
 
 ## Deployment-specific values (new VPS)
-- `DOMAIN=mobi.srve.cc`
-- `PUBLIC_IP=188.34.145.231`
-- `TURN_HOST=mobi.srve.cc`
-- `TURN_RELAY_IP=188.34.145.231`
-- `ADMIN_BIND_HOST=127.0.0.1` (for now)
-- `ADMIN_BIND_PORT=8081`
+- Set `DOMAIN`, `PUBLIC_IP`, `TURN_HOST`, and `TURN_RELAY_IP` in `.env`.
+- Keep `ADMIN_BIND_HOST=127.0.0.1` (for now).
+- Set `ADMIN_BIND_PORT` as needed.
 
 ## Step plan (incremental)
 1. WireGuard container (disabled-by-default until env is set)
@@ -74,6 +71,10 @@ WireGuard implementation note:
      - exposes HTTP 80 for ACME challenges
    - Ensure nginx uses the issued certs via a shared volume.
    - Ensure renew triggers nginx reload without breaking WS proxying.
+
+Let’s Encrypt implementation note:
+- Docker certbot will use `${DOMAIN}`, `LETSENCRYPT_EMAIL`, and `LETSENCRYPT_STAGING` from `.env`.
+- Dedicated documentation: `docs/letsencrypt-container.md`.
 
 3. Remove remaining hardcoded deployment values
    - Replace any hardcoded domains/IPs/ports with `.env` variables.
@@ -96,7 +97,7 @@ WireGuard implementation note:
   - WebSocket proxying remains intact.
 
 - Portability:
-  - No hardcoded `phone.srve.cc` or `38.242.157.239` or other old prod values in repo-owned config.
+  - No hardcoded domains/IPs or other old prod values in repo-owned config.
   - `.env.example` contains placeholders only.
 
 ## Rollback notes
@@ -112,5 +113,5 @@ WireGuard implementation note:
 - `not-working` (`899887d`) was inspected read-only.
 - It does NOT contain WireGuard container work.
 - It does NOT contain Docker-based Let’s Encrypt/certbot automation.
-- It includes static certificate assumptions (`certs/fullchain.pem`, `certs/privkey.pem`) and old production values (`DOMAIN=phone.srve.cc`, `PUBLIC_IP=38.242.157.239`), so it must NOT be restored wholesale.
+- It includes static certificate assumptions (`certs/fullchain.pem`, `certs/privkey.pem`) and old production values, so it must NOT be restored wholesale.
 - WireGuard and Let’s Encrypt automation must be implemented fresh, step-by-step, from the current good baseline.
