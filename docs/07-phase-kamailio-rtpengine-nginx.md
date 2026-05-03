@@ -27,7 +27,7 @@ Browser (WSS/HTTPS)
     │
     ▼
 ┌─────────────────────────────────────────┐
-│  Nginx (nginx/phone.srve.cc.conf)        │
+│  Nginx (nginx/site.conf.template)        │
 │  - HTTPS termination (443)               │
 │  - WSS upgrade → Kamailio (5060)         │
 │  - /ws path → Kamailio websocket port    │
@@ -163,7 +163,7 @@ Adding `rtcp-mux=answer` or `codec-mask=PCMA codec-mask=PCMU` to this branch cau
 
 ## Nginx
 
-**Config:** `nginx/phone.srve.cc.conf` (generated from template)
+**Config:** `nginx/site.conf` (rendered from template)
 
 Key proxy rules:
 
@@ -172,7 +172,7 @@ Key proxy rules:
 server {
   listen 443 ssl;
   listen [::]:443 ssl;   # IPv6 — required when AAAA DNS record is added
-  server_name phone.srve.cc;
+  server_name ${DOMAIN};
 
   # WebSocket upgrade for SIP
   # proxy_buffering off is critical: ensures Kamailio ping/pong frames are
@@ -203,7 +203,7 @@ server {
 }
 
 # Admin dashboard — public internet blocked
-# WireGuard-only access at http://10.252.253.15:8081/dashboard
+# WireGuard-only access at http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard
 ```
 
 **Do not remove `proxy_buffering off` from `/ws`.** It is required for WebSocket keepalive reliability on mobile/LTE networks.
@@ -274,22 +274,22 @@ Push-server starts **two** Express listeners:
 | Listener | Bind address | Purpose |
 |---|---|---|
 | Main | `127.0.0.1:3001` | Public API — Nginx proxies `/api/` here |
-| Admin | `10.252.253.15:8081` | WireGuard-only — dashboard + diagnostics |
+| Admin | `${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}` | WireGuard-only — dashboard + diagnostics |
 
 The admin listener is the same Express app. Admin routes already require `requireWireGuardAccess`; the separate port adds network-layer isolation (Nginx never touches port 8081).
 
 **Configured by** (in `.env`):
-- `ADMIN_BIND_HOST` — WireGuard interface IP (default `10.252.253.15`)
-- `ADMIN_BIND_PORT` — admin port (default `8081`)
+- `ADMIN_BIND_HOST` — push-server admin bind address
+- `ADMIN_BIND_PORT` — push-server admin bind port
 
 Both are passed into the container via `docker-compose.yml` environment block.
 
 **Admin URLs** (connect via WireGuard first):
-- `http://10.252.253.15:8081/dashboard`
-- `http://10.252.253.15:8081/diagnostics/errors`
-- `http://10.252.253.15:8081/admin/routing`
-- `http://10.252.253.15:8081/admin/calllogs`
-- `http://10.252.253.15:8081/health`
+- `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard`
+- `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/diagnostics/errors`
+- `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/routing`
+- `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs`
+- `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/health`
 
 **Restart required** after any change: `docker compose restart push-server`
 
@@ -379,5 +379,5 @@ docker logs kamailio --tail=200 2>&1 | grep -E '\[KAM-|REGISTER|MANAGE_REPLY'
 | No audio | RTPEngine logs, RTP port range firewall rules, TURN credentials |
 | Hold/unhold fails silently | `routes/30-dialog-relay.cfg`, RTPEngine in-dialog update |
 | Conference transfer fails | `routes/11-outgoing.cfg`, FusionPBX attended transfer config |
-| Dashboard inaccessible | WireGuard tunnel active, `10.252.253.15:8081/dashboard` |
+| Dashboard inaccessible | WireGuard tunnel active, `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard` |
 | Containers not starting | `make config` run with correct `.env`, `docker-compose logs` |

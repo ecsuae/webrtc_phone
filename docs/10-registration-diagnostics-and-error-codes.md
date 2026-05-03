@@ -68,10 +68,10 @@ Full technical detail is available only at the admin error page (WireGuard-only)
 
 ## Admin error page
 
-**URL:** `http://10.252.253.15:8081/diagnostics/errors`
+**URL:** `http://<wireguard-ip>:<admin-port>/diagnostics/errors`
 **Access:** WireGuard VPN or localhost only — same guard as `/dashboard`
 **Route:** `GET /diagnostics/errors` in `push-server/src/routes/diagRoutes.js`
-**Bind:** push-server admin listener on `ADMIN_BIND_HOST:ADMIN_BIND_PORT` (default `10.252.253.15:8081`) — configured in `.env` and passed via docker-compose
+**Bind:** push-server admin listener on `ADMIN_BIND_HOST:ADMIN_BIND_PORT` — configured in `.env` and passed via docker-compose
 
 Shows all REG-E codes with: short label, long technical description, likely failing layer, common causes, recommended checks. Also links back to `/dashboard`.
 
@@ -222,7 +222,7 @@ NGX-001/002/003 codes (TLS handshake, WS upgrade, proxy connection) could be add
 | REG-E004 | Network drop during register | Carrier CGNAT dropping TCP? Check LTE/5G Mode. Nginx `proxy_buffering off` in `/ws`? |
 | REG-E005 | Kamailio not responding | Kamailio container running? Check `docker logs kamailio`. Port 8443 listening? |
 | REG-E006 | Wrong password | Check FusionPBX extension credentials |
-| REG-E007 | DNS failure | WSS hostname resolves? Try `nslookup phone.srve.cc` from client device |
+| REG-E007 | DNS failure | WSS hostname resolves? Try `nslookup ${DOMAIN}` from client device |
 | REG-E008 | TLS cert issue | Cert expired? Self-signed? Check browser cert warning if you open the WSS host directly |
 | REG-E009 | PBX not reachable from Kamailio | Check PBX_IP / PBX_PORT in generated `local.cfg`. FusionPBX running? |
 | REG-E005 + LTE only | LTE-specific failure | Enable LTE/5G Mode (forces TURN relay). Check Nginx `proxy_buffering off` |

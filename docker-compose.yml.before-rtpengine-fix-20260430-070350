@@ -139,7 +139,7 @@ services:
       - /bin/sh
       - /entrypoint-wrapper.sh
     volumes:
-      - ./nginx/phone.srve.cc.conf.template:/config/phone.srve.cc.conf.template:ro
+      - ./nginx/site.conf.template:/config/site.conf.template:ro
       - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
       - ./www:/var/www/phone:ro
       - ./certs:/certs:ro

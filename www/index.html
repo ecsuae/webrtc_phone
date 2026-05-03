@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>phone.srve.cc Webphone</title>
+  <title>${DOMAIN} Webphone</title>
 
   <link rel="manifest" href="/manifest.json?v=20260307-r2">
   <meta name="theme-color" content="#2563eb">
@@ -11,16 +11,16 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/styles/index.css?v=1773023054">
 </head>
-<body data-sip-domain="testfusn.srve.cc" data-wss-host="phone.srve.cc" data-skin="modern-ops" data-max-dial-digits="15" data-conference-enabled="false" data-turn-host="phone.srve.cc" data-turn-user="turnuser" data-turn-pass="turnpass">
+<body data-sip-domain="${PBX_IP}" data-wss-host="${DOMAIN}" data-skin="modern-ops" data-max-dial-digits="${DIAL_MAX_DIGITS}" data-conference-enabled="${CONFERENCE_FEATURE_ENABLED}" data-turn-host="${TURN_HOST}" data-turn-user="${TURN_USER}" data-turn-pass="${TURN_PASS}">
   <div id="appRoot"></div>
   <div id="buildIndicator" style="position:fixed;right:6px;bottom:6px;font:10px/1.2 monospace;opacity:.35;z-index:2147483647;pointer-events:none;"></div>
 
   <script src="/vendor/sip.min.js?v=20260306"></script>
-  <script src="/config.js?v=1775970886"></script>
+  <script src="/config.js?v=${FRONTEND_BUILD}"></script>
   <script type="module">
     const url = new URL(window.location.href);
 
-    window.__APP_BUILD__ = "1775970886";
+    window.__APP_BUILD__ = "${FRONTEND_BUILD}";
 
     async function hardResetAndReload({ cb, latestBuild }) {
       try {

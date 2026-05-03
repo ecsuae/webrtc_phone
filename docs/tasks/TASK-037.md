@@ -23,7 +23,7 @@ Active
 - Do not restart or change runtime behavior on frozen production unless explicitly approved.
 
 ## Current state (facts)
-- A standalone cleanup script exists on the old production VPS (`phone.srve.cc`):
+- A standalone cleanup script exists on the old production VPS (`<old-production-domain>`):
   - `scripts/release-stale-provisioning-slots.js`
 - The old VPS currently uses host systemd to schedule it:
   - `/etc/systemd/system/webrtc-sbc-provisioning-cleanup.service`
@@ -39,5 +39,5 @@ Active
 - Cleanup must not release active slots during that restart window.
 
 ## Next safe step
-- Make cleanup scheduling docker-first for new VM (`mobi.srve.cc`), e.g. a dedicated compose service or cron-like container.
+- Make cleanup scheduling docker-first for new VM (`${DOMAIN}`), e.g. a dedicated compose service or cron-like container.
 - Ensure script is committed to git and backup artifacts are ignored.

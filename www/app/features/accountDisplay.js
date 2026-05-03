@@ -10,7 +10,7 @@ export function initAccountDisplay() {
 
 /**
  * Format domain to show only first part with capitalized first letter
- * Example: "fusn02.srve.cc" -> "Fusn02"
+ * Example: "<sip-domain>" -> "Example"
  */
 export function formatDomainDisplay(domain) {
   if (!domain) return "-";

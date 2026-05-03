@@ -218,7 +218,7 @@ Structured step and error codes are emitted at each observable point in the regi
 
 **Frontend display rules:** The login widget shows only user-safe text — no SIP, WSS, Kamailio, PBX, or transport names. Error state shows `Registration failed` + `REG-Exxx: shortLabel`. Technical detail is in `console.debug` only (visible in browser devtools, not in the UI).
 
-**Admin page:** Full technical catalog at `http://10.252.253.15:8081/diagnostics/errors` (WireGuard-only). Shows long descriptions, likely layers, causes, recommended checks.
+**Admin page:** Full technical catalog at `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/diagnostics/errors` (WireGuard-only). Shows long descriptions, likely layers, causes, recommended checks.
 
 **Shared catalog:** `regDiagCatalog.js` (ES module) and `push-server/src/diagCatalog.js` (CommonJS) mirror the same catalog. Keep in sync.
 

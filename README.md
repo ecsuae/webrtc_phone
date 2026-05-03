@@ -56,7 +56,7 @@ That's it! Your WebRTC SBC is now running.
 ### Component Configuration
 - `kamailio/kamailio.cfg` - Kamailio SIP proxy configuration
 - `kamailio/local.cfg` - Local Kamailio settings (auto-generated from .env)
-- `nginx/phone.srve.cc.conf` - Nginx reverse proxy configuration
+- `nginx/site.conf.template` - Nginx reverse proxy configuration (rendered at container start)
 - `push-server/` - Push notification server (Dockerized)
 
 ## 📦 Services Overview
@@ -121,8 +121,8 @@ Open these ports on your firewall:
 Device Debug Dashboard and admin log APIs are intentionally restricted.
 
 ### Access URLs
-- **Public internet:** `https://phone.srve.cc/dashboard` → blocked (403)
-- **WireGuard endpoint:** `http://10.252.253.15:8081/dashboard` → allowed
+- **Public internet:** `https://${DOMAIN}/dashboard` → blocked (403)
+- **WireGuard endpoint:** `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard` → allowed
 
 ### Protected Admin APIs
 - `GET /api/logs/mobile`
@@ -137,10 +137,10 @@ Device Debug Dashboard and admin log APIs are intentionally restricted.
 ### Quick Verification
 ```bash
 # Public path should be denied
-curl -s -k -o /dev/null -w "%{http_code}\n" https://phone.srve.cc/dashboard
+curl -s -k -o /dev/null -w "%{http_code}\n" "https://${DOMAIN}/dashboard"
 
 # WireGuard path should be reachable
-curl -s -o /dev/null -w "%{http_code}\n" http://10.252.253.15:8081/dashboard
+curl -s -o /dev/null -w "%{http_code}\n" "http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard"
 ```
 
 Expected result:
@@ -383,7 +383,7 @@ docker system df
 | `PBX_IP` | PBX/FreeSWITCH IP or domain | `pbx.example.com` |
 | `PBX_PORT` | PBX SIP port | `5060` |
 | `TRUSTED_SIP_IP_1..8` | Optional extra trusted SIP source IPs | `188.34.145.229` |
-| `TRUSTED_SIP_DOMAIN_1..8` | Optional extra trusted SIP source domains | `fusn01.srve.cc` |
+| `TRUSTED_SIP_DOMAIN_1..8` | Optional extra trusted SIP source domains | `pbx.example.com` |
 | `TURN_USER` | TURN server username | `turnuser` |
 | `TURN_PASS` | TURN server password | `secure_password` |
 | `RTP_MIN` | RTP port range start | `30000` |

@@ -8,4 +8,4 @@
 #!define KAM_PUBLIC_IP "${PUBLIC_IP}"
 
 # --- RTPengine socket (docker) ---
-#!define RTPENGINE_SOCK "udp:rtpengine:2223"
+#!define RTPENGINE_SOCK "udp:rtpengine:${RTPENGINE_NG_PORT}"

@@ -1,6 +1,6 @@
 # Task Index
 
-_Last updated: 2026-04-28 00:31 PKT_
+_Last updated: 2026-04-30 10:40 PKT_
 
 | Task | Title | Status | Start date | End date | One-line summary |
 |---|---|---|---|---|---|
@@ -16,6 +16,7 @@ _Last updated: 2026-04-28 00:31 PKT_
 | TASK-035 | Desktop dialer UI/runtime polish | Active | 2026-04-26 | — | Remove desktop mobile-keyboard icon and fix duplicate physical-key digit entry without touching mobile or SIP/media behavior. |
 | TASK-036 | Docker timezone verification | Complete | 2026-04-26 | 2026-04-26 | Verified every active project container uses `TZ=Asia/Karachi` and reports PKT time; no compose change required. |
 | TASK-037 | Provisioning cleanup portability + frozen production guardrails | Active | 2026-04-30 | — | Commit and harden provisioning stale-slot cleanup and make scheduling docker-first for new VM; freeze old VPS runtime changes. |
+| TASK-038 | Standalone plug-and-play deployment (${DOMAIN}) — WireGuard + Let’s Encrypt | Active | 2026-04-30 | — | Make new VPS deployment reproducible: env-driven configs, Docker WireGuard, and Docker ACME cert issuance/renewal without exposing admin publicly. |
 
 ## Status legend
 - Active

@@ -7,8 +7,16 @@ data/
 *.tar.gz
 scripts/*.bak-*
 
+# WireGuard generated config/secrets
+data/wireguard/
+data/wireguard/**
+docker/wireguard/*.conf
+docker/wireguard/*.key
+
 # conference PIN mapping (server-side secret)
 push-server/conferencePins.json
 
 # copies
 * copy.*
+
+labs/

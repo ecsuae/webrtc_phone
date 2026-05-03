@@ -17,12 +17,12 @@ services:
       --user=${TURN_USER}:${TURN_PASS}
       --listening-ip=${PUBLIC_IP}
       --relay-ip=${TURN_RELAY_IP}
-      --listening-port=3478
-      --tls-listening-port=5349
+      --listening-port=${TURN_PORT}
+      --tls-listening-port=${TURN_TLS_PORT}
       --cert=/certs/fullchain.pem
       --pkey=/certs/privkey.pem
-      --min-port=49160
-      --max-port=49200
+      --min-port=${TURN_MIN_PORT}
+      --max-port=${TURN_MAX_PORT}
       --no-multicast-peers
       --no-cli
       --log-file=stdout
@@ -33,10 +33,11 @@ services:
     container_name: rtpengine
     restart: "no"
     network_mode: host
+    env_file: .env
     environment:
       - TZ=Asia/Karachi
     volumes:
-      - ./rtpengine/rtpengine.conf:/config/rtpengine.conf:ro
+      - ./rtpengine/rtpengine.conf.template:/config/rtpengine.conf.template:ro
       - ./rtpengine/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
     entrypoint:
       - /bin/sh
@@ -53,56 +54,22 @@ services:
       - --log-level=6
 
   kamailio:
-    image: ghcr.io/kamailio/kamailio:5.8.2-jammy
+    build: ./kamailio
     container_name: kamailio
     restart: unless-stopped
     network_mode: host
     env_file: .env
     environment:
       - TZ=Asia/Karachi
-      - PBX_IP=${PBX_IP}
-      - PBX_PORT=${PBX_PORT}
       - PBX_TRANSPORT=udp
       - KAM_PUBLIC_IP=${PUBLIC_IP}
       - KAMAILIO_IP=${PUBLIC_IP}
-      - PBX_MAP_1_DOMAIN=${PBX_MAP_1_DOMAIN}
-      - PBX_MAP_1_HOST=${PBX_MAP_1_HOST}
-      - PBX_MAP_2_DOMAIN=${PBX_MAP_2_DOMAIN}
-      - PBX_MAP_2_HOST=${PBX_MAP_2_HOST}
-      - PBX_MAP_3_DOMAIN=${PBX_MAP_3_DOMAIN}
-      - PBX_MAP_3_HOST=${PBX_MAP_3_HOST}
-      - PBX_MAP_4_DOMAIN=${PBX_MAP_4_DOMAIN}
-      - PBX_MAP_4_HOST=${PBX_MAP_4_HOST}
-      - PBX_MAP_5_DOMAIN=${PBX_MAP_5_DOMAIN}
-      - PBX_MAP_5_HOST=${PBX_MAP_5_HOST}
-      - PBX_MAP_6_DOMAIN=${PBX_MAP_6_DOMAIN}
-      - PBX_MAP_6_HOST=${PBX_MAP_6_HOST}
-      - PBX_MAP_7_DOMAIN=${PBX_MAP_7_DOMAIN}
-      - PBX_MAP_7_HOST=${PBX_MAP_7_HOST}
-      - PBX_MAP_8_DOMAIN=${PBX_MAP_8_DOMAIN}
-      - PBX_MAP_8_HOST=${PBX_MAP_8_HOST}
-      - TRUSTED_SIP_IP_1=${TRUSTED_SIP_IP_1}
-      - TRUSTED_SIP_IP_2=${TRUSTED_SIP_IP_2}
-      - TRUSTED_SIP_IP_3=${TRUSTED_SIP_IP_3}
-      - TRUSTED_SIP_IP_4=${TRUSTED_SIP_IP_4}
-      - TRUSTED_SIP_IP_5=${TRUSTED_SIP_IP_5}
-      - TRUSTED_SIP_IP_6=${TRUSTED_SIP_IP_6}
-      - TRUSTED_SIP_IP_7=${TRUSTED_SIP_IP_7}
-      - TRUSTED_SIP_IP_8=${TRUSTED_SIP_IP_8}
-      - TRUSTED_SIP_DOMAIN_1=${TRUSTED_SIP_DOMAIN_1}
-      - TRUSTED_SIP_DOMAIN_2=${TRUSTED_SIP_DOMAIN_2}
-      - TRUSTED_SIP_DOMAIN_3=${TRUSTED_SIP_DOMAIN_3}
-      - TRUSTED_SIP_DOMAIN_4=${TRUSTED_SIP_DOMAIN_4}
-      - TRUSTED_SIP_DOMAIN_5=${TRUSTED_SIP_DOMAIN_5}
-      - TRUSTED_SIP_DOMAIN_6=${TRUSTED_SIP_DOMAIN_6}
-      - TRUSTED_SIP_DOMAIN_7=${TRUSTED_SIP_DOMAIN_7}
-      - TRUSTED_SIP_DOMAIN_8=${TRUSTED_SIP_DOMAIN_8}
     depends_on:
       - rtpengine
     volumes:
       - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
-      - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
+      - ./kamailio/local.cfg.template:/config/local.cfg.template:ro
       - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
       - ./kamailio/routes:/etc/kamailio/routes:ro
       - ./certs:/certs:ro
@@ -111,39 +78,115 @@ services:
     build: ./push-server
     container_name: push-server
     restart: unless-stopped
-    network_mode: host
     env_file: .env
     environment:
       - TZ=Asia/Karachi
-      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
-      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
-      - VAPID_SUBJECT=${VAPID_SUBJECT}
-      - PROVISIONING_PIN_PEPPER=${PROVISIONING_PIN_PEPPER}
-      - PORT=3001
+      - PUSH_LISTEN_HOST=${PUSH_LISTEN_HOST}
+      - PORT=${PUSH_SERVER_PORT}
       - ADMIN_BIND_HOST=${ADMIN_BIND_HOST}
       - ADMIN_BIND_PORT=${ADMIN_BIND_PORT}
+    networks:
+      - app_net
     volumes:
       - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./backups/mobile-logs:/app/../backups/mobile-logs
       - ./data/push-server/provisioning:/app/data/provisioning
       - ./routing-config.json:/app/routing-config.json
 
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - .env
+    networks:
+      - default
+      - app_net
+    volumes:
+      - ./docker/wireguard/start.sh:/start.sh:ro
+      - wireguard_config:/config
+    entrypoint: ["/bin/sh", "/start.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "wg show >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  admin-wg-forwarder:
+    build: ./docker/admin-wg-forwarder
+    container_name: admin-wg-forwarder
+    restart: unless-stopped
+    network_mode: "service:wireguard"
+    depends_on:
+      wireguard:
+        condition: service_healthy
+      push-server:
+        condition: service_started
+    environment:
+      - ADMIN_WG_BIND_HOST=${ADMIN_WG_BIND_HOST}
+      - ADMIN_WG_BIND_PORT=${ADMIN_WG_BIND_PORT}
+      - ADMIN_UPSTREAM_HOST=push-server
+      - ADMIN_UPSTREAM_PORT=8081
+
   nginx:
-    image: nginx:alpine
+    build: ./nginx
     container_name: phone-nginx
     restart: unless-stopped
-    network_mode: host
     env_file: .env
     environment:
       - TZ=Asia/Karachi
     depends_on:
       - kamailio
       - push-server
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
+    networks:
+      - app_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     entrypoint:
       - /bin/sh
       - /entrypoint-wrapper.sh
     volumes:
-      - ./nginx/phone.srve.cc.conf.template:/config/phone.srve.cc.conf.template:ro
+      - ./nginx/site.conf.template:/config/site.conf.template:ro
       - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
-      - ./www:/var/www/phone:ro
-      - ./certs:/certs:ro
+      - ./www:/config/www:ro
+      - nginx_www:/var/www/phone
+      - ./data/certbot/www:/var/www/certbot:ro
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/reload:/var/run/certbot-reload
+
+  certbot-init:
+    image: certbot/certbot:latest
+    container_name: certbot-init
+    env_file: .env
+    depends_on:
+      - nginx
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./data/certbot/reload:/var/run/certbot-reload
+      - ./docker/certbot/init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
+  certbot-renew:
+    image: certbot/certbot:latest
+    container_name: certbot-renew
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./data/certbot/reload:/var/run/certbot-reload
+      - ./docker/certbot/renew.sh:/renew.sh:ro
+    entrypoint: ["/bin/sh", "/renew.sh"]
+
+volumes:
+  wireguard_config:
+  nginx_www:
+
+networks:
+  app_net: {}

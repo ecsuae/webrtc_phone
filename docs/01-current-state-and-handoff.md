@@ -26,7 +26,7 @@ _Last updated: 2026-03-29 (rev 2)_
 | Push notifications — Android | ✅ Working | Requires home screen install |
 | Push notifications — iOS | ✅ Working | Requires iOS 16.4+ home screen install |
 | Remote device logging | ✅ Working | `remoteLogs/` + push-server `/api/logs/mobile` |
-| Admin dashboard | ✅ Working | WireGuard-only: `http://10.252.253.15:8081/dashboard` |
+| Admin dashboard | ✅ Working | WireGuard-only: `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard` |
 | Multi-domain PBX routing | ✅ Working | `kamailio/routes/50-domain-map.cfg`, `.env` PBX_MAP |
 | Conference room PIN join | ⚠️ Partial | `CONFERENCE_FEATURE_ENABLED=false`; backend + frontend exist |
 | Env-driven config (zero hardcoding) | ⚠️ Incomplete | TURN fallbacks still hardcoded in `app/config.js` |
@@ -102,7 +102,7 @@ _Last updated: 2026-03-29 (rev 2)_
 3. Kamailio `keepalive_timeout: 30s` was at the edge of LTE CGNAT NAT table expiry
 
 **Changes made:**
-- `nginx/phone.srve.cc.conf.template` — added `proxy_buffering off`, `X-Real-IP` header on `/ws`, IPv6 listeners (`listen [::]:443 ssl`, `listen [::]:80`)
+- `nginx/site.conf.template` — added `proxy_buffering off`, `X-Real-IP` header on `/ws`, IPv6 listeners (`listen [::]:443 ssl`, `listen [::]:80`)
 - `kamailio/kamailio.cfg` — `keepalive_timeout 30` → `20` (10s safety margin against CGNAT)
 - `www/app/registration/primary.js` — `connectionTimeout: 8` → `15` (LTE cold-start headroom)
 - `www/app/features/mobileNetworkMode.js` — NEW: isolated LTE/5G Compatibility Mode module
@@ -118,7 +118,7 @@ _Last updated: 2026-03-29 (rev 2)_
 - Persisted in `localStorage` key `webrtc_mobile_compat_mode`
 - Logged in debug panel: `ICE policy=relay (LTE/5G compat)` when active
 
-**IPv6 note:** Server has IPv6 `2a02:c207:2265:2549::1` but `phone.srve.cc` has no AAAA DNS record — so IPv6 connectivity was not the current failure. Nginx IPv6 listeners added for future-proofing when AAAA record is added.
+**IPv6 note:** Server has IPv6 but `${DOMAIN}` may have no AAAA DNS record — so IPv6 connectivity was not the current failure. Nginx IPv6 listeners added for future-proofing when AAAA record is added.
 
 ---
 
@@ -143,7 +143,7 @@ Added structured step/error codes surfaced in the login UI so registration failu
 
 **Frontend display:** Error widget shows only user-safe text — "Registration failed" + code + shortLabel. No SIP/WSS/Kamailio/PBX terms. Technical detail logged to `console.debug` only.
 
-**Admin page added:** `GET /diagnostics/errors` on push-server (WireGuard-only). Shows full technical catalog: long descriptions, likely layers, causes, checks. Accessible at `http://10.252.253.15:8081/diagnostics/errors`.
+**Admin page added:** `GET /diagnostics/errors` on push-server (WireGuard-only). Shows full technical catalog: long descriptions, likely layers, causes, checks. Accessible at `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/diagnostics/errors`.
 
 **Shared catalog:** `regDiagCatalog.js` (ES module, frontend) + `diagCatalog.js` (CommonJS, push-server) mirror the same 10 error entries. Keep in sync when codes change.
 
@@ -214,7 +214,7 @@ Shows: currently loaded PBX mappings and trusted IPs (read-only, from process.en
 - `scripts/apply-routing-config.py` — NEW: reads routing-config.json, updates .env managed keys (PBX_MAP_1..8, TRUSTED_SIP_IP_1..8, TRUSTED_SIP_DOMAIN_1..8), preserves all other .env entries
 - `Makefile` — added `routing-apply` target (calls apply script + make render; prints restart instructions)
 
-**New admin URL:** `http://10.252.253.15:8081/admin/routing`
+**New admin URL:** `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/routing`
 
 ---
 
@@ -238,7 +238,7 @@ Shows: currently loaded PBX mappings and trusted IPs (read-only, from process.en
 - `push-server/src/routes/adminRoutes.js` — added `GET /admin/calllogs` (HTML) and `GET /admin/calllogs/json` (JSON API).
 - `push-server/server.js` — added call logs URL to admin startup log.
 
-**New admin URL:** `http://10.252.253.15:8081/admin/calllogs`
+**New admin URL:** `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs`
 
 **MEDIA error codes:**
 - MEDIA-E001: Relay not found (zero relay candidates in LTE mode)
@@ -315,7 +315,7 @@ _Nothing currently in progress. Update this section when a new task starts._
 // These fallback literals should not exist — read from window.APP_CONFIG only
 TURN_USERNAME = "turnuser"
 TURN_CREDENTIAL = "turnpass"
-TURN_HOST = "phone.srve.cc"
+TURN_HOST = "${DOMAIN}"
 ```
 **Impact:** Low in practice (template injection overrides at runtime), but brittle.
 **Fix:** Remove fallback literals; read exclusively from `window.APP_CONFIG`.
@@ -372,7 +372,7 @@ All four are validated in production. Detail: [04-phase-incoming-calls.md](04-ph
 `registration/primary.js` `setInterval` at 150s keeps Android SIP registration alive in background. Increasing this causes registration to expire before next keepalive fires. Detail: [02-phase-registration-and-login.md](02-phase-registration-and-login.md).
 
 ### Never edit generated config files
-`www/index.html`, `kamailio/local.cfg`, `coturn/turnserver.conf`, `rtpengine/rtpengine.conf`, `nginx/phone.srve.cc.conf` — all generated by `make`. Edit `.template` versions. Detail: [08-phase-multi-domain-and-env.md](08-phase-multi-domain-and-env.md).
+`www/index.html`, `kamailio/local.cfg`, `coturn/turnserver.conf`, `rtpengine/rtpengine.conf`, `nginx/site.conf` — all generated by `make`. Edit `.template` versions. Detail: [08-phase-multi-domain-and-env.md](08-phase-multi-domain-and-env.md).
 
 ### G.711-only on both sides — do not remove g711OnlyModifier
 Applied to both Inviter (outgoing) and Invitation accept (incoming). Removing causes codec mismatch at RTPEngine. Detail: [05-phase-media-hold-moh-rbt.md](05-phase-media-hold-moh-rbt.md).

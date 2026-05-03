@@ -55,7 +55,7 @@ health:
 	@echo "Checking service health..."
 	@echo ""
 	@echo "Push Server:"
-	@curl -s http://localhost:3001/health | jq 2>/dev/null || echo "  ❌ Not responding"
+	@curl -s http://localhost:$${PUSH_SERVER_PORT:-3001}/health | jq 2>/dev/null || echo "  ❌ Not responding"
 	@echo ""
 	@echo "Container Status:"
 	@$(COMPOSE) ps
@@ -67,9 +67,9 @@ ifndef EXTENSION
 	@echo "Usage: make test-push EXTENSION=1001"
 else
 	@echo "Sending test notification to extension $(EXTENSION)..."
-	@curl -X POST http://localhost:3001/api/push/notify \
-		-H "Content-Type: application/json" \
-		-d '{"extension":"$(EXTENSION)","from":"Test","title":"Test Incoming Call"}' | jq 2>/dev/null
+	@curl -X POST http://localhost:$${PUSH_SERVER_PORT:-3001}/api/push/notify \
+	  -H "Content-Type: application/json" \
+	  -d '{"extension":"$(EXTENSION)","from":"Test","title":"Test Incoming Call"}' | jq 2>/dev/null
 endif
 
 check:
@@ -94,7 +94,7 @@ check:
 	  coturn/turnserver.conf.template \
 	  rtpengine/rtpengine.conf.template \
 	  kamailio/local.cfg.template \
-	  nginx/phone.srve.cc.conf.template \
+	  nginx/site.conf.template \
 	  www/index.html.template \
 	  scripts/render-coturn.sh \
 	  scripts/render-rtpengine.sh \
@@ -102,7 +102,7 @@ check:
 	  scripts/render-nginx.sh; do \
 	  if [ ! -f $$f ]; then echo "Missing $$f"; exit 1; fi; \
 	done; \
-	for p in 80 443 5060 3478 5349; do \
+	for p in 80 443 $${PBX_PORT} $${TURN_PORT} $${TURN_TLS_PORT}; do \
 	  if ss -lntup 2>/dev/null | grep -q ":$$p "; then \
 	    echo "Port $$p already in use"; exit 1; \
 	  fi; \
@@ -122,17 +122,17 @@ render:
 	  coturn/turnserver.conf.template \
 	  rtpengine/rtpengine.conf.template \
 	  kamailio/local.cfg.template \
-	  nginx/phone.srve.cc.conf.template \
+	  nginx/site.conf.template \
 	  www/index.html.template; do \
 	  if [ ! -f $$f ]; then echo "Missing $$f"; exit 1; fi; \
 	done; \
-	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_HOST} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${RTP_MIN} $${RTP_MAX} $${DIAL_MAX_DIGITS} $${CONFERENCE_FEATURE_ENABLED} $${FRONTEND_BUILD}'; \
+	VARS='$${DOMAIN} $${PUBLIC_IP} $${PBX_IP} $${PBX_PORT} $${TURN_HOST} $${TURN_USER} $${TURN_PASS} $${TURN_RELAY_IP} $${TURN_PORT} $${TURN_TLS_PORT} $${PUSH_SERVER_PORT} $${KAMAILIO_WS_PORT} $${RTPENGINE_INTERFACE} $${RTPENGINE_NG_PORT} $${RTP_MIN} $${RTP_MAX} $${DIAL_MAX_DIGITS} $${CONFERENCE_FEATURE_ENABLED} $${FRONTEND_BUILD}'; \
 	envsubst "$$VARS" < coturn/turnserver.conf.template > coturn/turnserver.conf; \
 	envsubst "$$VARS" < rtpengine/rtpengine.conf.template > rtpengine/rtpengine.conf; \
 	envsubst "$$VARS" < kamailio/local.cfg.template > kamailio/local.cfg; \
-	envsubst "$$VARS" < nginx/phone.srve.cc.conf.template > nginx/phone.srve.cc.conf; \
+	envsubst "$$VARS" < nginx/site.conf.template > nginx/site.conf; \
 	envsubst "$$VARS" < www/index.html.template > www/index.html; \
-	for f in coturn/turnserver.conf rtpengine/rtpengine.conf kamailio/local.cfg nginx/phone.srve.cc.conf www/index.html; do \
+	for f in coturn/turnserver.conf rtpengine/rtpengine.conf kamailio/local.cfg nginx/site.conf www/index.html; do \
 	  if grep -qF '$${' $$f; then echo "Unrendered variables remain in $$f"; exit 1; fi; \
 	done; \
 	echo "Rendered configs from templates"

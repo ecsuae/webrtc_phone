@@ -136,11 +136,11 @@ function buildCallLogFilterFormHtml({ viewMode, includeSession, escHtml, filter 
   </div>
   <div class="filter-group">
     <label>Domain</label>
-    <input type="text" name="domain" value="${escHtml(filter.domain || '')}" placeholder="e.g. fusn01.srve.cc">
+    <input type="text" name="domain" value="${escHtml(filter.domain || '')}" placeholder="e.g. pbx.example.com">
   </div>
   <div class="filter-group">
     <label>AOR / Account</label>
-    <input type="text" name="aor" value="${escHtml(filter.aor || '')}" placeholder="e.g. 900900@fusn01.srve.cc">
+    <input type="text" name="aor" value="${escHtml(filter.aor || '')}" placeholder="e.g. 900900@pbx.example.com">
   </div>
   <div class="filter-group">
     <label>Direction</label>

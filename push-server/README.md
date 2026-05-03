@@ -73,7 +73,7 @@ const VAPID_PUBLIC_KEY = 'YOUR_GENERATED_PUBLIC_KEY';
 ```bash
 VAPID_PUBLIC_KEY=<from generate-keys>
 VAPID_PRIVATE_KEY=<from generate-keys>
-VAPID_SUBJECT=mailto:admin@srve.cc
+VAPID_SUBJECT=mailto:admin@example.com
 PORT=3001
 ```
 

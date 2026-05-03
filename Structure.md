@@ -264,13 +264,13 @@ WebRTC-based SIP calling application with push notifications, multi-domain suppo
 - **turnserver.conf** - STUN/TURN server settings
 
 ### Nginx (`/nginx`)
-- **phone.srve.cc.conf** - Reverse proxy for WebRTC client
+- **site.conf.template** - Reverse proxy for WebRTC client
 
 **Access Model**:
-- Public dialer stays on `https://phone.srve.cc`.
+- Public dialer stays on `https://${DOMAIN}`.
 - Dashboard/admin paths are restricted:
-  - `https://phone.srve.cc/dashboard` (WireGuard/local only)
-  - `http://10.252.253.15:8081/dashboard` (WireGuard interface endpoint)
+  - `https://${DOMAIN}/dashboard` (WireGuard/local only)
+  - `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/dashboard` (WireGuard interface endpoint)
 
 ### Push Server (`/push-server`)
 - **server.js** - Node.js server for push notifications

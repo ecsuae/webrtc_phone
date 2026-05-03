@@ -42,7 +42,7 @@ The project uses **envsubst + Makefile** to inject `.env` values into generated 
 | `kamailio/local.cfg.template` | `kamailio/local.cfg` |
 | `coturn/turnserver.conf.template` | `coturn/turnserver.conf` |
 | `rtpengine/rtpengine.conf.template` | `rtpengine/rtpengine.conf` |
-| `nginx/phone.srve.cc.conf.template` | `nginx/phone.srve.cc.conf` |
+| `nginx/site.conf.template` | `nginx/site.conf` |
 
 Runtime config reaches the browser via `data-*` attributes on `<body>` (set by `index.html` template) → read by `www/config.js` → populates `window.APP_CONFIG` → consumed by `www/app/config.js`.
 
@@ -130,7 +130,7 @@ push-server/src/
 
 Push server starts two listeners:
 - Main API: `127.0.0.1:3001` — Nginx proxies `/api/` here; never directly reachable from internet
-- Admin: `10.252.253.15:8081` — WireGuard-only; serves `/dashboard` and `/diagnostics/errors`
+- Admin: `${ADMIN_BIND_HOST}:${ADMIN_BIND_PORT}` — WireGuard-only; serves `/dashboard` and `/diagnostics/errors`
 
 Both are the same Express app. Admin bind host/port configured via `.env` (`ADMIN_BIND_HOST`, `ADMIN_BIND_PORT`).
 
