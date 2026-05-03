@@ -33,6 +33,7 @@ services:
     container_name: rtpengine
     restart: "no"
     network_mode: host
+    env_file: .env
     environment:
       - TZ=Asia/Karachi
     volumes:
