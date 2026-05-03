@@ -36,7 +36,7 @@ services:
     environment:
       - TZ=Asia/Karachi
     volumes:
-      - ./rtpengine/rtpengine.conf:/config/rtpengine.conf:ro
+      - ./rtpengine/rtpengine.conf.template:/config/rtpengine.conf.template:ro
       - ./rtpengine/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
     entrypoint:
       - /bin/sh
@@ -53,7 +53,7 @@ services:
       - --log-level=6
 
   kamailio:
-    image: ghcr.io/kamailio/kamailio:5.8.2-jammy
+    build: ./kamailio
     container_name: kamailio
     restart: unless-stopped
     network_mode: host
@@ -68,7 +68,7 @@ services:
     volumes:
       - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - ./kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
-      - ./kamailio/local.cfg:/etc/kamailio/local.cfg:ro
+      - ./kamailio/local.cfg.template:/config/local.cfg.template:ro
       - ./kamailio/tls.cfg:/etc/kamailio/tls.cfg:ro
       - ./kamailio/routes:/etc/kamailio/routes:ro
       - ./certs:/certs:ro
@@ -82,7 +82,7 @@ services:
       - TZ=Asia/Karachi
       - PUSH_LISTEN_HOST=${PUSH_LISTEN_HOST}
       - PORT=${PUSH_SERVER_PORT}
-      - ADMIN_BIND_HOST=0.0.0.0
+      - ADMIN_BIND_HOST=${ADMIN_BIND_HOST}
       - ADMIN_BIND_PORT=${ADMIN_BIND_PORT}
     networks:
       - app_net
@@ -151,9 +151,9 @@ services:
       - /entrypoint-wrapper.sh
     volumes:
       - ./nginx/site.conf.template:/config/site.conf.template:ro
-      - ./nginx/site.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/entrypoint-wrapper.sh:/entrypoint-wrapper.sh:ro
-      - ./www:/var/www/phone:ro
+      - ./www:/config/www:ro
+      - nginx_www:/var/www/phone
       - ./data/certbot/www:/var/www/certbot:ro
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/reload:/var/run/certbot-reload
@@ -185,6 +185,7 @@ services:
 
 volumes:
   wireguard_config:
+  nginx_www:
 
 networks:
   app_net: {}

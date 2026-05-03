@@ -7,7 +7,7 @@ const WG_CIDR_PREFIX = process.env.WG_CIDR_PREFIX || '10.252.253.';
 // Admin listener — WireGuard interface only.
 // Serves /dashboard and /diagnostics/* on a dedicated port so they are
 // reachable from the WireGuard VPN without being exposed via Nginx on port 443.
-const ADMIN_BIND_HOST = process.env.ADMIN_BIND_HOST || '10.252.253.15';
+const ADMIN_BIND_HOST = process.env.ADMIN_BIND_HOST || '127.0.0.1';
 const ADMIN_BIND_PORT = Number(process.env.ADMIN_BIND_PORT || 8081);
 
 function getVapidConfig() {

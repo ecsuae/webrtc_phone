@@ -1,5 +1,5 @@
 {
-  "_comment": "Managed by admin UI at http://10.252.253.15:8081/admin/routing — do not edit manually. To apply: make routing-apply && docker compose restart kamailio",
+  "_comment": "Managed by the WireGuard-only admin UI (/admin/routing) — do not edit manually. To apply: make routing-apply && docker compose restart kamailio",
   "pbxMappings": [],
   "trustedIps": [],
   "trustedDomains": [],

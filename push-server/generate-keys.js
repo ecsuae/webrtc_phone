@@ -22,7 +22,7 @@ console.log('══════════════════════�
 console.log('');
 console.log(`VAPID_PUBLIC_KEY=${vapidKeys.publicKey}`);
 console.log(`VAPID_PRIVATE_KEY=${vapidKeys.privateKey}`);
-console.log(`VAPID_SUBJECT=mailto:admin@srve.cc`);
+console.log(`VAPID_SUBJECT=mailto:admin@example.com`);
 console.log('');
 console.log('════════════════════════════════════════');
 console.log('  Update www/app/push.js:');

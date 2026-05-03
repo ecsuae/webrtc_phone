@@ -437,7 +437,7 @@ Examples:
 2026-04-09 08:36 PKT | CHANGE | TASK-030 | Recorded nginx inventory (current mounts + template vs concrete config) and isolation-first plan in docs/tasks/TASK-030.md; no compose/runtime changes | AI: Cascade
 2026-04-09 08:37 PKT | STOP   | TASK-030 | Session end | worked 2m | AI: Cascade
 2026-04-09 08:41 PKT | START  | TASK-030 | Implement nginx template-driven runtime config (wrapper renders template at container start) | AI: Cascade
-2026-04-09 08:42 PKT | CHANGE | TASK-030 | Added nginx/entrypoint-wrapper.sh and wired nginx service in docker-compose.yml to render phone.srve.cc.conf.template at startup; concrete config kept for rollback but no longer mounted as runtime source of truth | AI: Cascade
+2026-04-09 08:42 PKT | CHANGE | TASK-030 | Added nginx/entrypoint-wrapper.sh and wired nginx service in docker-compose.yml to render site.conf.template at startup; concrete config kept for rollback but no longer mounted as runtime source of truth | AI: Cascade
 2026-04-09 08:43 PKT | VERIFY | TASK-030 | Container: nginx started; wrapper rendered /etc/nginx/conf.d/default.conf with DOMAIN substituted; nginx -t ok. Live route: http / and /ws return 301; https /index.html returns 200 | AI: Cascade
 2026-04-09 08:44 PKT | STOP   | TASK-030 | Session end | worked 3m | AI: Cascade
 2026-04-09 08:47 PKT | START  | TASK-030 | Docs correction-only: reconcile docs/now.md with already-recorded TASK-030 verification | AI: Cascade
@@ -1109,6 +1109,6 @@ Examples:
 2026-04-30 09:21 PKT | VERIFY | TASK-037 | Dry-run: during restart cooldown, cleanup refused to release anything (no writes); JSON-RPC ul.dump previously confirmed AoR 100360 registered and was skipped | AI: Cascade
 2026-04-30 09:21 PKT | STOP   | TASK-037 | Session end | worked 0m | AI: Cascade
 
-2026-04-30 10:40 PKT | START  | TASK-038 | Standalone plug-and-play deployment (mobi.srve.cc): WireGuard + Let’s Encrypt | AI: Cascade
+2026-04-30 10:40 PKT | START  | TASK-038 | Standalone plug-and-play deployment (${DOMAIN}): WireGuard + Let’s Encrypt | AI: Cascade
 2026-04-30 10:40 PKT | NOTE   | TASK-038 | Read workflow docs; created TASK-038 and updated now/index/ledgers; inspected not-working tag earlier read-only and confirmed it lacks WireGuard + docker ACME automation | AI: Cascade
 2026-04-30 10:40 PKT | STOP   | TASK-038 | Session end | worked 0m | AI: Cascade

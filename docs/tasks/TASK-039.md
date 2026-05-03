@@ -38,12 +38,14 @@ Provide backend admin access (push-server admin UI and APIs) **only** over WireG
   - bind directly to the WireGuard interface IP
   - forward to the internal upstream (`push-server:8081`) while setting `X-Real-IP $remote_addr`
 - For this project, target admin URL becomes:
-  - `http://10.252.253.4:8081/admin/provisioning`
+  - **Public internet:** no `/admin` route exposed via nginx
+  - **WireGuard endpoint:**
+    - `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/provisioning`
 - No public nginx `/admin` route is added; no ports are published.
 - Runtime validation complete:
   - `wireguard` is attached to `default` and `app_net`
   - `admin-wg-forwarder` runs in the wireguard netns (`network_mode: service:wireguard`)
-  - admin works via `http://10.252.253.4:8081/admin/provisioning`
+  - admin works via `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/provisioning`
   - public `/admin` remains `404`
 
 ## Follow-up: admin-over-WireGuard design options

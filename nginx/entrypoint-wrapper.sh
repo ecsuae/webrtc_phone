@@ -4,6 +4,11 @@ set -eu
 TEMPLATE_SRC="/config/site.conf.template"
 OUT_CONF="/etc/nginx/conf.d/default.conf"
 
+WWW_SRC_DIR="/config/www"
+WWW_OUT_DIR="/var/www/phone"
+WWW_TEMPLATE_SRC="${WWW_SRC_DIR}/index.html.template"
+WWW_OUT_HTML="${WWW_OUT_DIR}/index.html"
+
 RELOAD_DIR="/var/run/certbot-reload"
 
 if [ ! -f "$TEMPLATE_SRC" ]; then
@@ -56,6 +61,18 @@ envsubst '${DOMAIN} ${KAMAILIO_WS_PORT} ${PUSH_SERVER_PORT}' < "$TEMPLATE_SRC" >
 if grep -q '\${DOMAIN}' "$OUT_CONF"; then
   echo "nginx wrapper: template render incomplete (DOMAIN token still present)" >&2
   exit 1
+fi
+
+if [ ! -d "$WWW_SRC_DIR" ]; then
+  echo "nginx wrapper: missing www source dir: $WWW_SRC_DIR" >&2
+  exit 1
+fi
+
+mkdir -p "$WWW_OUT_DIR"
+cp -a "$WWW_SRC_DIR"/. "$WWW_OUT_DIR"/
+
+if [ -f "$WWW_TEMPLATE_SRC" ]; then
+  envsubst '${DOMAIN} ${PBX_IP} ${DIAL_MAX_DIGITS} ${CONFERENCE_FEATURE_ENABLED} ${TURN_HOST} ${TURN_USER} ${TURN_PASS} ${FRONTEND_BUILD}' < "$WWW_TEMPLATE_SRC" > "$WWW_OUT_HTML"
 fi
 
 reload_watcher() {

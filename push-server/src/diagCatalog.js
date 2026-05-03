@@ -9,6 +9,8 @@
  * The backend admin page uses: all fields.
  */
 
+const WSS_DOMAIN = process.env.DOMAIN || '<your-domain>';
+
 const ERROR_CATALOG = [
   {
     code: "REG-E001",
@@ -58,7 +60,7 @@ const ERROR_CATALOG = [
     recommendedChecks: [
       "Check nginx container: `docker logs nginx`",
       "Check Kamailio container: `docker logs kamailio`",
-      "Verify port 443 is reachable: `curl -v https://phone.srve.cc`",
+      `Verify port 443 is reachable: \`curl -v https://${WSS_DOMAIN}\``,
       "Enable LTE/5G Mode toggle if on mobile data",
       "Verify Nginx proxy_buffering off is set on /ws location",
     ],
@@ -129,7 +131,7 @@ const ERROR_CATALOG = [
       "DNS server not responding on the client's network",
     ],
     recommendedChecks: [
-      "Try nslookup phone.srve.cc from the client device",
+      `Try nslookup ${WSS_DOMAIN} from the client device`,
       "Check that the device has general internet access",
       "Verify data-wss-host attribute in generated www/index.html",
     ],
@@ -146,8 +148,8 @@ const ERROR_CATALOG = [
       "Intermediate certificate chain missing from Nginx config",
     ],
     recommendedChecks: [
-      "Open https://phone.srve.cc in the browser and check for certificate warnings",
-      "Verify cert expiry: `openssl s_client -connect phone.srve.cc:443`",
+      `Open https://${WSS_DOMAIN} in the browser and check for certificate warnings`,
+      `Verify cert expiry: \`openssl s_client -connect ${WSS_DOMAIN}:443\``,
       "Check Nginx TLS cert and key paths in the generated Nginx config",
       "Re-issue certificate if expired (Let's Encrypt: `certbot renew`)",
     ],

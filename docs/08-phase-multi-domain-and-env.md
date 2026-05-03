@@ -30,7 +30,7 @@ _Last updated: 2026-03-28_
 | `www/app/config.js` | Consumes `window.APP_CONFIG` → ICE servers, codec flags, TURN |
 | `kamailio/local.cfg.template` | Kamailio deployment vars template |
 | `kamailio/routes/50-domain-map.cfg` | Multi-domain PBX routing (uses generated local.cfg defines) |
-| `nginx/phone.srve.cc.conf.template` | Nginx reverse proxy template |
+| `nginx/site.conf.template` | Nginx reverse proxy template |
 | `coturn/turnserver.conf.template` | CoTURN config template |
 | `rtpengine/rtpengine.conf.template` | RTPEngine config template |
 
@@ -42,16 +42,16 @@ _Last updated: 2026-03-28_
 
 | Variable | Example | Used in |
 |---|---|---|
-| `DOMAIN` | `phone.srve.cc` | Nginx server name, WSS URL |
+| `DOMAIN` | `phone.example.com` | Nginx server name, WSS URL |
 | `PUBLIC_IP` | `38.242.157.239` | RTPEngine, Kamailio |
-| `PBX_IP` | `testfusn.srve.cc` | Primary PBX host |
+| `PBX_IP` | `pbx.example.com` | Primary PBX host |
 | `PBX_PORT` | `5060` | Primary PBX SIP port |
 
 ### TURN server
 
 | Variable | Example | Used in |
 |---|---|---|
-| `TURN_HOST` | `phone.srve.cc` | Browser ICE config (via index.html template) |
+| `TURN_HOST` | `turn.example.com` | Browser ICE config (via index.html template) |
 | `TURN_USER` | `turnuser` | Browser ICE config |
 | `TURN_PASS` | `turnpass` | Browser ICE config |
 
@@ -75,16 +75,16 @@ _Last updated: 2026-03-28_
 | Variable | Example | Used in |
 |---|---|---|
 | `TRUSTED_SIP_IP_1` | `188.34.145.229` | Kamailio trusted source list |
-| `TRUSTED_SIP_DOMAIN_1` | `fusn01.srve.cc` | Kamailio trusted domain list |
+| `TRUSTED_SIP_DOMAIN_1` | `pbx.example.com` | Kamailio trusted domain list |
 
 ### Multi-domain PBX mapping
 
 | Variable | Example | Used in |
 |---|---|---|
-| `PBX_MAP_1_DOMAIN` | `fusn01.srve.cc` | Kamailio domain map |
-| `PBX_MAP_1_HOST` | `fusn01.srve.cc` | Kamailio routing target |
-| `PBX_MAP_2_DOMAIN` | `fusn02.srve.cc` | (add more as needed) |
-| `PBX_MAP_2_HOST` | `fusn02.srve.cc` | |
+| `PBX_MAP_1_DOMAIN` | `pbx1.example.com` | Kamailio domain map |
+| `PBX_MAP_1_HOST` | `pbx1.example.com` | Kamailio routing target |
+| `PBX_MAP_2_DOMAIN` | `pbx2.example.com` | (add more as needed) |
+| `PBX_MAP_2_HOST` | `pbx2.example.com` | |
 
 ### Feature flags
 
@@ -104,7 +104,7 @@ Makefile: make config                                     │
   envsubst < kamailio/local.cfg.template → kamailio/local.cfg
   envsubst < coturn/turnserver.conf.template → ...       │
   envsubst < rtpengine/rtpengine.conf.template → ...     │
-  envsubst < nginx/phone.srve.cc.conf.template → ...     │
+  envsubst < nginx/site.conf.template → ...             │
                                                           │
 Generated output files ◄──────────────────────────────── ┘
 (never edit these directly)
@@ -150,10 +150,10 @@ window.APP_CONFIG = {
 
 Generated `kamailio/local.cfg` defines each domain mapping:
 ```
-#!define PBX_MAP_1_DOMAIN "fusn01.srve.cc"
-#!define PBX_MAP_1_HOST   "fusn01.srve.cc"
-#!define PBX_MAP_2_DOMAIN "fusn02.srve.cc"
-#!define PBX_MAP_2_HOST   "fusn02.srve.cc"
+#!define PBX_MAP_1_DOMAIN "pbx1.example.com"
+#!define PBX_MAP_1_HOST   "pbx1.example.com"
+#!define PBX_MAP_2_DOMAIN "pbx2.example.com"
+#!define PBX_MAP_2_HOST   "pbx2.example.com"
 ```
 
 `50-domain-map.cfg` routes each INVITE based on the Request-URI domain:
@@ -165,7 +165,7 @@ if ($rd == PBX_MAP_2_DOMAIN) → route to PBX_MAP_2_HOST
 
 To add a new domain: add `PBX_MAP_N_DOMAIN` and `PBX_MAP_N_HOST` to `.env`, re-run `make render`, restart Kamailio.
 
-**Alternatively, use the admin UI** at `http://10.252.253.15:8081/admin/routing` (WireGuard-only):
+**Alternatively, use the admin UI** at `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/routing` (WireGuard-only):
 1. Edit PBX mappings and trusted IPs in the web form
 2. Click Save (writes `routing-config.json`)
 3. On the server: `make routing-apply` → reads routing-config.json, updates `.env` PBX_MAP_* and TRUSTED_SIP_* entries, runs `make render`
@@ -181,7 +181,7 @@ To add a new domain: add `PBX_MAP_N_DOMAIN` and `PBX_MAP_N_HOST` to `.env`, re-r
 
 ```js
 // These should not exist — read from window.APP_CONFIG only
-const TURN_HOST = window.APP_CONFIG?.turnHost || "phone.srve.cc";   // ← hardcoded fallback
+const TURN_HOST = window.APP_CONFIG?.turnHost || "turn.example.com";   // ← hardcoded fallback
 const TURN_USERNAME = window.APP_CONFIG?.turnUser || "turnuser";
 const TURN_CREDENTIAL = window.APP_CONFIG?.turnPass || "turnpass";
 ```
@@ -205,7 +205,7 @@ Some IP addresses and domain literals remain hardcoded in `kamailio/kamailio.cfg
 
 ## IPv6 readiness note
 
-The server has a public IPv6 address (`2a02:c207:2265:2549::1`) but `phone.srve.cc` currently has **no AAAA DNS record** — only an A record. Nginx now listens on both `listen 443 ssl` and `listen [::]:443 ssl` so that when an AAAA record is added, IPv6 clients will connect without further changes.
+The server may have a public IPv6 address, but `${DOMAIN}` may currently have **no AAAA DNS record** — only an A record. Nginx listens on both `listen 443 ssl` and `listen [::]:443 ssl` so that when an AAAA record is added, IPv6 clients will connect without further changes.
 
 If you add an AAAA record to DNS, verify CoTURN also serves IPv6 clients (add `listening-ip=::` to the CoTURN template).
 

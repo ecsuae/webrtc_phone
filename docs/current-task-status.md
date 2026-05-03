@@ -198,8 +198,8 @@ _Last updated: 2026-03-29_
   - `Makefile`
   - `www/index.html`
   - `www/index.html.template`
-  - `nginx/phone.srve.cc.conf`
-  - `nginx/phone.srve.cc.conf.template`
+  - `nginx/site.conf`
+  - `nginx/site.conf.template`
   - `www/app/runtime/controlBindings.js`
   - `www/app/runtime/registerFlow.js`
   - `www/app/runtime/mobileRecovery.js`

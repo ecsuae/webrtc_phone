@@ -1,11 +1,11 @@
 # NOW
 
 ## Current task
-TASK-038 — Standalone plug-and-play deployment (mobi.srve.cc) — WireGuard + Let’s Encrypt.
+TASK-038 — Standalone plug-and-play deployment (${DOMAIN}) — WireGuard + Let’s Encrypt.
 
 ## Current blocker(s)
-- `https://mobi.srve.cc` loads but TLS is not trusted (cert automation missing).
-- WireGuard container + env-driven settings must be implemented safely without exposing admin publicly.
+- `https://${DOMAIN}` loads but TLS is not trusted (cert automation missing).
+- WireGuard container + env-driven settings must be implemented safely without exposing admin: http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/
 
 ## Exact next safe step
 - Create and track TASK-038 docs.
@@ -27,9 +27,9 @@ Make the new VPS deployment reproducible and safe: env-driven, docker-first, wit
 - TASK-037: active.
 
 ## Scope guardrails
-- Work ONLY on the new VPS `mobi.srve.cc`.
-- Old production VPS `phone.srve.cc` is frozen: no further runtime changes unless explicitly approved.
-- Admin must not become publicly exposed; keep `ADMIN_BIND_HOST=127.0.0.1` until WireGuard is verified.
+- Work ONLY on the new VPS `${DOMAIN}`.
+- Old production VPS `<old-production-domain>` is frozen: no further runtime changes unless explicitly approved.
+- Admin must not become publicly exposed; keep `ADMIN_BIND_HOST=${ADMIN_BIND_HOST}` until WireGuard is verified.
 
 ## Safety constraints (this session)
 - Do not start containers.

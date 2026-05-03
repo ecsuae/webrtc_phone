@@ -19,7 +19,7 @@ _Last updated: 2026-03-28_
 
 ## URL
 
-`http://10.252.253.15:8081/admin/routing`
+`http://<wireguard-ip>:<admin-port>/admin/routing`
 
 Access: WireGuard VPN or localhost only — same guard as `/dashboard` and `/diagnostics/errors`.
 

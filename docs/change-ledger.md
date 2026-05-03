@@ -53,7 +53,7 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 
 ## Current week entries
 
-### 2026-04-30T10:40:00+05:00 — TASK-038: standalone plug-and-play deployment (mobi.srve.cc)
+### 2026-04-30T10:40:00+05:00 — TASK-038: standalone plug-and-play deployment (${DOMAIN})
 - **AI**: Cascade
 - **Scope**: docs/workflow only; no containers started; no runtime changes.
 - **Files changed**:

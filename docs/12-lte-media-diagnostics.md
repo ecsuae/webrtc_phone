@@ -156,13 +156,13 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 
 ## Admin call log filter page
 
-**URL:** `http://10.252.253.15:8081/admin/calllogs` (WireGuard-only)
-**JSON API:** `http://10.252.253.15:8081/admin/calllogs/json`
+**URL:** `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs` (WireGuard-only)
+**JSON API:** `http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs/json`
 
 **Filter controls:**
 - Username / Extension — substring match (shows inbound + outbound in one timeline)
 - Domain — substring match
-- AOR / Account — substring match (e.g. `900900@fusn01.srve.cc`)
+- AOR / Account — substring match (e.g. `900900@pbx.example.com`)
 - Direction — inbound / outbound
 - Mode — Wi-Fi / LTE
 - Call-ID — substring match
@@ -183,17 +183,17 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 
 1. Check admin call log page for `MEDIA-E001` or `MEDIA-E002`:
    ```
-   http://10.252.253.15:8081/admin/calllogs?errorsOnly=1&lteOnly=1
+   http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs?errorsOnly=1&lteOnly=1
    ```
 
 2. Filter by account:
    ```
-   http://10.252.253.15:8081/admin/calllogs?aor=900900%40fusn01.srve.cc
+   http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs?aor=900900%40pbx.example.com
    ```
 
 3. JSON API for scripted access:
    ```bash
-   curl -s "http://10.252.253.15:8081/admin/calllogs/json?errorsOnly=1" | jq '.events[] | {ts,code,aor,relay,msg}'
+   curl -s "http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs/json?errorsOnly=1" | jq '.events[] | {ts,code,aor,relay,msg}'
    ```
 
 4. If MEDIA-E001 (relay=0): TURN unreachable on carrier
@@ -220,7 +220,7 @@ docker logs rtpengine | grep "SRTP output wanted"
 rtpengine-ctl list sessions
 
 # Check push-server call log store live
-curl -s http://10.252.253.15:8081/admin/calllogs/json | jq '.stats'
+curl -s "http://${ADMIN_WG_BIND_HOST}:${ADMIN_WG_BIND_PORT}/admin/calllogs/json" | jq '.stats'
 ```
 
 ---

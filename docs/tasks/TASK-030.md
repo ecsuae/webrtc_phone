@@ -28,18 +28,17 @@ This task exists to make nginx configuration and service wiring cleanly isolated
 
 ## Current nginx ownership + mounts (inventory)
 - Compose wiring (current repo state):
-  - nginx service mounts `./nginx/phone.srve.cc.conf` to `/etc/nginx/conf.d/default.conf:ro`.
+  - nginx service renders `/etc/nginx/conf.d/default.conf` from `./nginx/site.conf.template` at container start.
   - nginx service mounts `./www` to `/var/www/phone:ro`.
   - nginx service mounts `./certs` to `/certs:ro`.
 - Repo nginx config files present:
-  - `nginx/phone.srve.cc.conf.template` (template with `${DOMAIN}`)
-  - `nginx/phone.srve.cc.conf` (concrete instance with `server_name phone.srve.cc`)
+  - `nginx/site.conf.template` (template with `${DOMAIN}`)
 
 ## Isolation-first plan (behavior-preserving)
 Goal: make nginx config ownership unambiguous and env/template-driven without changing request routing behavior.
 
 Plan:
-1. Keep `nginx/phone.srve.cc.conf.template` as the source-of-truth.
+1. Keep `nginx/site.conf.template` as the source-of-truth.
 2. Switch nginx container to generate `/etc/nginx/conf.d/default.conf` from the template at startup (envsubst), rather than mounting a concrete per-domain file.
 3. Keep all routing/locations identical (no changes to `/ws`, `/api/`, or static file cache headers in this step).
 4. Keep rollback trivial by retaining the current concrete config file and the ability to mount it directly.
@@ -48,7 +47,7 @@ Plan:
 
 ### 2026-04-09T03:41:00Z — Step 1: make nginx runtime config template-driven (wrapper renders template at container start)
 - **Change**:
-  - Added a repo-owned nginx startup wrapper script that renders `nginx/phone.srve.cc.conf.template` into `/etc/nginx/conf.d/default.conf` at container start using `envsubst`.
+  - Added a repo-owned nginx startup wrapper script that renders `nginx/site.conf.template` into `/etc/nginx/conf.d/default.conf` at container start using `envsubst`.
   - Updated only the nginx service in `docker-compose.yml` to use the wrapper and mount the template, so the concrete per-domain file is no longer the runtime source of truth.
 - **Files changed**:
   - `nginx/entrypoint-wrapper.sh`
@@ -57,9 +56,9 @@ Plan:
   - Yes (nginx container/service must restart to load new entrypoint + config rendering).
 - **Verified result**:
   - Container:
-    - nginx started and wrapper logged: rendered `/etc/nginx/conf.d/default.conf` from template with `DOMAIN=phone.srve.cc`.
+    - nginx started and wrapper logged: rendered `/etc/nginx/conf.d/default.conf` from template with `DOMAIN=${DOMAIN}`.
     - `nginx -t` succeeded in-container.
-    - Rendered `default.conf` shows `server_name phone.srve.cc` (DOMAIN substituted).
+    - Rendered `default.conf` shows `server_name ${DOMAIN}` (DOMAIN substituted).
   - Live route:
     - `http://127.0.0.1/` returned `301` (expected redirect to https).
     - `http://127.0.0.1/ws` returned `301` (expected redirect to https).
