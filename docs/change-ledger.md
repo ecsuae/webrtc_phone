@@ -1168,7 +1168,7 @@ _This is a live, rotating ledger of every meaningful change made to this repo._
 - **Verified result**:
   - Live route (container): `/admin/registrations` returns HTTP 200 and PBX DNS selection no longer chooses non-domain labels.
 - **Next safe step**:
-  - Confirm in the target environment that rows with an available hostname (e.g. `fusn02.srve.cc`) render that hostname instead of the IP.
+  - Confirm in the target environment that rows with an available hostname (e.g. `<sip-domain>`) render that hostname instead of the IP.
 
 ### 2026-04-13T06:20:00Z — TASK-032: inbound sender-binding proof + sender-track force (desktop inbound)
 - **AI**: Cascade

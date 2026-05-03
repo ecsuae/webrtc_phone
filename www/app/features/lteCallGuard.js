@@ -383,7 +383,7 @@ export function waitForIceGatheringComplete(session, timeoutMs = 8000) {
  *
  * @param {object} session - SIP.js Inviter or Invitation
  * @param {object} opts
- * @param {string}   opts.aor      - Account/AOR (e.g. "900900@fusn01.srve.cc")
+ * @param {string}   opts.aor      - Account/AOR (e.g. "900900@<sip-domain>")
  * @param {string}   opts.callId   - SIP Call-ID if available
  * @param {string}   opts.dir      - "outbound" or "inbound"
  * @param {Function} opts.onFail   - (errorCode, userMessage) => void

@@ -74,13 +74,13 @@ Format:
 {
   "_comment": "Managed by admin UI — do not edit manually. To apply: make routing-apply && docker compose restart kamailio",
   "pbxMappings": [
-    { "domain": "fusn01.srve.cc", "host": "fusn01.srve.cc", "label": "FusionPBX 01" }
+    { "domain": "<sip-domain>", "host": "<sip-domain>", "label": "PBX 01" }
   ],
   "trustedIps": [
-    { "ip": "188.34.145.229", "label": "FusionPBX public IP" }
+    { "ip": "<trusted-ip>", "label": "Trusted PBX IP" }
   ],
   "trustedDomains": [
-    { "domain": "fusn01.srve.cc", "label": "" }
+    { "domain": "<sip-domain>", "label": "" }
   ],
   "savedAt": "2026-03-28T12:00:00.000Z"
 }
