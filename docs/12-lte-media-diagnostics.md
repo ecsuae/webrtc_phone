@@ -162,7 +162,7 @@ Sends structured call/media diagnostic events to `POST /api/logs/call` on the pu
 **Filter controls:**
 - Username / Extension — substring match (shows inbound + outbound in one timeline)
 - Domain — substring match
-- AOR / Account — substring match (e.g. `900900@pbx.example.com`)
+- AOR / Account — substring match (e.g. `900900@<sip-domain>`)
 - Direction — inbound / outbound
 - Mode — Wi-Fi / LTE
 - Call-ID — substring match

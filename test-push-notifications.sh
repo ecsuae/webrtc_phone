@@ -1,6 +1,16 @@
 #!/bin/bash
 # Push Notification System Test Script
 
+set -eu
+
+if [ -f ./.env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
+DOMAIN=${DOMAIN:-"<your-domain>"}
+
 echo "═══════════════════════════════════════════════"
 echo " Push Notification System - Complete Test"
 echo "═══════════════════════════════════════════════"
@@ -32,7 +42,7 @@ echo "════════════════════════�
 echo " NEXT STEPS TO COMPLETE SETUP:"
 echo "═══════════════════════════════════════════════"
 echo ""
-echo "ON IPHONE (https://phone.srve.cc/):"
+echo "ON IPHONE (https://${DOMAIN}/):"
 echo "  1. Hard refresh the browser (pull down or close/reopen)"
 echo "  2. Login with extension 100360"
 echo "  3. Browser will prompt: 'Show notifications?'"
