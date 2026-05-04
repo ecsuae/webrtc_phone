@@ -13,15 +13,6 @@ export function parseSipAccount(usernameValue, domainValue, fallbackDomainValue)
   }
 
   const domain = inlineDomain || explicitDomain || fallbackDomain;
-  console.log(
-    "[parseSipAccount] raw=%s, explicit=%s, fallback=%s -> user=%s, inline=%s, final domain=%s",
-    rawUsername,
-    explicitDomain,
-    fallbackDomain,
-    username,
-    inlineDomain,
-    domain
-  );
   return {
     rawUsername,
     username,

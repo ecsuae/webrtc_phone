@@ -12,6 +12,8 @@ import { waitForDesktopRegistration } from "./ext/desktopRegistrationWait.js";
 import {
   clearAutoProvisionedVisibleCredentials,
   consumePendingDesktopAutoProvisioningLogin,
+  consumeDesktopProvisionedSipConfig,
+  clearDesktopProvisionedSipConfig,
   getActiveDesktopAutoProvisioningSession,
   logDesktopAutoProvisioningLogout,
   releaseDesktopAutoProvisioningSession,
@@ -75,17 +77,35 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
       }
     })();
 
-    const ext = parsed?.username || "";
-    const domain = parsed?.domain || rawDomain || fallbackDomain;
-    const pass = passFromDom || ui.pass();
+    let ext = parsed?.username || "";
+    let domain = parsed?.domain || rawDomain || fallbackDomain;
+    let pass = passFromDom || ui.pass();
     const wss = normalizeWssServer(ui.wss(), ui.wssFallback());
+
+    const autoProvisioningInfo = consumePendingDesktopAutoProvisioningLogin();
+    st._autoProvisioningInfo = autoProvisioningInfo;
+    st._autoProvisionedLogin = !!autoProvisioningInfo;
+    if (!autoProvisioningInfo) persistDesktopLastRegistration({ ext, domain, wss });
+
+    if (autoProvisioningInfo) {
+      const provisioned = consumeDesktopProvisionedSipConfig();
+      if (!provisioned?.sipUsername || !provisioned?.sipPassword || !provisioned?.sipDomain) {
+        ui.setStatus("Provisioning missing SIP credentials");
+        return null;
+      }
+      ext = String(provisioned.sipUsername);
+      domain = String(provisioned.sipDomain);
+      pass = String(provisioned.sipPassword);
+    }
 
     try {
       const passSet = !!String(pass || "");
+      const domainSet = !!String(domain || "");
+      const wssSet = !!String(wss || "");
       console.log(
-        `[DESKTOP_REG_DEBUG] computed ext=${String(ext || "")} domain=${String(domain || "")} wss=${String(
-          wss || ""
-        )} pass_set=${String(passSet)}`
+        `[DESKTOP_REG_DEBUG] computed auto_provisioned=${String(!!autoProvisioningInfo)} pass_set=${String(
+          passSet
+        )} domain_set=${String(domainSet)} wss_set=${String(wssSet)}`
       );
     } catch {}
 
@@ -98,11 +118,6 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
     }
 
     if (st.ua) await stopAndUnregister(true);
-
-    const autoProvisioningInfo = consumePendingDesktopAutoProvisioningLogin();
-    st._autoProvisioningInfo = autoProvisioningInfo;
-    st._autoProvisionedLogin = !!autoProvisioningInfo;
-    if (!autoProvisioningInfo) persistDesktopLastRegistration({ ext, domain, wss });
 
     return startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass, wss });
   }
@@ -148,6 +163,7 @@ export function createDesktopRegistration({ SIP, st, ui, logLine, nowISO }) {
     if (!silent && (autoProvisionedLogin || autoProvisioningInfo)) {
       await releaseDesktopAutoProvisioningSession(autoProvisioningInfo);
       clearAutoProvisionedVisibleCredentials(desktopEl);
+      clearDesktopProvisionedSipConfig();
       try { console.log(`[logout-runtime] visible credentials after cleanup ext_empty=${!desktopEl.ext?.value} pass_empty=${!desktopEl.pass?.value} ext_len=${String(desktopEl.ext?.value || "").length} pass_len=${String(desktopEl.pass?.value || "").length}`); } catch {}
     }
 

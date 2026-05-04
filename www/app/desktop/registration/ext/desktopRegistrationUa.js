@@ -67,11 +67,8 @@ export async function startDesktopUaAndRegister(SIP, st, ui, { ext, domain, pass
 
   try {
     const passSet = !!String(pass || "");
-    console.log(
-      `[DESKTOP_REG_DEBUG] UA opts ext=${String(ext || "")} domain=${String(domain || "")} wss=${String(
-        wss || ""
-      )} server=${String(userAgentOptions?.transportOptions?.server || "")} pass_set=${String(passSet)}`
-    );
+    const wssSet = !!String(wss || "");
+    console.log(`[DESKTOP_REG_DEBUG] UA opts wss_set=${String(wssSet)} pass_set=${String(passSet)}`);
   } catch {}
 
   let ua;

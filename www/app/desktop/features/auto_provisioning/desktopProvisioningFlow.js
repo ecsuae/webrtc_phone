@@ -54,11 +54,7 @@ export async function runProvisioningFlow() {
 
   try {
     markPendingDesktopAutoProvisioningLogin({ provisioningId, deviceId });
-    const a = applied?.applied || {};
-    const ext = String(a?.ext || "");
-    const domain = String(a?.domain || "");
-    const wss = String(a?.wss || "");
-    logLine(`[ui] Auto Provision: applied ext=${ext} domain=${domain} wsshost=${wss}`);
+    logLine("[ui] Auto Provision: applied");
   } catch {}
 
   return { ok: true };

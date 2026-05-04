@@ -1,6 +1,8 @@
 const KEY_PENDING = "desktop_auto_provision_pending_login";
 const KEY_ACTIVE = "desktop_auto_provision_active_login";
 
+let _provisionedSipConfig = null;
+
 function encode(info) {
   return JSON.stringify({
     provisioningId: String(info?.provisioningId || ""),
@@ -23,6 +25,33 @@ export function markPendingDesktopAutoProvisioningLogin(info) {
   try {
     sessionStorage.setItem(KEY_PENDING, encode(info));
   } catch {}
+}
+
+export function setDesktopProvisionedSipConfig(config) {
+  try {
+    const sipUsername = String(config?.sipUsername || "");
+    const sipPassword = String(config?.sipPassword || "");
+    const sipDomain = String(config?.sipDomain || "");
+    if (!sipUsername || !sipPassword || !sipDomain) {
+      _provisionedSipConfig = null;
+      return { ok: false };
+    }
+    _provisionedSipConfig = { sipUsername, sipPassword, sipDomain };
+    return { ok: true };
+  } catch {
+    _provisionedSipConfig = null;
+    return { ok: false };
+  }
+}
+
+export function consumeDesktopProvisionedSipConfig() {
+  const v = _provisionedSipConfig;
+  _provisionedSipConfig = null;
+  return v;
+}
+
+export function clearDesktopProvisionedSipConfig() {
+  _provisionedSipConfig = null;
 }
 
 export function consumePendingDesktopAutoProvisioningLogin() {

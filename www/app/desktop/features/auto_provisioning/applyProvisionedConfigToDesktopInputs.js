@@ -1,3 +1,5 @@
+import { setDesktopProvisionedSipConfig } from "./desktopProvisioningSession.js";
+
 function missingField(name) {
   return {
     ok: false,
@@ -36,9 +38,16 @@ export function applyProvisionedConfigToDesktopInputs({
   }
 
   try {
-    extInput.value = String(sipUsername);
-    passInput.value = String(sipPassword);
+    setDesktopProvisionedSipConfig({
+      sipUsername: String(sipUsername),
+      sipPassword: String(sipPassword),
+      sipDomain: String(sipDomain),
+    });
+
     domainInput.value = String(sipDomain);
+
+    extInput.value = "";
+    passInput.value = "";
   } catch (err) {
     return {
       ok: false,
@@ -48,7 +57,7 @@ export function applyProvisionedConfigToDesktopInputs({
   }
 
   try {
-    if (typeof saveSessionPassword === "function") saveSessionPassword(String(sipPassword));
+    void saveSessionPassword;
   } catch {}
 
   try {
