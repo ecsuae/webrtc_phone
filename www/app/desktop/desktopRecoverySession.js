@@ -1,3 +1,5 @@
+import { getActiveDesktopAutoProvisioningSession } from "./features/auto_provisioning/desktopProvisioningSession.js";
+
 const PASS_KEY = "webrtc_last_pass";
 
 export function saveSessionPassword(pass) {
@@ -16,6 +18,12 @@ export function clearSessionPassword() {
 export function hydratePasswordInput(passInput, logLine) {
   if (!passInput || passInput.value) return;
   try {
+    if (getActiveDesktopAutoProvisioningSession()) {
+      try {
+        sessionStorage.removeItem(PASS_KEY);
+      } catch {}
+      return;
+    }
     const savedPass = sessionStorage.getItem(PASS_KEY);
     if (!savedPass) return;
     passInput.value = savedPass;

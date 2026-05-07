@@ -11,6 +11,55 @@ import {
   loadSavedAutoProvisioningCreds,
   saveAutoProvisioningCreds,
 } from "./desktopAutoProvisioningStorage.js";
+import { clearSessionPassword } from "../../desktopRecoverySession.js";
+
+function disableManualSipLoginInputs() {
+  try {
+    const ext = document.getElementById("ext");
+    const pass = document.getElementById("pass");
+    if (ext) {
+      if (!ext.dataset.__prevAutocomplete) ext.dataset.__prevAutocomplete = String(ext.getAttribute("autocomplete") || "");
+      ext.value = "";
+      ext.disabled = true;
+      ext.setAttribute("autocomplete", "off");
+      ext.setAttribute("data-lpignore", "true");
+      ext.setAttribute("data-1p-ignore", "true");
+    }
+    if (pass) {
+      if (!pass.dataset.__prevAutocomplete) pass.dataset.__prevAutocomplete = String(pass.getAttribute("autocomplete") || "");
+      pass.value = "";
+      pass.disabled = true;
+      pass.setAttribute("autocomplete", "off");
+      pass.setAttribute("data-lpignore", "true");
+      pass.setAttribute("data-1p-ignore", "true");
+    }
+  } catch {}
+}
+
+function restoreManualSipLoginInputs() {
+  try {
+    const ext = document.getElementById("ext");
+    const pass = document.getElementById("pass");
+    if (ext) {
+      ext.value = "";
+      ext.disabled = false;
+      const prev = String(ext.dataset.__prevAutocomplete || "");
+      if (prev) ext.setAttribute("autocomplete", prev);
+      else ext.removeAttribute("autocomplete");
+      ext.removeAttribute("data-lpignore");
+      ext.removeAttribute("data-1p-ignore");
+    }
+    if (pass) {
+      pass.value = "";
+      pass.disabled = false;
+      const prev = String(pass.dataset.__prevAutocomplete || "");
+      if (prev) pass.setAttribute("autocomplete", prev);
+      else pass.removeAttribute("autocomplete");
+      pass.removeAttribute("data-lpignore");
+      pass.removeAttribute("data-1p-ignore");
+    }
+  } catch {}
+}
 
 function setModalVisible(modalEl, visible) {
   if (!modalEl) return;
@@ -53,6 +102,7 @@ function syncSavedUi({ forgetBtn, saveChk } = {}) {
 export function closeAutoProvisioningModal({ clearStatus = true } = {}) {
   setModalVisible(document.getElementById("autoProvisionModal"), false);
   if (clearStatus) clearLocalStatus();
+  restoreManualSipLoginInputs();
 }
 
 export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = {}) {
@@ -83,6 +133,10 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
   startBtn.addEventListener("click", () => {
     const v = String(idEl?.value || "").trim();
     if (!v) return;
+    try {
+      clearSessionPassword();
+    } catch {}
+    disableManualSipLoginInputs();
     clearLocalStatus();
     setModalVisible(modalEl, true);
     try {
@@ -146,6 +200,7 @@ export function bindDesktopAutoProvisioningModalHandlers({ startAndRegister } = 
     } catch (err) {
       showLocalStatus(err?.message || String(err));
     } finally {
+      restoreManualSipLoginInputs();
       loginBtn.disabled = false;
     }
   });
