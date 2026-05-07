@@ -5,6 +5,8 @@
  * WireGuard / localhost access only.
  */
 
+const { renderAdminLayout } = require('../admin/adminLayout');
+
 const { ERROR_CATALOG } = require('../diagCatalog');
 
 function _esc(str) {
@@ -49,49 +51,41 @@ function renderDiagPage() {
   const cards = ERROR_CATALOG.map(_renderCard).join('\n');
   const now = new Date().toISOString();
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registration Error Codes — Admin</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  const headExtra = `<style>
+    .admin-shell .diag-page *, .admin-shell .diag-page *::before, .admin-shell .diag-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    .admin-shell .diag-page {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       line-height: 1.6;
-      background: #0f172a;
       color: #e2e8f0;
-      padding: 24px;
     }
 
-    header {
+    .admin-shell .diag-page header {
       max-width: 960px;
       margin: 0 auto 28px;
     }
 
-    header h1 {
+    .admin-shell .diag-page header h1 {
       font-size: 22px;
       font-weight: 700;
       color: #f1f5f9;
       margin-bottom: 4px;
     }
 
-    header .meta {
+    .admin-shell .diag-page header .meta {
       font-size: 12px;
       color: #64748b;
     }
 
-    header .meta a {
+    .admin-shell .diag-page header .meta a {
       color: #60a5fa;
       text-decoration: none;
     }
 
-    header .meta a:hover { text-decoration: underline; }
+    .admin-shell .diag-page header .meta a:hover { text-decoration: underline; }
 
-    .toc {
+    .admin-shell .diag-page .toc {
       max-width: 960px;
       margin: 0 auto 28px;
       background: #1e293b;
@@ -100,7 +94,7 @@ function renderDiagPage() {
       padding: 16px 20px;
     }
 
-    .toc h2 {
+    .admin-shell .diag-page .toc h2 {
       font-size: 13px;
       font-weight: 600;
       color: #94a3b8;
@@ -109,13 +103,13 @@ function renderDiagPage() {
       margin-bottom: 10px;
     }
 
-    .toc-grid {
+    .admin-shell .diag-page .toc-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
 
-    .toc-item {
+    .admin-shell .diag-page .toc-item {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -129,18 +123,18 @@ function renderDiagPage() {
       transition: border-color 0.15s, color 0.15s;
     }
 
-    .toc-item:hover {
+    .admin-shell .diag-page .toc-item:hover {
       border-color: #60a5fa;
       color: #60a5fa;
     }
 
-    .toc-item .toc-code {
+    .admin-shell .diag-page .toc-item .toc-code {
       font-family: 'Courier New', monospace;
       font-weight: 700;
       color: #f472b6;
     }
 
-    .cards {
+    .admin-shell .diag-page .cards {
       max-width: 960px;
       margin: 0 auto;
       display: flex;
@@ -148,7 +142,7 @@ function renderDiagPage() {
       gap: 20px;
     }
 
-    .card {
+    .admin-shell .diag-page .card {
       background: #1e293b;
       border: 1px solid #334155;
       border-radius: 12px;
@@ -156,7 +150,7 @@ function renderDiagPage() {
       scroll-margin-top: 20px;
     }
 
-    .card-header {
+    .admin-shell .diag-page .card-header {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -164,7 +158,7 @@ function renderDiagPage() {
       flex-wrap: wrap;
     }
 
-    .code-badge {
+    .admin-shell .diag-page .code-badge {
       font-family: 'Courier New', monospace;
       font-size: 14px;
       font-weight: 700;
@@ -175,13 +169,13 @@ function renderDiagPage() {
       border-radius: 6px;
     }
 
-    .short-label {
+    .admin-shell .diag-page .short-label {
       font-size: 16px;
       font-weight: 600;
       color: #f1f5f9;
     }
 
-    .layer-badge {
+    .admin-shell .diag-page .layer-badge {
       margin-left: auto;
       font-size: 11px;
       font-weight: 500;
@@ -192,25 +186,25 @@ function renderDiagPage() {
       border-radius: 20px;
     }
 
-    .description {
+    .admin-shell .diag-page .description {
       color: #94a3b8;
       margin-bottom: 16px;
       border-left: 3px solid #334155;
       padding-left: 12px;
     }
 
-    .two-col {
+    .admin-shell .diag-page .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
 
     @media (max-width: 640px) {
-      .two-col { grid-template-columns: 1fr; }
-      .layer-badge { margin-left: 0; }
+      .admin-shell .diag-page .two-col { grid-template-columns: 1fr; }
+      .admin-shell .diag-page .layer-badge { margin-left: 0; }
     }
 
-    h4 {
+    .admin-shell .diag-page h4 {
       font-size: 12px;
       font-weight: 600;
       color: #64748b;
@@ -219,42 +213,42 @@ function renderDiagPage() {
       margin-bottom: 8px;
     }
 
-    ul {
+    .admin-shell .diag-page ul {
       list-style: none;
       display: flex;
       flex-direction: column;
       gap: 5px;
     }
 
-    ul li {
+    .admin-shell .diag-page ul li {
       color: #cbd5e1;
       padding-left: 14px;
       position: relative;
     }
 
-    ul li::before {
+    .admin-shell .diag-page ul li::before {
       content: '›';
       position: absolute;
       left: 0;
       color: #475569;
     }
 
-    .two-col > div:last-child ul li::before {
+    .admin-shell .diag-page .two-col > div:last-child ul li::before {
       content: '✓';
       color: #22c55e;
       font-size: 11px;
     }
 
-    footer {
+    .admin-shell .diag-page footer {
       max-width: 960px;
       margin: 32px auto 0;
       font-size: 11px;
       color: #475569;
       text-align: center;
     }
-  </style>
-</head>
-<body>
+  </style>`;
+
+  const content = `<div class="diag-page">
 
 <header>
   <h1>Registration Error Code Reference</h1>
@@ -287,8 +281,15 @@ function renderDiagPage() {
   Doc: docs/10-registration-diagnostics-and-error-codes.md
 </footer>
 
-</body>
-</html>`;
+</div>`;
+
+  return renderAdminLayout({
+    active: 'diagnostics',
+    title: 'Diagnostics',
+    subtitle: 'Registration error codes reference.',
+    content,
+    headExtra,
+  });
 }
 
 module.exports = { renderDiagPage };
