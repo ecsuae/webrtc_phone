@@ -198,34 +198,31 @@ function removeRow(btn) { btn.closest('tr').remove(); }
 function addPbxRow(domain, host, label) {
   const d = domain || '', h2 = host || '', l = label || '';
   const tr = document.createElement('tr');
-  tr.innerHTML = \`
-    <td><input type="text" placeholder="pbx.example.com" value="${esc(d)}" class="pbx-domain"></td>
-    <td><input type="text" placeholder="pbx.example.com or 1.2.3.4" value="${esc(h2)}" class="pbx-host"></td>
-    <td><input type="text" placeholder="optional" value="${esc(l)}" class="pbx-label"></td>
-    <td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>
-  \`;
+  tr.innerHTML =
+    '<td><input type="text" placeholder="pbx.example.com" value="' + esc(d) + '" class="pbx-domain"></td>' +
+    '<td><input type="text" placeholder="pbx.example.com or 1.2.3.4" value="' + esc(h2) + '" class="pbx-host"></td>' +
+    '<td><input type="text" placeholder="optional" value="' + esc(l) + '" class="pbx-label"></td>' +
+    '<td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>';
   document.getElementById('pbxBody').appendChild(tr);
 }
 
 function addIpRow(ip, label) {
   const i = ip || '', l = label || '';
   const tr = document.createElement('tr');
-  tr.innerHTML = \`
-    <td><input type="text" placeholder="1.2.3.4" value="${esc(i)}" class="ip-val"></td>
-    <td><input type="text" placeholder="optional" value="${esc(l)}" class="ip-label"></td>
-    <td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>
-  \`;
+  tr.innerHTML =
+    '<td><input type="text" placeholder="1.2.3.4" value="' + esc(i) + '" class="ip-val"></td>' +
+    '<td><input type="text" placeholder="optional" value="' + esc(l) + '" class="ip-label"></td>' +
+    '<td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>';
   document.getElementById('ipBody').appendChild(tr);
 }
 
 function addDomRow(domain, label) {
   const d = domain || '', l = label || '';
   const tr = document.createElement('tr');
-  tr.innerHTML = \`
-    <td><input type="text" placeholder="pbx.example.com" value="${esc(d)}" class="dom-val"></td>
-    <td><input type="text" placeholder="optional" value="${esc(l)}" class="dom-label"></td>
-    <td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>
-  \`;
+  tr.innerHTML =
+    '<td><input type="text" placeholder="pbx.example.com" value="' + esc(d) + '" class="dom-val"></td>' +
+    '<td><input type="text" placeholder="optional" value="' + esc(l) + '" class="dom-label"></td>' +
+    '<td><button type="button" class="btn btn-remove" onclick="removeRow(this)">✕</button></td>';
   document.getElementById('domBody').appendChild(tr);
 }
 
