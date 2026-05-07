@@ -7,6 +7,8 @@
  * Saving does NOT auto-apply — operator must run `make routing-apply` on host.
  */
 
+const { renderAdminLayout } = require('./adminLayout');
+
 function h(str) {
   // Minimal HTML escape for values rendered in attributes/text
   return String(str || '')
@@ -39,155 +41,102 @@ function renderRoutingPage(currentEnv, savedConfig) {
   const editIps = savedIps.length > 0 ? savedIps : envIps;
   const editDomains = savedDomains.length > 0 ? savedDomains : envDomains;
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Routing Config — Admin</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:20px}
-  .wrap{max-width:960px;margin:0 auto}
-  h1{font-size:1.4rem;font-weight:700;color:#f1f5f9;margin-bottom:4px}
-  .subtitle{font-size:.85rem;color:#64748b;margin-bottom:20px}
-  nav{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
-  nav a{color:#38bdf8;font-size:.85rem;text-decoration:none}
-  nav a:hover{text-decoration:underline}
-  .card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:20px;margin-bottom:20px}
-  .card h2{font-size:1rem;font-weight:600;color:#cbd5e1;margin-bottom:14px;border-bottom:1px solid #334155;padding-bottom:8px}
-  .ro-grid{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.85rem}
-  .ro-grid .lbl{color:#64748b}
-  .ro-grid .val{color:#e2e8f0;font-family:monospace}
-  table{width:100%;border-collapse:collapse;font-size:.85rem}
-  th{text-align:left;color:#64748b;font-weight:600;padding:6px 8px;border-bottom:1px solid #334155}
-  td{padding:5px 8px;border-bottom:1px solid #1e293b;vertical-align:middle}
-  input[type=text]{background:#0f172a;border:1px solid #475569;border-radius:4px;color:#e2e8f0;
-    padding:4px 8px;font-size:.84rem;width:100%;font-family:monospace}
-  input[type=text]:focus{outline:none;border-color:#38bdf8}
-  .btn{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:.85rem;font-weight:600}
-  .btn-add{background:#1d4ed8;color:#fff}
-  .btn-add:hover{background:#2563eb}
-  .btn-remove{background:#7f1d1d;color:#fca5a5;padding:4px 10px}
-  .btn-remove:hover{background:#991b1b}
-  .btn-save{background:#15803d;color:#fff;font-size:.95rem;padding:8px 24px}
-  .btn-save:hover{background:#16a34a}
-  .btn-save:disabled{background:#334155;color:#64748b;cursor:not-allowed}
-  .apply-box{background:#172554;border:1px solid #1e40af;border-radius:6px;padding:14px;margin-top:16px}
-  .apply-box h3{color:#93c5fd;font-size:.9rem;margin-bottom:8px}
-  .apply-box code{display:block;font-family:monospace;font-size:.84rem;background:#0f172a;
-    border-radius:4px;padding:10px 12px;color:#86efac;margin:6px 0;white-space:pre-wrap}
-  .apply-box p{font-size:.82rem;color:#94a3b8;margin-top:6px}
-  .status{margin-top:10px;min-height:22px;font-size:.85rem}
-  .status.ok{color:#4ade80}
-  .status.err{color:#f87171}
-  .saved-ts{font-size:.78rem;color:#475569;margin-top:4px}
-  .warn-badge{display:inline-block;background:#713f12;color:#fde68a;border-radius:4px;
-    padding:1px 7px;font-size:.75rem;margin-left:8px}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Routing Configuration</h1>
-  <div class="subtitle">WireGuard admin — PBX domain mappings and trusted SIP sources</div>
-
-  <nav>
-    <a href="/dashboard">← Dashboard</a>
-    <a href="/diagnostics/errors">Diagnostics</a>
-    <a href="/admin/routing">Routing</a>
-    <a href="/admin/calllogs">Call Logs</a>
-    <a href="/admin/registrations">Registrations</a>
-    <a href="/admin/routing/config">Config JSON</a>
-  </nav>
-
-  <!-- Read-only context -->
-  <div class="card">
-    <h2>Current Loaded Config <span class="warn-badge">read-only</span></h2>
-    <div class="ro-grid">
-      <span class="lbl">Primary PBX</span><span class="val">${h(primaryPbxIp)}:${h(primaryPbxPort)}</span>
-      <span class="lbl">Public IP</span><span class="val">${h(publicIp)}</span>
-      <span class="lbl">Domain</span><span class="val">${h(domain)}</span>
+  const content = `
+  <div class="routing-page">
+    <div class="card" style="margin-bottom:14px">
+      <h2>Current Loaded Config <span class="badge warn">read-only</span></h2>
+      <div class="ro-grid">
+        <span class="lbl">Primary PBX</span><span class="val mono">${h(primaryPbxIp)}:${h(primaryPbxPort)}</span>
+        <span class="lbl">Public IP</span><span class="val mono">${h(publicIp)}</span>
+        <span class="lbl">Domain</span><span class="val mono">${h(domain)}</span>
+      </div>
+      <div style="margin-top:14px">
+        <table>
+          <thead><tr><th>PBX Domain (active)</th><th>Host (active)</th></tr></thead>
+          <tbody>
+            ${
+              envMappings.length === 0
+                ? '<tr><td colspan="2" style="color:var(--muted)">None loaded</td></tr>'
+                : envMappings
+                    .map(
+                      (m) =>
+                        `<tr><td class="mono">${h(m.domain)}</td><td class="mono">${h(m.host)}</td></tr>`
+                    )
+                    .join('')
+            }
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <table>
+          <thead><tr><th>Trusted IP (active)</th><th>Trusted Domain (active)</th></tr></thead>
+          <tbody>
+            ${
+              Math.max(envIps.length, envDomains.length, 1) === 1 && envIps.length === 0 && envDomains.length === 0
+                ? '<tr><td colspan="2" style="color:var(--muted)">None loaded</td></tr>'
+                : Array.from({ length: Math.max(envIps.length, envDomains.length) }, (_, i) =>
+                    `<tr><td class="mono">${envIps[i] ? h(envIps[i].ip) : ''}</td><td class="mono">${envDomains[i] ? h(envDomains[i].domain) : ''}</td></tr>`
+                  ).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="saved-ts">Values above are from process.env — what Kamailio is currently using.</div>
     </div>
-    <div style="margin-top:14px">
-      <table>
-        <thead><tr><th>PBX Domain (active)</th><th>Host (active)</th></tr></thead>
-        <tbody>
-          ${envMappings.length === 0 ? '<tr><td colspan="2" style="color:#475569">None loaded</td></tr>' :
-            envMappings.map(m => `<tr><td style="font-family:monospace">${h(m.domain)}</td><td style="font-family:monospace">${h(m.host)}</td></tr>`).join('')}
-        </tbody>
+
+    <div class="card">
+      <h2>Edit Routing Config</h2>
+      ${
+        savedAt
+          ? `<div class="saved-ts">Last saved: ${h(savedAt)}</div>`
+          : '<div class="saved-ts">No saved config yet — form seeded from current env.</div>'
+      }
+
+      <form id="routingForm">
+
+      <h3 style="font-size:.9rem;color:#94a3b8;margin:16px 0 8px">PBX Domain → Host Mappings</h3>
+      <table id="pbxTable">
+        <thead><tr><th style="width:40%">Domain</th><th style="width:40%">Host / IP</th><th style="width:14%">Label</th><th style="width:6%"></th></tr></thead>
+        <tbody id="pbxBody"></tbody>
       </table>
-    </div>
-    <div style="margin-top:10px">
-      <table>
-        <thead><tr><th>Trusted IP (active)</th><th>Trusted Domain (active)</th></tr></thead>
-        <tbody>
-          ${Math.max(envIps.length, envDomains.length, 1) === 1 && envIps.length === 0 && envDomains.length === 0
-            ? '<tr><td colspan="2" style="color:#475569">None loaded</td></tr>'
-            : Array.from({ length: Math.max(envIps.length, envDomains.length) }, (_, i) =>
-                `<tr><td style="font-family:monospace">${envIps[i] ? h(envIps[i].ip) : ''}</td><td style="font-family:monospace">${envDomains[i] ? h(envDomains[i].domain) : ''}</td></tr>`
-              ).join('')}
-        </tbody>
+      <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addPbxRow()">+ Add mapping</button>
+
+      <h3 style="font-size:.9rem;color:#94a3b8;margin:20px 0 8px">Trusted SIP IPs</h3>
+      <table id="ipTable">
+        <thead><tr><th style="width:40%">IPv4 Address</th><th style="width:52%">Label / Comment</th><th style="width:8%"></th></tr></thead>
+        <tbody id="ipBody"></tbody>
       </table>
-    </div>
-    <div class="saved-ts">Values above are from process.env — what Kamailio is currently using.</div>
-  </div>
+      <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addIpRow()">+ Add IP</button>
 
-  <!-- Editable config -->
-  <div class="card">
-    <h2>Edit Routing Config</h2>
-    ${savedAt ? `<div class="saved-ts">Last saved: ${h(savedAt)}</div>` : '<div class="saved-ts">No saved config yet — form seeded from current env.</div>'}
+      <h3 style="font-size:.9rem;color:#94a3b8;margin:20px 0 8px">Trusted SIP Domains</h3>
+      <table id="domTable">
+        <thead><tr><th style="width:46%">Domain</th><th style="width:46%">Label / Comment</th><th style="width:8%"></th></tr></thead>
+        <tbody id="domBody"></tbody>
+      </table>
+      <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addDomRow()">+ Add domain</button>
 
-    <form id="routingForm">
+      <div style="margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <button type="button" id="saveBtn" class="btn btn-save" onclick="saveConfig()">Save to routing-config.json</button>
+        <div id="statusMsg" class="status"></div>
+      </div>
 
-    <!-- PBX Mappings -->
-    <h3 style="font-size:.9rem;color:#94a3b8;margin:16px 0 8px">PBX Domain → Host Mappings</h3>
-    <table id="pbxTable">
-      <thead><tr><th style="width:40%">Domain</th><th style="width:40%">Host / IP</th><th style="width:14%">Label</th><th style="width:6%"></th></tr></thead>
-      <tbody id="pbxBody">
-      </tbody>
-    </table>
-    <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addPbxRow()">+ Add mapping</button>
+      </form>
 
-    <!-- Trusted IPs -->
-    <h3 style="font-size:.9rem;color:#94a3b8;margin:20px 0 8px">Trusted SIP IPs</h3>
-    <table id="ipTable">
-      <thead><tr><th style="width:40%">IPv4 Address</th><th style="width:52%">Label / Comment</th><th style="width:8%"></th></tr></thead>
-      <tbody id="ipBody">
-      </tbody>
-    </table>
-    <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addIpRow()">+ Add IP</button>
-
-    <!-- Trusted Domains -->
-    <h3 style="font-size:.9rem;color:#94a3b8;margin:20px 0 8px">Trusted SIP Domains</h3>
-    <table id="domTable">
-      <thead><tr><th style="width:46%">Domain</th><th style="width:46%">Label / Comment</th><th style="width:8%"></th></tr></thead>
-      <tbody id="domBody">
-      </tbody>
-    </table>
-    <button type="button" class="btn btn-add" style="margin-top:8px" onclick="addDomRow()">+ Add domain</button>
-
-    <div style="margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <button type="button" id="saveBtn" class="btn btn-save" onclick="saveConfig()">Save to routing-config.json</button>
-      <div id="statusMsg" class="status"></div>
-    </div>
-
-    </form>
-
-    <div class="apply-box" style="margin-top:20px">
-      <h3>Applying Changes</h3>
-      <p>Saving writes <strong>routing-config.json</strong> only. To activate changes in Kamailio:</p>
-      <code>ssh your-server
+      <div class="apply-box" style="margin-top:20px">
+        <h3>Applying Changes</h3>
+        <p>Saving writes <strong>routing-config.json</strong> only. To activate changes in Kamailio:</p>
+        <code>ssh your-server
 cd /opt/webrtc-sbc
 make routing-apply</code>
-      <p><code style="display:inline;background:none;padding:0;color:#93c5fd">make routing-apply</code> reads routing-config.json, updates .env PBX_MAP_* and TRUSTED_SIP_* entries, runs <code style="display:inline;background:none;padding:0;color:#93c5fd">make render</code>, and prints restart instructions.</p>
-      <code>docker compose restart kamailio</code>
-      <p>Changes to trusted IPs and domain mappings take effect after Kamailio restart. No browser reload needed.</p>
+        <p><code style="display:inline;background:none;padding:0;color:#93c5fd">make routing-apply</code> reads routing-config.json, updates .env PBX_MAP_* and TRUSTED_SIP_* entries, runs <code style="display:inline;background:none;padding:0;color:#93c5fd">make render</code>, and prints restart instructions.</p>
+        <code>docker compose restart kamailio</code>
+        <p>Changes to trusted IPs and domain mappings take effect after Kamailio restart. No browser reload needed.</p>
+      </div>
     </div>
   </div>
+  `;
 
-</div>
-
-<script>
+  const scripts = `<script>
 // Seed data from server
 const INIT_MAPPINGS = ${JSON.stringify(editMappings)};
 const INIT_IPS = ${JSON.stringify(editIps)};
@@ -285,9 +234,37 @@ async function saveConfig() {
 INIT_MAPPINGS.forEach(m => addPbxRow(m.domain, m.host, m.label));
 INIT_IPS.forEach(t => addIpRow(t.ip, t.label));
 INIT_DOMS.forEach(t => addDomRow(t.domain, t.label));
-</script>
-</body>
-</html>`;
+</script>`;
+
+  const headExtra = `<style>
+  .admin-shell .routing-page input[type=text]{background:rgba(15,23,42,.65);border:1px solid rgba(148,163,184,.25);border-radius:10px;color:rgba(226,232,240,.95);padding:8px 10px;font-size:.88rem;width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+  .admin-shell .routing-page input[type=text]:focus{outline:none;border-color:rgba(56,189,248,.55);box-shadow:0 0 0 3px rgba(56,189,248,.12);}
+  .admin-shell .routing-page .btn{padding:7px 14px;border:none;border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:700;}
+  .admin-shell .routing-page .btn-add{background:rgba(37,99,235,.85);color:#fff;}
+  .admin-shell .routing-page .btn-add:hover{background:rgba(29,78,216,.95);}
+  .admin-shell .routing-page .btn-remove{background:rgba(127,29,29,.9);color:#fecaca;padding:6px 12px;}
+  .admin-shell .routing-page .btn-remove:hover{background:rgba(153,27,27,.95);}
+  .admin-shell .routing-page .btn-save{background:rgba(22,163,74,.9);color:#fff;font-size:.92rem;padding:9px 18px;}
+  .admin-shell .routing-page .btn-save:hover{background:rgba(21,128,61,.95);}
+  .admin-shell .routing-page .btn-save:disabled{background:rgba(148,163,184,.15);color:rgba(148,163,184,.8);cursor:not-allowed;}
+  .admin-shell .routing-page .apply-box{background:rgba(23,37,84,.55);border:1px solid rgba(30,64,175,.35);border-radius:14px;padding:14px;}
+  .admin-shell .routing-page .apply-box h3{color:#93c5fd;font-size:.9rem;margin-bottom:8px;}
+  .admin-shell .routing-page .apply-box code{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.86rem;background:rgba(15,23,42,.7);border-radius:12px;padding:10px 12px;color:#86efac;margin:6px 0;white-space:pre-wrap;border:1px solid rgba(148,163,184,.18);}
+  .admin-shell .routing-page .apply-box p{font-size:.86rem;color:#94a3b8;margin-top:6px;}
+  .admin-shell .routing-page .status{min-height:22px;font-size:.88rem;}
+  .admin-shell .routing-page .status.ok{color:#4ade80;}
+  .admin-shell .routing-page .status.err{color:#f87171;}
+  .admin-shell .routing-page .saved-ts{font-size:.82rem;color:rgba(148,163,184,.85);margin-top:6px;}
+  </style>`;
+
+  return renderAdminLayout({
+    active: 'routing',
+    title: 'Routing Config',
+    subtitle: 'PBX domain mappings and trusted SIP sources.',
+    content,
+    headExtra,
+    scripts,
+  });
 }
 
 module.exports = { renderRoutingPage };
